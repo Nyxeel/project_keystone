@@ -1,0 +1,10 @@
+.logs
+.venv/
+.env
+__pycache__/
+work/
+project/
+hytale-server/
+hytale-server2/
+
+HytaleServer.jar

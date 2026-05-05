@@ -1,0 +1,6 @@
+loguru
+wget
+python-git-wrapper
+tqdm
+python-dotenv
+ruff
