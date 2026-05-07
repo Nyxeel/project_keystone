@@ -29,7 +29,8 @@ public final class NpcScheduler {
     }
 
     public void start() {
-        if (running) return;
+        if (running)
+			return;
         running = true;
         thread = new Thread(this::loop, "KeystoneNPC-Scheduler");
         thread.setDaemon(true);

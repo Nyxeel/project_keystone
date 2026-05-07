@@ -155,11 +155,11 @@
         "editorGroup.border": "#3f4541",
 
         // HIGHLIGHT CURRENT LINE
-        "editor.lineHighlightBackground": "#013618",
+        "editor.lineHighlightBackground": "#200136",
         "editor.lineHighlightBorder": "#6a0269",
 
-        "activityBar.background": "#420d2e",
-        "titleBar.activeBackground": "#420d2e",
+        "activityBar.background": "#21010a",
+        "titleBar.activeBackground": "#21010a",
         "titleBar.activeForeground": "#FDFBF7"
     },
 
@@ -191,5 +191,6 @@
     "C_Cpp.codeAnalysis.clangTidy.useBuildPath": true,
 	"C_Cpp.codeAnalysis.enabled": true,
 	"C_Cpp.default.compilerPath": "/usr/bin/c++",
+	"java.compile.nullAnalysis.mode": "automatic",
 
 }
