@@ -1,21 +1,4 @@
-# Maven build output
+jeffrey_tasks/HytaleServer.jar
+jeffrey_tasks/HytaleServer.jar
+*.jar
 target/
-
-# Java compiled files
-*.class
-
-# Logs
-*.log
-
-# IDE files
-.idea/
-.vscode/
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# Temporary files
-*.tmp
-*.swp
-*~
