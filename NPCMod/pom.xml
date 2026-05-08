@@ -17,7 +17,16 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
-    <!-- insert API from Hytale here -->
+    <dependencies>
+        <!-- Hytale Server API: nur zum Kompilieren, wird nicht in deine Mod-JAR gepackt -->
+        <dependency>
+            <groupId>com.hypixel.hytale</groupId>
+            <artifactId>hytale-server</artifactId>
+            <version>2026.04.30-b4f6a911e</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/libs/HytaleServer.jar</systemPath>
+        </dependency>
+    </dependencies>
 
     <build>
         <finalName>KeystoneNPC-${project.version}</finalName>
