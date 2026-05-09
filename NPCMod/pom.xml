@@ -22,7 +22,7 @@
         <dependency>
             <groupId>com.hypixel.hytale</groupId>
             <artifactId>hytale-server</artifactId>
-            <version>2026.04.30-b4f6a911e</version>
+            <version>2026.05.07-5efa15f6d</version>
             <scope>system</scope>
             <systemPath>${project.basedir}/libs/HytaleServer.jar</systemPath>
         </dependency>

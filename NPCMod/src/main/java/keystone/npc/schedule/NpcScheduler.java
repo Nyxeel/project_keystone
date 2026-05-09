@@ -6,6 +6,8 @@ import keystone.npc.model.NpcState;
 import keystone.npc.world.MarkerRegistry;
 import keystone.npc.world.MarkerType;
 
+import com.hypixel.hytale.component.Ref;
+import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import java.time.LocalTime;
 import java.util.*;
 
@@ -62,6 +64,14 @@ public final class NpcScheduler {
         npc.workMarkerId(markerRegistry.getActive(MarkerType.WORK).map(m -> m.markerId()).orElse(null));
 
         npcs.put(npc.npcId(), npc);
+        return npc;
+    }
+
+    public NpcRecord linkEntityRef(String npcId, Ref<EntityStore> entityRef) {
+        NpcRecord npc = npcs.get(npcId);
+        if (npc != null) {
+            npc.entityRef(entityRef);
+        }
         return npc;
     }
 

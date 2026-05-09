@@ -1,5 +1,7 @@
 package keystone.npc.model;
 
+import com.hypixel.hytale.component.Ref;
+import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import keystone.npc.world.Vec3;
 import keystone.npc.world.WorldId;
 
@@ -29,6 +31,8 @@ public final class NpcRecord {
     private String bedMarkerId;
     private String doorMarkerId;
     private String workMarkerId;
+
+    private transient Ref<EntityStore> entityRef;
 
     public NpcRecord(String npcId, String npcName, NpcRole role, WorldId worldId) {
         this.npcId = Objects.requireNonNull(npcId);
@@ -67,4 +71,7 @@ public final class NpcRecord {
 
     public String workMarkerId() { return workMarkerId; }
     public void workMarkerId(String v) { this.workMarkerId = v; }
+
+    public Ref<EntityStore> entityRef() { return entityRef; }
+    public void entityRef(Ref<EntityStore> entityRef) { this.entityRef = entityRef; }
 }

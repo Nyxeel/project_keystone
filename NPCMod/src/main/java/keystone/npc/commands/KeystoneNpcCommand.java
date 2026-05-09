@@ -10,6 +10,8 @@ import com.hypixel.hytale.server.core.command.system.basecommands.AbstractComman
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
 import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
+import com.hypixel.hytale.math.vector.Rotation3f;
+import com.hypixel.hytale.server.npc.NPCPlugin;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
@@ -163,7 +165,30 @@ public final class KeystoneNpcCommand extends AbstractCommandCollection {
             }
 
             String name = nameArg.get(context);
-            var npc = scheduler.spawnLumberjack(java.util.UUID.randomUUID().toString(), name, new WorldId(world.getName()));
+
+            TransformComponent transform = store.getComponent(ref, TransformComponent.getComponentType());
+            if (transform == null) {
+                context.sendMessage(Message.raw("[knpc] Could not read player position."));
+                return;
+            }
+
+            Vector3d pos = transform.getPosition();
+            String roleName = "Lumberjack";
+            int roleIndex = NPCPlugin.get().getIndex(roleName);
+            if (roleIndex < 0) {
+                context.sendMessage(Message.raw("[knpc] Role not found: " + roleName));
+                return;
+            }
+
+            var pair = NPCPlugin.get().spawnEntity(store, roleIndex, pos, Rotation3f.IDENTITY, null, null);
+            if (pair == null) {
+                context.sendMessage(Message.raw("[knpc] Failed to spawn NPC"));
+                return;
+            }
+
+            String npcId = java.util.UUID.randomUUID().toString();
+            var npc = scheduler.spawnLumberjack(npcId, name, new WorldId(world.getName()));
+            scheduler.linkEntityRef(npcId, pair.first());
 
             context.sendMessage(Message.raw("[knpc] Spawned lumberjack '" + npc.npcName() + "' (id=" + npc.npcId() + ")"));
         }

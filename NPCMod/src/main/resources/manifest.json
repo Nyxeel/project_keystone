@@ -1,8 +1,14 @@
 {
-	"group": "keystone",
-	"name": "KeystoneNPC",
-  	"version": "0.1.0",
-	"Main": "keystone.npc.KeystoneNPCPlugin",
-	"includesAssetPack": true,
-	"ServerVersion": "2026.04.30-b4f6a911e"
+  "Group": "keystone",
+  "Name": "KeystoneNPC",
+  "Version": "0.1.0",
+  "Description": "Keystone NPC MVP A",
+  "Authors": [
+    {
+      "Name": "Nyxeel"
+    }
+  ],
+  "Main": "keystone.npc.KeystoneNPCPlugin",
+  "IncludesAssetPack": true,
+  "ServerVersion": "2026.05.07-5efa15f6d"
 }
