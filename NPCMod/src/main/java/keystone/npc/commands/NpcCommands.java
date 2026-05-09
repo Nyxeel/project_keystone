@@ -1,51 +1,30 @@
 package keystone.npc.commands;
 
-import keystone.npc.schedule.NpcScheduler;
-import keystone.npc.world.*;
-
+import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 import java.util.Objects;
-import java.util.UUID;
+import keystone.npc.KeystoneNPCPlugin;
+import keystone.npc.schedule.NpcScheduler;
+import keystone.npc.world.MarkerRegistry;
 
 /**
- * MVP A Commands (Platzhalter).
+ * MVP A: Command registration.
  *
- * Intended commands:
- * - /npcmarker set bed|door|work
- * - /npc spawn lumberjack <name?>
- * - /npc debug
+ * Registers {@link KeystoneNpcCommand} as /knpc.
  */
 public final class NpcCommands {
 
+    private final KeystoneNPCPlugin plugin;
     private final MarkerRegistry markerRegistry;
     private final NpcScheduler scheduler;
 
-    public NpcCommands(MarkerRegistry markerRegistry, NpcScheduler scheduler) {
+    public NpcCommands(KeystoneNPCPlugin plugin, MarkerRegistry markerRegistry, NpcScheduler scheduler) {
+        this.plugin = Objects.requireNonNull(plugin);
         this.markerRegistry = Objects.requireNonNull(markerRegistry);
         this.scheduler = Objects.requireNonNull(scheduler);
     }
 
     public void registerAll() {
-        // TODO: hook into Hytale command system.
-        // For now: no-op.
-    }
-
-    // --- Marker ---
-
-    public void npcmarkerSet(MarkerType type, WorldId worldId, Vec3 position) {
-        String markerId = UUID.randomUUID().toString();
-        markerRegistry.upsert(new MarkerRecord(markerId, worldId, position, type));
-        System.out.println("[KeystoneNPC] marker set " + type + " id=" + markerId + " pos=" + position);
-    }
-
-    // --- NPC ---
-
-    public void npcSpawnLumberjack(String name, WorldId worldId) {
-        var id = UUID.randomUUID().toString();
-        var npc = scheduler.spawnLumberjack(id, name == null ? "Lumberjack" : name, worldId);
-        System.out.println("[KeystoneNPC] spawned lumberjack id=" + npc.npcId() + " name=" + npc.npcName());
-    }
-
-    public void npcDebug() {
-        // TODO: print scheduler snapshot + active markers
+        // Hytale-style registration (see: many built-in plugins)
+        plugin.getCommandRegistry().registerCommand(new KeystoneNpcCommand(markerRegistry, scheduler));
     }
 }

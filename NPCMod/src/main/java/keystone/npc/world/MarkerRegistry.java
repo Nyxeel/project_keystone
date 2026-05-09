@@ -22,6 +22,18 @@ public final class MarkerRegistry {
         lastByType.put(marker.type(), marker.markerId());
     }
 
+    /** MVP A helper: set active marker for a type (creates a new record). */
+    public void setActive(MarkerType type, WorldId worldId, Vec3 position) {
+        String markerId = java.util.UUID.randomUUID().toString();
+        upsert(new MarkerRecord(markerId, worldId, position, type));
+    }
+
+    /** MVP A helper: clear all markers. */
+    public void clear() {
+        byId.clear();
+        lastByType.clear();
+    }
+
     public Optional<MarkerRecord> getById(String markerId) {
         return Optional.ofNullable(byId.get(markerId));
     }

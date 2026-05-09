@@ -18,7 +18,7 @@ public class KeystoneNPCPlugin extends JavaPlugin {
     private final StateStore stateStore = new JsonFileStateStore("keystone-npc/state.json");
     private final NpcScheduler scheduler = new NpcScheduler(markerRegistry);
 
-    private final NpcCommands commands = new NpcCommands(markerRegistry, scheduler);
+    private NpcCommands commands;
 
     public KeystoneNPCPlugin(JavaPluginInit init) {
         super(init);
@@ -40,7 +40,7 @@ public class KeystoneNPCPlugin extends JavaPlugin {
         scheduler.restore(loaded.npcs());
 
         // 2) Register commands
-        // TODO: echte Command-Registrierung (Hytale)
+        commands = new NpcCommands(this, markerRegistry, scheduler);
         commands.registerAll();
     }
 
