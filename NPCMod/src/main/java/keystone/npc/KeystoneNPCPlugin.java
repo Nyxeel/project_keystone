@@ -2,6 +2,7 @@ package keystone.npc;
 
 import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
+import com.hypixel.hytale.server.core.universe.world.events.AllWorldsLoadedEvent;
 
 import keystone.npc.commands.NpcCommands;
 import keystone.npc.persist.JsonFileStateStore;
@@ -36,12 +37,22 @@ public class KeystoneNPCPlugin extends JavaPlugin {
         // 1) Load persisted state
         // TODO: Pfad in server/mod data dir auflösen (z.B. über getFile()/server data dir)
         var loaded = stateStore.load();
-        markerRegistry.restore(loaded.markers());
+        markerRegistry.restore(loaded.markers(), loaded.activeMarkerIds());
         scheduler.restore(loaded.npcs());
+
+        // Restore saved NPC entities once all worlds are available.
+        getEventRegistry().registerGlobal(AllWorldsLoadedEvent.class, event -> {
+            int queued = scheduler.spawnRestoredNpcs("all-worlds-loaded-event");
+            System.out.println("[KeystoneNPC] World-load respawn trigger queued " + queued + " NPC(s).");
+        });
 
         // 2) Register commands
         commands = new NpcCommands(this, markerRegistry, scheduler);
         commands.registerAll();
+    }
+
+    public void saveState() {
+        stateStore.save(markerRegistry.snapshot(), scheduler.snapshot(), markerRegistry.snapshotActiveMarkerIds());
     }
 
     /** Called after setup(), when the server is ready and the plugin should start running. */
@@ -51,6 +62,9 @@ public class KeystoneNPCPlugin extends JavaPlugin {
 
         // TODO: echten Server-Tick/Timer anbinden
         scheduler.start();
+
+        int queued = scheduler.spawnRestoredNpcs("plugin-start");
+        System.out.println("[KeystoneNPC] Startup respawn trigger queued " + queued + " NPC(s).");
 
         System.out.println("[KeystoneNPC] started.");
     }
@@ -63,7 +77,7 @@ public class KeystoneNPCPlugin extends JavaPlugin {
         scheduler.stop();
 
         // Save state
-        stateStore.save(markerRegistry.snapshot(), scheduler.snapshot());
+        saveState();
 
         System.out.println("[KeystoneNPC] stopped.");
     }

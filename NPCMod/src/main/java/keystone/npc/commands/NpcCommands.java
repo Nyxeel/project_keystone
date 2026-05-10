@@ -1,6 +1,5 @@
 package keystone.npc.commands;
 
-import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 import java.util.Objects;
 import keystone.npc.KeystoneNPCPlugin;
 import keystone.npc.schedule.NpcScheduler;
@@ -25,6 +24,6 @@ public final class NpcCommands {
 
     public void registerAll() {
         // Hytale-style registration (see: many built-in plugins)
-        plugin.getCommandRegistry().registerCommand(new KeystoneNpcCommand(markerRegistry, scheduler));
+        plugin.getCommandRegistry().registerCommand(new KeystoneNpcCommand(plugin, markerRegistry, scheduler));
     }
 }

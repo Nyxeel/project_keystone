@@ -18,6 +18,7 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import java.util.Locale;
 import java.util.Objects;
 import javax.annotation.Nonnull;
+import keystone.npc.KeystoneNPCPlugin;
 import keystone.npc.schedule.NpcScheduler;
 import keystone.npc.world.MarkerRegistry;
 import keystone.npc.world.MarkerType;
@@ -30,14 +31,20 @@ import org.joml.Vector3d;
  * - /knpc marker set <bed|door|work>
  * - /knpc marker clear
  * - /knpc spawn lumberjack <name>
+ * - /knpc list
+ * - /knpc remove <npcId>
+ * - /knpc clear
  * - /knpc status
  */
 public final class KeystoneNpcCommand extends AbstractCommandCollection {
 
-    public KeystoneNpcCommand(MarkerRegistry markerRegistry, NpcScheduler scheduler) {
+    public KeystoneNpcCommand(KeystoneNPCPlugin plugin, MarkerRegistry markerRegistry, NpcScheduler scheduler) {
         super("knpc", "keystone.commands.knpc");
         this.addSubCommand(new MarkerCommand(markerRegistry));
-        this.addSubCommand(new SpawnCommand(markerRegistry, scheduler));
+        this.addSubCommand(new SpawnCommand(plugin, markerRegistry, scheduler));
+        this.addSubCommand(new NpcListCommand(scheduler));
+        this.addSubCommand(new NpcRemoveCommand(plugin, scheduler));
+        this.addSubCommand(new NpcClearCommand(plugin, scheduler));
         this.addSubCommand(new StatusCommand(markerRegistry, scheduler));
     }
 
@@ -128,9 +135,9 @@ public final class KeystoneNpcCommand extends AbstractCommandCollection {
 
     private static final class SpawnCommand extends AbstractCommandCollection {
 
-        SpawnCommand(MarkerRegistry markerRegistry, NpcScheduler scheduler) {
+        SpawnCommand(KeystoneNPCPlugin plugin, MarkerRegistry markerRegistry, NpcScheduler scheduler) {
             super("spawn", "keystone.commands.knpc.spawn");
-            this.addSubCommand(new SpawnLumberjackCommand(markerRegistry, scheduler));
+            this.addSubCommand(new SpawnLumberjackCommand(plugin, markerRegistry, scheduler));
         }
     }
 
@@ -139,11 +146,13 @@ public final class KeystoneNpcCommand extends AbstractCommandCollection {
         @Nonnull
         private final RequiredArg<String> nameArg = this.withRequiredArg("name", "keystone.commands.knpc.spawn.name", ArgTypes.STRING);
 
+        private final KeystoneNPCPlugin plugin;
         private final MarkerRegistry markerRegistry;
         private final NpcScheduler scheduler;
 
-        SpawnLumberjackCommand(MarkerRegistry markerRegistry, NpcScheduler scheduler) {
+        SpawnLumberjackCommand(KeystoneNPCPlugin plugin, MarkerRegistry markerRegistry, NpcScheduler scheduler) {
             super("lumberjack", "keystone.commands.knpc.spawn.lumberjack");
+            this.plugin = Objects.requireNonNull(plugin);
             this.markerRegistry = Objects.requireNonNull(markerRegistry);
             this.scheduler = Objects.requireNonNull(scheduler);
         }
@@ -172,7 +181,14 @@ public final class KeystoneNpcCommand extends AbstractCommandCollection {
                 return;
             }
 
-            Vector3d pos = transform.getPosition();
+            Vector3d playerPos = transform.getPosition();
+            Rotation3f playerRotation = transform.getRotation();
+
+            // Spawn 2 blocks in front of player
+            Vector3d forward = new Vector3d(0, 0, -2);
+            playerRotation.transform(forward);
+            Vector3d spawnPos = new Vector3d(playerPos).add(forward);
+
             String roleName = "Lumberjack";
             int roleIndex = NPCPlugin.get().getIndex(roleName);
             if (roleIndex < 0) {
@@ -180,17 +196,96 @@ public final class KeystoneNpcCommand extends AbstractCommandCollection {
                 return;
             }
 
-            var pair = NPCPlugin.get().spawnEntity(store, roleIndex, pos, Rotation3f.IDENTITY, null, null);
+            var pair = NPCPlugin.get().spawnEntity(store, roleIndex, spawnPos, Rotation3f.IDENTITY, null, null);
             if (pair == null) {
                 context.sendMessage(Message.raw("[knpc] Failed to spawn NPC"));
                 return;
             }
 
             String npcId = java.util.UUID.randomUUID().toString();
-            var npc = scheduler.spawnLumberjack(npcId, name, new WorldId(world.getName()));
+            var npc = scheduler.spawnLumberjack(npcId, name, new WorldId(world.getName()), new Vec3(spawnPos.x(), spawnPos.y(), spawnPos.z()));
             scheduler.linkEntityRef(npcId, pair.first());
+            markerRegistry.clearActive();
+            plugin.saveState();
 
-            context.sendMessage(Message.raw("[knpc] Spawned lumberjack '" + npc.npcName() + "' (id=" + npc.npcId() + ")"));
+            context.sendMessage(Message.raw("[knpc] Spawned lumberjack '" + npc.npcName()
+                + "' (id=" + npc.npcId() + "). Active markers reset."));
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // npc management
+    // -------------------------------------------------------------------------
+
+    private static final class NpcListCommand extends CommandBase {
+
+        private final NpcScheduler scheduler;
+
+        NpcListCommand(NpcScheduler scheduler) {
+            super("list", "keystone.commands.knpc.npc.list");
+            this.scheduler = Objects.requireNonNull(scheduler);
+        }
+
+        @Override
+        protected void executeSync(@Nonnull CommandContext context) {
+            var npcs = scheduler.snapshot();
+            if (npcs.isEmpty()) {
+                context.sendMessage(Message.raw("[knpc] No NPCs saved."));
+                return;
+            }
+
+            context.sendMessage(Message.raw("[knpc] NPCs:"));
+            for (int i = 0; i < npcs.size(); i++) {
+                var npc = npcs.get(i);
+                context.sendMessage(Message.raw(i + " - " + npc.npcId() + " | " + npc.npcName() + " | " + npc.role() + " | " + npc.state()));
+            }
+        }
+    }
+
+    private static final class NpcRemoveCommand extends CommandBase {
+
+        @Nonnull
+        private final RequiredArg<Integer> indexArg = this.withRequiredArg("index", "keystone.commands.knpc.remove.index", ArgTypes.INTEGER);
+
+        private final KeystoneNPCPlugin plugin;
+        private final NpcScheduler scheduler;
+
+        NpcRemoveCommand(KeystoneNPCPlugin plugin, NpcScheduler scheduler) {
+            super("remove", "keystone.commands.knpc.remove");
+            this.plugin = Objects.requireNonNull(plugin);
+            this.scheduler = Objects.requireNonNull(scheduler);
+        }
+
+        @Override
+        protected void executeSync(@Nonnull CommandContext context) {
+            int index = indexArg.get(context);
+            boolean removed = scheduler.removeNpcByIndex(index);
+            if (!removed) {
+                context.sendMessage(Message.raw("[knpc] Invalid NPC index: " + index));
+                return;
+            }
+
+            plugin.saveState();
+            context.sendMessage(Message.raw("[knpc] Removed NPC #" + index + " and saved state."));
+        }
+    }
+
+    private static final class NpcClearCommand extends CommandBase {
+
+        private final KeystoneNPCPlugin plugin;
+        private final NpcScheduler scheduler;
+
+        NpcClearCommand(KeystoneNPCPlugin plugin, NpcScheduler scheduler) {
+            super("clear", "keystone.commands.knpc.npc.clear");
+            this.plugin = Objects.requireNonNull(plugin);
+            this.scheduler = Objects.requireNonNull(scheduler);
+        }
+
+        @Override
+        protected void executeSync(@Nonnull CommandContext context) {
+            int removed = scheduler.clearNpcs();
+            plugin.saveState();
+            context.sendMessage(Message.raw("[knpc] Removed " + removed + " NPC(s) and saved state."));
         }
     }
 

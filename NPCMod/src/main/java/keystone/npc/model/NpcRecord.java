@@ -4,6 +4,7 @@ import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import keystone.npc.world.Vec3;
 import keystone.npc.world.WorldId;
+import keystone.npc.navigation.NavigationState;
 
 import java.util.Objects;
 
@@ -32,7 +33,10 @@ public final class NpcRecord {
     private String doorMarkerId;
     private String workMarkerId;
 
+    private long entityId = 0;  // Serializable: non-zero means entity was already spawned
+
     private transient Ref<EntityStore> entityRef;
+    private transient NavigationState navigationState;
 
     public NpcRecord(String npcId, String npcName, NpcRole role, WorldId worldId) {
         this.npcId = Objects.requireNonNull(npcId);
@@ -74,4 +78,14 @@ public final class NpcRecord {
 
     public Ref<EntityStore> entityRef() { return entityRef; }
     public void entityRef(Ref<EntityStore> entityRef) { this.entityRef = entityRef; }
+
+    public long entityId() { return entityId; }
+    public void entityId(long id) { this.entityId = id; }
+
+    public NavigationState navigationState() {
+        if (navigationState == null) {
+            navigationState = new NavigationState();
+        }
+        return navigationState;
+    }
 }
