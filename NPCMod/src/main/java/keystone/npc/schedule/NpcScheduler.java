@@ -27,6 +27,7 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.hypixel.hytale.server.npc.NPCPlugin;
 import com.hypixel.hytale.server.npc.entities.NPCEntity;
 
+import keystone.npc.model.MarkerRole;
 import keystone.npc.model.NpcRecord;
 import keystone.npc.model.NpcState;
 import keystone.npc.navigation.NavigationState;
@@ -461,25 +462,34 @@ public final class NpcScheduler {
         }
 
         // 3) No active navigation: choose target from world time.
-        if (desiredTargetState == NpcState.SLEEPING) {
+        if (desiredTargetState == NpcState.SLEEPING)
+		{
             if (npc.state() != NpcState.SLEEPING) {
                 startNavigationToBed(npc);
-            } else {
+            }
+			else
+			{
                 enforceAuthoritativeIdlePosition(npc, "idle-state-check", true);
             }
-        } else if (desiredTargetState == NpcState.WORKING) {
+        }
+		else if (desiredTargetState == NpcState.WORKING)
+		{
             if (npc.state() != NpcState.WORKING) {
                 startNavigationToWork(npc);
-            } else {
+            }
+			else
+			{
                 enforceAuthoritativeIdlePosition(npc, "idle-state-check", true);
             }
         }
     }
 
-    private void startNavigationToBed(NpcRecord npc) {
+    private void startNavigationToBed(NpcRecord npc)
+	{
         // Route: directly to bed (MVP A: simplified)
         Optional<MarkerRecord> bedMarker = resolveRequiredMarkerWithFallback(npc, MarkerType.BED);
-        if (bedMarker.isEmpty()) {
+        if (bedMarker.isEmpty())
+		{
             System.err.println("[KeystoneNPC] Missing bed marker for NPC '" + npc.npcName() + "' (" + npc.npcId() + ")"
                 + " markerId=" + npc.bedMarkerId());
             npc.state(NpcState.PAUSED_MISSING_MARKER);
@@ -498,10 +508,12 @@ public final class NpcScheduler {
             + " targetType=BED");
     }
 
-    private void startNavigationToWork(NpcRecord npc) {
+    private void startNavigationToWork(NpcRecord npc)
+	{
         // Route: directly to work (MVP A: simplified)
         Optional<MarkerRecord> workMarker = resolveRequiredMarkerWithFallback(npc, MarkerType.WORK);
-        if (workMarker.isEmpty()) {
+        if (workMarker.isEmpty())
+		{
             System.err.println("[KeystoneNPC] Missing work marker for NPC '" + npc.npcName() + "' (" + npc.npcId() + ")"
                 + " markerId=" + npc.workMarkerId());
             npc.state(NpcState.PAUSED_MISSING_MARKER);
@@ -520,66 +532,85 @@ public final class NpcScheduler {
             + " targetType=WORK");
     }
 
-    private NpcState resolveDesiredTargetState(World world, NpcRecord npc, RoleDefinition roleDefinition) {
-        try {
+    private NpcState resolveDesiredTargetState(World world, NpcRecord npc, RoleDefinition roleDefinition)
+	{
+        try
+		{
             WorldTimeResource worldTimeResource = world.getEntityStore().getStore()
                 .getResource(WorldTimeResource.getResourceType());
             int currentHour = worldTimeResource.getCurrentHour();
             return roleDefinition.schedule().isSleepingHour(currentHour) ? NpcState.SLEEPING : NpcState.WORKING;
-        } catch (Exception e) {
+        }
+		catch (Exception e)
+		{
             System.err.println("[KeystoneNPC] Error getting world time for NPC '" + npc.npcName() + "': " + e.getMessage());
             npc.state(NpcState.PAUSED_MISSING_MARKER);
             return null;
         }
     }
 
-    private boolean hasRequiredMarkers(NpcRecord npc, RoleDefinition roleDefinition) {
-        for (MarkerType markerType : roleDefinition.requiredMarkers()) {
-            if (resolveRequiredMarkerWithFallback(npc, markerType).isEmpty()) {
+    private boolean hasRequiredMarkers(NpcRecord npc, RoleDefinition roleDefinition)
+	{
+        for (MarkerType markerType : roleDefinition.requiredMarkers())
+		{
+            if (resolveRequiredMarkerWithFallback(npc, markerType).isEmpty())
+			{
                 return false;
             }
         }
         return true;
     }
 
-    private String missingRequiredMarkers(NpcRecord npc, RoleDefinition roleDefinition) {
+    private String missingRequiredMarkers(NpcRecord npc, RoleDefinition roleDefinition)
+	{
         List<String> missing = new ArrayList<>();
-        for (MarkerType markerType : roleDefinition.requiredMarkers()) {
-            if (resolveRequiredMarkerWithFallback(npc, markerType).isEmpty()) {
+        for (MarkerType markerType : roleDefinition.requiredMarkers())
+		{
+            if (resolveRequiredMarkerWithFallback(npc, markerType).isEmpty())
+			{
                 missing.add(markerType.name().toLowerCase(Locale.ROOT));
             }
         }
         return String.join(",", missing);
     }
 
-    private String markerIdForType(NpcRecord npc, MarkerType markerType) {
-        return switch (markerType) {
+    private String markerIdForType(NpcRecord npc, MarkerType markerType)
+	{
+        return switch (markerType)
+		{
             case BED -> npc.bedMarkerId();
             case DOOR -> npc.doorMarkerId();
             case WORK -> npc.workMarkerId();
         };
     }
 
-    private void setMarkerIdForType(NpcRecord npc, MarkerType markerType, String markerId) {
-        switch (markerType) {
+    private void setMarkerIdForType(NpcRecord npc, MarkerType markerType, String markerId)
+	{
+        switch (markerType)
+		{
             case BED -> npc.bedMarkerId(markerId);
             case DOOR -> npc.doorMarkerId(markerId);
             case WORK -> npc.workMarkerId(markerId);
         }
     }
 
-    private RelinkOutcome tryRelinkEntityRef(World world, NpcRecord npc, String trigger) {
+    private RelinkOutcome tryRelinkEntityRef(World world, NpcRecord npc, String trigger)
+	{
         String rawUuid = npc.entityUuid();
-        if (rawUuid == null || rawUuid.isBlank()) {
+        if (rawUuid == null || rawUuid.isBlank())
+		{
             uuidRelinkMissCounts.remove(npc.npcId());
             uuidRelinkFirstMissAtMs.remove(npc.npcId());
             return RelinkOutcome.NO_MATCH;
         }
 
         UUID entityUuid;
-        try {
+        try
+		{
             entityUuid = UUID.fromString(rawUuid);
-        } catch (IllegalArgumentException ex) {
+        }
+		catch (IllegalArgumentException ex)
+		{
             logSevere("RESPAWN_RELINK_UUID_INVALID", "Ignoring invalid persisted entity UUID: "
                 + spawnContext(npc, trigger, world, null, null)
                 + " entityUuid=" + rawUuid);
@@ -590,7 +621,8 @@ public final class NpcScheduler {
         }
 
         Ref<EntityStore> relinkRef = world.getEntityStore().getRefFromUUID(entityUuid);
-        if (relinkRef == null || !relinkRef.isValid()) {
+        if (relinkRef == null || !relinkRef.isValid())
+		{
             long now = System.currentTimeMillis();
             long firstMissAt = uuidRelinkFirstMissAtMs.computeIfAbsent(npc.npcId(), key -> now);
             int misses = uuidRelinkMissCounts.getOrDefault(npc.npcId(), 0) + 1;
@@ -598,8 +630,10 @@ public final class NpcScheduler {
 
             long waitedMs = Math.max(0L, now - firstMissAt);
 
-            if (misses < UUID_RELINK_MAX_MISSES_BEFORE_RESPAWN || waitedMs < UUID_RELINK_MIN_WAIT_BEFORE_RESPAWN_MS) {
-                if (misses == 1 || misses % 10 == 0) {
+            if (misses < UUID_RELINK_MAX_MISSES_BEFORE_RESPAWN || waitedMs < UUID_RELINK_MIN_WAIT_BEFORE_RESPAWN_MS)
+			{
+                if (misses == 1 || misses % 10 == 0)
+				{
                     logInfo("RESPAWN_RELINK_PENDING", "Persisted UUID not found yet, deferring spawn: "
                         + spawnContext(npc, trigger, world, null, null)
                         + " entityUuid=" + rawUuid
@@ -626,12 +660,14 @@ public final class NpcScheduler {
         }
 
         var npcType = NPCEntity.getComponentType();
-        if (npcType == null) {
+        if (npcType == null)
+		{
             return RelinkOutcome.PENDING;
         }
 
         NPCEntity liveNpc = relinkRef.getStore().getComponent(relinkRef, npcType);
-        if (liveNpc == null) {
+        if (liveNpc == null)
+		{
             logSevere("RESPAWN_RELINK_NOT_NPC", "Persisted UUID resolved to non-NPC entity: "
                 + spawnContext(npc, trigger, world, null, null)
                 + " entityUuid=" + rawUuid);
@@ -648,7 +684,8 @@ public final class NpcScheduler {
 
         if (expectedRoleIndex >= 0
             && liveNpc.getRoleIndex() != expectedRoleIndex
-            && liveNpc.getSpawnRoleIndex() != expectedRoleIndex) {
+            && liveNpc.getSpawnRoleIndex() != expectedRoleIndex)
+		{
             logSevere("RESPAWN_RELINK_ROLE_MISMATCH", "Persisted UUID points to wrong role entity: "
                 + spawnContext(npc, trigger, world, roleDefinition.orElse(null), expectedRoleIndex)
                 + " liveRoleIndex=" + liveNpc.getRoleIndex()
@@ -672,24 +709,29 @@ public final class NpcScheduler {
         return RelinkOutcome.SUCCESS;
     }
 
-    private boolean tryAnchorRelinkEntityRef(World world, NpcRecord npc, String trigger) {
+    private boolean tryAnchorRelinkEntityRef(World world, NpcRecord npc, String trigger)
+	{
         Optional<RoleDefinition> roleDefinition = roleDefinitions.findByRoleId(npc.roleId());
-        if (roleDefinition.isEmpty()) {
+        if (roleDefinition.isEmpty())
+		{
             return false;
         }
 
         int roleIndex = NPCPlugin.get().getIndex(roleDefinition.get().npcPluginRoleName());
-        if (roleIndex < 0) {
+        if (roleIndex < 0)
+		{
             return false;
         }
 
         Vec3 center = npc.currentPosition();
-        if (center == null) {
+        if (center == null)
+		{
             return false;
         }
 
         var npcType = NPCEntity.getComponentType();
-        if (npcType == null) {
+        if (npcType == null)
+		{
             return false;
         }
 
@@ -987,7 +1029,7 @@ public final class NpcScheduler {
     }
 
     private void normalizeRestorePosition(NpcRecord npc) {
-        if (isWalkingState(npc.state())) {
+        if (npc.state() != null && npc.state().isWalking()) {
             return;
         }
 
@@ -1052,27 +1094,33 @@ public final class NpcScheduler {
             return resolveRequiredMarkerWithFallback(npc, authoritativeMarkerType.get());
         }
 
-        if (npc.state() == NpcState.WALKING_TO_BED) {
-            return resolveRequiredMarkerWithFallback(npc, MarkerType.BED);
-        }
-        if (npc.state() == NpcState.WALKING_TO_WORK) {
-            return resolveRequiredMarkerWithFallback(npc, MarkerType.WORK);
-        }
-        if (npc.state() == NpcState.WALKING_TO_DOOR) {
-            return resolveRequiredMarkerWithFallback(npc, MarkerType.DOOR);
+        if (npc.state().isWalking()) {
+            Optional<MarkerType> walkingMarkerType = resolveMarkerTypeForRole(npc.state().markerRole());
+            if (walkingMarkerType.isPresent()) {
+                return resolveRequiredMarkerWithFallback(npc, walkingMarkerType.get());
+            }
         }
 
         return Optional.empty();
     }
 
+    private Optional<MarkerType> resolveMarkerTypeForRole(MarkerRole role) {
+        if (role == null || role == MarkerRole.NONE) {
+            return Optional.empty();
+        }
+        return switch (role) {
+            case BED -> Optional.of(MarkerType.BED);
+            case WORK -> Optional.of(MarkerType.WORK);
+            case DOOR -> Optional.of(MarkerType.DOOR);
+            case NONE -> Optional.empty();
+        };
+    }
+
     private Optional<MarkerType> resolveAuthoritativeMarkerType(NpcState state) {
-        if (state == NpcState.SLEEPING) {
-            return Optional.of(MarkerType.BED);
+        if (state == null || !state.isIdle()) {
+            return Optional.empty();
         }
-        if (state == NpcState.WORKING) {
-            return Optional.of(MarkerType.WORK);
-        }
-        return Optional.empty();
+        return resolveMarkerTypeForRole(state.markerRole());
     }
 
     private boolean hasAuthoritativeIdleMarker(NpcState state) {
@@ -1332,12 +1380,6 @@ public final class NpcScheduler {
         return navState.hasTarget();
     }
 
-    private boolean isWalkingState(NpcState state) {
-        return state == NpcState.WALKING_TO_BED
-            || state == NpcState.WALKING_TO_WORK
-            || state == NpcState.WALKING_TO_DOOR;
-    }
-
     private void finishNavigation(NpcRecord npc, NavigationState navState) {
         Vec3 targetPos = navState.getTargetPosition();
         if (targetPos != null) {
@@ -1357,11 +1399,11 @@ public final class NpcScheduler {
     }
 
     private String targetTypeForState(NpcState state) {
-        if (state == NpcState.WORKING) {
-            return "WORK";
-        }
-        if (state == NpcState.SLEEPING) {
-            return "BED";
+        Optional<MarkerType> markerType = state == null
+            ? Optional.empty()
+            : resolveMarkerTypeForRole(state.markerRole());
+        if (markerType.isPresent()) {
+            return markerType.get().name();
         }
         return "UNKNOWN";
     }

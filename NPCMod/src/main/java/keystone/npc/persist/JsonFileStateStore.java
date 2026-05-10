@@ -223,7 +223,7 @@ public final class JsonFileStateStore implements StateStore {
             return;
         }
 
-        if (!isWalkingState(record.state())) {
+        if (record.state() == null || !record.state().isWalking()) {
             return;
         }
 
@@ -243,12 +243,6 @@ public final class JsonFileStateStore implements StateStore {
         Vec3 targetPosition = toVec3(persistedNavigation.targetPosition);
         Vec3 currentPosition = record.currentPosition();
         record.navigationState().resumeNavigation(currentPosition, targetPosition, persistedNavigation.remainingMs, targetState);
-    }
-
-    private boolean isWalkingState(NpcState state) {
-        return state == NpcState.WALKING_TO_BED
-            || state == NpcState.WALKING_TO_WORK
-            || state == NpcState.WALKING_TO_DOOR;
     }
 
     private Map<String, String> toPersistedActiveMarkerIds(Map<MarkerType, String> activeMarkerIds) {
