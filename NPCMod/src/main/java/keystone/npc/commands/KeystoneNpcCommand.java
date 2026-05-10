@@ -10,8 +10,6 @@ import com.hypixel.hytale.server.core.command.system.basecommands.AbstractComman
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
 import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
-import com.hypixel.hytale.math.vector.Rotation3f;
-import com.hypixel.hytale.server.npc.NPCPlugin;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
@@ -19,6 +17,8 @@ import java.util.Locale;
 import java.util.Objects;
 import javax.annotation.Nonnull;
 import keystone.npc.KeystoneNPCPlugin;
+import keystone.npc.role.RoleDefinition;
+import keystone.npc.role.RoleDefinitionRegistry;
 import keystone.npc.schedule.NpcScheduler;
 import keystone.npc.world.MarkerRegistry;
 import keystone.npc.world.MarkerType;
@@ -30,7 +30,7 @@ import org.joml.Vector3d;
  * MVP A:
  * - /knpc marker set <bed|door|work>
  * - /knpc marker clear
- * - /knpc spawn lumberjack <name>
+ * - /knpc spawn <role> <name>
  * - /knpc list
  * - /knpc remove <npcId>
  * - /knpc clear
@@ -38,10 +38,10 @@ import org.joml.Vector3d;
  */
 public final class KeystoneNpcCommand extends AbstractCommandCollection {
 
-    public KeystoneNpcCommand(KeystoneNPCPlugin plugin, MarkerRegistry markerRegistry, NpcScheduler scheduler) {
+    public KeystoneNpcCommand(KeystoneNPCPlugin plugin, MarkerRegistry markerRegistry, RoleDefinitionRegistry roleDefinitions, NpcScheduler scheduler) {
         super("knpc", "keystone.commands.knpc");
         this.addSubCommand(new MarkerCommand(markerRegistry));
-        this.addSubCommand(new SpawnCommand(plugin, markerRegistry, scheduler));
+        this.addSubCommand(new SpawnCommand(plugin, markerRegistry, roleDefinitions, scheduler));
         this.addSubCommand(new NpcListCommand(scheduler));
         this.addSubCommand(new NpcRemoveCommand(plugin, scheduler));
         this.addSubCommand(new NpcClearCommand(plugin, scheduler));
@@ -133,27 +133,24 @@ public final class KeystoneNpcCommand extends AbstractCommandCollection {
     // spawn
     // -------------------------------------------------------------------------
 
-    private static final class SpawnCommand extends AbstractCommandCollection {
+    private static final class SpawnCommand extends AbstractPlayerCommand {
 
-        SpawnCommand(KeystoneNPCPlugin plugin, MarkerRegistry markerRegistry, NpcScheduler scheduler) {
-            super("spawn", "keystone.commands.knpc.spawn");
-            this.addSubCommand(new SpawnLumberjackCommand(plugin, markerRegistry, scheduler));
-        }
-    }
-
-    private static final class SpawnLumberjackCommand extends AbstractPlayerCommand {
+        @Nonnull
+        private final RequiredArg<String> roleArg = this.withRequiredArg("role", "keystone.commands.knpc.spawn.role", ArgTypes.STRING);
 
         @Nonnull
         private final RequiredArg<String> nameArg = this.withRequiredArg("name", "keystone.commands.knpc.spawn.name", ArgTypes.STRING);
 
         private final KeystoneNPCPlugin plugin;
         private final MarkerRegistry markerRegistry;
+        private final RoleDefinitionRegistry roleDefinitions;
         private final NpcScheduler scheduler;
 
-        SpawnLumberjackCommand(KeystoneNPCPlugin plugin, MarkerRegistry markerRegistry, NpcScheduler scheduler) {
-            super("lumberjack", "keystone.commands.knpc.spawn.lumberjack");
+        SpawnCommand(KeystoneNPCPlugin plugin, MarkerRegistry markerRegistry, RoleDefinitionRegistry roleDefinitions, NpcScheduler scheduler) {
+            super("spawn", "keystone.commands.knpc.spawn");
             this.plugin = Objects.requireNonNull(plugin);
             this.markerRegistry = Objects.requireNonNull(markerRegistry);
+            this.roleDefinitions = Objects.requireNonNull(roleDefinitions);
             this.scheduler = Objects.requireNonNull(scheduler);
         }
 
@@ -165,11 +162,24 @@ public final class KeystoneNpcCommand extends AbstractCommandCollection {
                 @Nonnull PlayerRef playerRef,
                 @Nonnull World world
         ) {
-            // MVP A: require all three markers to be set.
-            if (markerRegistry.getActive(MarkerType.BED).isEmpty()
-                    || markerRegistry.getActive(MarkerType.DOOR).isEmpty()
-                    || markerRegistry.getActive(MarkerType.WORK).isEmpty()) {
-                context.sendMessage(Message.raw("[knpc] Please set all markers first: /knpc marker set bed|door|work"));
+            String rawRole = roleArg.get(context);
+            RoleDefinition role = roleDefinitions.findByRoleId(rawRole).orElse(null);
+            if (role == null) {
+                context.sendMessage(Message.raw("[knpc] Unknown role: '" + rawRole + "'. Known roles: "
+                    + String.join(", ", roleDefinitions.roleIds())));
+                return;
+            }
+
+            var missingMarkers = new java.util.ArrayList<String>();
+            for (MarkerType markerType : role.requiredMarkers()) {
+                if (markerRegistry.getActive(markerType).isEmpty()) {
+                    missingMarkers.add(markerType.name().toLowerCase(Locale.ROOT));
+                }
+            }
+
+            if (!missingMarkers.isEmpty()) {
+                context.sendMessage(Message.raw("[knpc] Missing markers for role '" + role.roleId()
+                    + "': " + String.join(", ", missingMarkers) + ". Use /knpc marker set <type>"));
                 return;
             }
 
@@ -182,33 +192,26 @@ public final class KeystoneNpcCommand extends AbstractCommandCollection {
             }
 
             Vector3d playerPos = transform.getPosition();
-            Rotation3f playerRotation = transform.getRotation();
+            var playerRotation = transform.getRotation();
 
             // Spawn 2 blocks in front of player
             Vector3d forward = new Vector3d(0, 0, -2);
             playerRotation.transform(forward);
             Vector3d spawnPos = new Vector3d(playerPos).add(forward);
 
-            String roleName = "Lumberjack";
-            int roleIndex = NPCPlugin.get().getIndex(roleName);
-            if (roleIndex < 0) {
-                context.sendMessage(Message.raw("[knpc] Role not found: " + roleName));
-                return;
-            }
-
-            var pair = NPCPlugin.get().spawnEntity(store, roleIndex, spawnPos, Rotation3f.IDENTITY, null, null);
-            if (pair == null) {
-                context.sendMessage(Message.raw("[knpc] Failed to spawn NPC"));
-                return;
-            }
-
             String npcId = java.util.UUID.randomUUID().toString();
-            var npc = scheduler.spawnLumberjack(npcId, name, new WorldId(world.getName()), new Vec3(spawnPos.x(), spawnPos.y(), spawnPos.z()));
-            scheduler.linkEntityRef(npcId, pair.first());
+            var npc = scheduler.spawnNpc(npcId, name, role.roleId(), new WorldId(world.getName()), new Vec3(spawnPos.x(), spawnPos.y(), spawnPos.z()));
+            boolean spawned = scheduler.spawnEntityForNpc(world, npc, "command-spawn");
+            if (!spawned) {
+                scheduler.removeNpc(npc.npcId());
+                context.sendMessage(Message.raw("[knpc] Failed to spawn NPC for role '" + role.roleId() + "'."));
+                return;
+            }
+
             markerRegistry.clearActive();
             plugin.saveState();
 
-            context.sendMessage(Message.raw("[knpc] Spawned lumberjack '" + npc.npcName()
+            context.sendMessage(Message.raw("[knpc] Spawned " + role.roleId() + " '" + npc.npcName()
                 + "' (id=" + npc.npcId() + "). Active markers reset."));
         }
     }
@@ -237,7 +240,7 @@ public final class KeystoneNpcCommand extends AbstractCommandCollection {
             context.sendMessage(Message.raw("[knpc] NPCs:"));
             for (int i = 0; i < npcs.size(); i++) {
                 var npc = npcs.get(i);
-                context.sendMessage(Message.raw(i + " - " + npc.npcId() + " | " + npc.npcName() + " | " + npc.role() + " | " + npc.state()));
+                context.sendMessage(Message.raw(i + " - " + npc.npcId() + " | " + npc.npcName() + " | " + npc.roleId() + " | " + npc.state()));
             }
         }
     }

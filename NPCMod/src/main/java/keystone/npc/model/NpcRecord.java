@@ -5,6 +5,7 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import keystone.npc.world.Vec3;
 import keystone.npc.world.WorldId;
 import keystone.npc.navigation.NavigationState;
+import keystone.npc.role.RoleDefinition;
 
 import java.util.Objects;
 
@@ -20,7 +21,7 @@ public final class NpcRecord {
 
     private final String npcId;
     private String npcName;
-    private final NpcRole role;
+    private final String roleId;
     private NpcState state;
 
     private final WorldId worldId;
@@ -34,14 +35,15 @@ public final class NpcRecord {
     private String workMarkerId;
 
     private long entityId = 0;  // Serializable: non-zero means entity was already spawned
+    private String entityUuid;
 
     private transient Ref<EntityStore> entityRef;
     private transient NavigationState navigationState;
 
-    public NpcRecord(String npcId, String npcName, NpcRole role, WorldId worldId) {
+    public NpcRecord(String npcId, String npcName, String roleId, WorldId worldId) {
         this.npcId = Objects.requireNonNull(npcId);
         this.npcName = Objects.requireNonNull(npcName);
-        this.role = Objects.requireNonNull(role);
+        this.roleId = RoleDefinition.normalizeRoleId(roleId);
         this.worldId = Objects.requireNonNull(worldId);
         this.state = NpcState.IDLE;
         this.currentPosition = new Vec3(0, 0, 0);
@@ -51,7 +53,7 @@ public final class NpcRecord {
     public String npcName() { return npcName; }
     public void npcName(String name) { this.npcName = Objects.requireNonNull(name); }
 
-    public NpcRole role() { return role; }
+    public String roleId() { return roleId; }
 
     public NpcState state() { return state; }
     public void state(NpcState state) { this.state = Objects.requireNonNull(state); }
@@ -81,6 +83,9 @@ public final class NpcRecord {
 
     public long entityId() { return entityId; }
     public void entityId(long id) { this.entityId = id; }
+
+    public String entityUuid() { return entityUuid; }
+    public void entityUuid(String entityUuid) { this.entityUuid = entityUuid; }
 
     public NavigationState navigationState() {
         if (navigationState == null) {

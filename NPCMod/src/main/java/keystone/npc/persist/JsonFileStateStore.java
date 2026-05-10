@@ -1,24 +1,28 @@
 package keystone.npc.persist;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonParseException;
-import keystone.npc.model.NpcRecord;
-import keystone.npc.model.NpcRole;
-import keystone.npc.model.NpcState;
-import keystone.npc.world.MarkerRecord;
-import keystone.npc.world.MarkerType;
-import keystone.npc.world.Vec3;
-import keystone.npc.world.WorldId;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonParseException;
+
+import keystone.npc.model.NpcRecord;
+import keystone.npc.model.NpcState;
+import keystone.npc.navigation.NavigationState;
+import keystone.npc.world.MarkerRecord;
+import keystone.npc.world.MarkerType;
+import keystone.npc.world.Vec3;
+import keystone.npc.world.WorldId;
 
 /**
  * MVP A: simpelstes Persistenz-Skeleton.
@@ -74,12 +78,20 @@ public final class JsonFileStateStore implements StateStore {
 
             return new PluginState(markers, npcs, activeMarkerIds);
         } catch (JsonParseException | IllegalStateException | IllegalArgumentException e) {
-            System.err.println("[KeystoneNPC] Failed to parse state file: " + path);
-            System.err.println("[KeystoneNPC] " + e.getMessage());
+            System.err.println("[KeystoneNPC][STATE_LOAD_PARSE_ERROR] Failed to parse state file: " + path);
+            System.err.println("[KeystoneNPC][STATE_LOAD_PARSE_ERROR] " + e.getClass().getSimpleName() + ": " + e.getMessage());
             return PluginState.empty();
         } catch (IOException e) {
-            System.err.println("[KeystoneNPC] Failed to read state file: " + path);
-            System.err.println("[KeystoneNPC] " + e.getMessage());
+            System.err.println("[KeystoneNPC][STATE_LOAD_IO_ERROR] Failed to read state file: " + path);
+            System.err.println("[KeystoneNPC][STATE_LOAD_IO_ERROR] " + e.getClass().getSimpleName() + ": " + e.getMessage());
+            return PluginState.empty();
+        } catch (RuntimeException e) {
+            System.err.println("[KeystoneNPC][STATE_LOAD_RUNTIME_ERROR] Failed to load state: " + path);
+            System.err.println("[KeystoneNPC][STATE_LOAD_RUNTIME_ERROR] " + e.getClass().getSimpleName() + ": " + e.getMessage());
+            return PluginState.empty();
+        } catch (LinkageError e) {
+            System.err.println("[KeystoneNPC][STATE_LOAD_LINKAGE_ERROR] Failed to load state due to class linkage issue: " + path);
+            System.err.println("[KeystoneNPC][STATE_LOAD_LINKAGE_ERROR] " + e.getClass().getSimpleName() + ": " + e.getMessage());
             return PluginState.empty();
         }
     }
@@ -89,17 +101,33 @@ public final class JsonFileStateStore implements StateStore {
         try {
             Files.createDirectories(path.getParent() == null ? Paths.get(".") : path.getParent());
 
+            List<PersistedMarker> persistedMarkers = new ArrayList<>(markers.size());
+            for (MarkerRecord marker : markers) {
+                persistedMarkers.add(toPersistedMarker(marker));
+            }
+
+            List<PersistedNpc> persistedNpcs = new ArrayList<>(npcs.size());
+            for (NpcRecord npc : npcs) {
+                persistedNpcs.add(toPersistedNpc(npc));
+            }
+
             PersistedState persisted = new PersistedState(
-                    markers.stream().map(this::toPersistedMarker).toList(),
-                    npcs.stream().map(this::toPersistedNpc).toList(),
+                    persistedMarkers,
+                    persistedNpcs,
                     toPersistedActiveMarkerIds(activeMarkerIds)
             );
 
             Files.writeString(path, GSON.toJson(persisted), StandardCharsets.UTF_8,
                     StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
         } catch (IOException e) {
-            System.err.println("[KeystoneNPC] Failed to save state file: " + path);
-            e.printStackTrace();
+            System.err.println("[KeystoneNPC][STATE_SAVE_IO_ERROR] Failed to save state file: " + path);
+            System.err.println("[KeystoneNPC][STATE_SAVE_IO_ERROR] " + e.getClass().getSimpleName() + ": " + e.getMessage());
+        } catch (RuntimeException e) {
+            System.err.println("[KeystoneNPC][STATE_SAVE_RUNTIME_ERROR] Failed to serialize/save state: " + path);
+            System.err.println("[KeystoneNPC][STATE_SAVE_RUNTIME_ERROR] " + e.getClass().getSimpleName() + ": " + e.getMessage());
+        } catch (LinkageError e) {
+            System.err.println("[KeystoneNPC][STATE_SAVE_LINKAGE_ERROR] Save skipped due to classloader/linkage issue: " + path);
+            System.err.println("[KeystoneNPC][STATE_SAVE_LINKAGE_ERROR] " + e.getClass().getSimpleName() + ": " + e.getMessage());
         }
     }
 
@@ -114,10 +142,11 @@ public final class JsonFileStateStore implements StateStore {
 
     private PersistedNpc toPersistedNpc(NpcRecord npc) {
         Vec3 position = npc.currentPosition();
+        PersistedNavigation navigation = toPersistedNavigation(npc.navigationState());
         return new PersistedNpc(
                 npc.npcId(),
                 npc.npcName(),
-                npc.role().name(),
+                npc.roleId(),
                 npc.state().name(),
                 npc.worldId().value(),
                 position == null ? null : new PersistedVec3(position.x(), position.y(), position.z()),
@@ -125,7 +154,29 @@ public final class JsonFileStateStore implements StateStore {
                 npc.workInstanceId(),
                 npc.bedMarkerId(),
                 npc.doorMarkerId(),
-                npc.workMarkerId()
+                npc.workMarkerId(),
+                npc.entityUuid(),
+                navigation
+        );
+    }
+
+    private PersistedNavigation toPersistedNavigation(NavigationState navigationState) {
+        if (navigationState == null || !navigationState.hasTarget()) {
+            return null;
+        }
+
+        Vec3 targetPosition = navigationState.getTargetPosition();
+        NpcState targetState = navigationState.getTargetState();
+        long remainingMs = navigationState.getRemainingTimeMs();
+
+        if (targetPosition == null || targetState == null || remainingMs <= 0) {
+            return null;
+        }
+
+        return new PersistedNavigation(
+                new PersistedVec3(targetPosition.x(), targetPosition.y(), targetPosition.z()),
+                targetState.name(),
+                remainingMs
         );
     }
 
@@ -142,7 +193,7 @@ public final class JsonFileStateStore implements StateStore {
         NpcRecord record = new NpcRecord(
                 Objects.requireNonNull(npc.npcId),
                 Objects.requireNonNull(npc.npcName),
-                NpcRole.valueOf(Objects.requireNonNull(npc.role)),
+            Objects.requireNonNull(npc.role),
                 new WorldId(Objects.requireNonNull(npc.worldId))
         );
 
@@ -159,9 +210,45 @@ public final class JsonFileStateStore implements StateStore {
         record.bedMarkerId(npc.bedMarkerId);
         record.doorMarkerId(npc.doorMarkerId);
         record.workMarkerId(npc.workMarkerId);
+        record.entityUuid(npc.entityUuid);
+
+        restorePersistedNavigation(record, npc.navigation);
 
         // EntityRef intentionally not restored from disk.
         return record;
+    }
+
+    private void restorePersistedNavigation(NpcRecord record, PersistedNavigation persistedNavigation) {
+        if (persistedNavigation == null || persistedNavigation.targetPosition == null) {
+            return;
+        }
+
+        if (!isWalkingState(record.state())) {
+            return;
+        }
+
+        if (persistedNavigation.targetState == null || persistedNavigation.remainingMs <= 0) {
+            return;
+        }
+
+        NpcState targetState;
+        try {
+            targetState = NpcState.valueOf(persistedNavigation.targetState);
+        } catch (IllegalArgumentException ex) {
+            System.err.println("[KeystoneNPC] Ignoring invalid persisted navigation target state: "
+                + persistedNavigation.targetState);
+            return;
+        }
+
+        Vec3 targetPosition = toVec3(persistedNavigation.targetPosition);
+        Vec3 currentPosition = record.currentPosition();
+        record.navigationState().resumeNavigation(currentPosition, targetPosition, persistedNavigation.remainingMs, targetState);
+    }
+
+    private boolean isWalkingState(NpcState state) {
+        return state == NpcState.WALKING_TO_BED
+            || state == NpcState.WALKING_TO_WORK
+            || state == NpcState.WALKING_TO_DOOR;
     }
 
     private Map<String, String> toPersistedActiveMarkerIds(Map<MarkerType, String> activeMarkerIds) {
@@ -232,9 +319,18 @@ public final class JsonFileStateStore implements StateStore {
             String workInstanceId,
             String bedMarkerId,
             String doorMarkerId,
-            String workMarkerId
+            String workMarkerId,
+                String entityUuid,
+                PersistedNavigation navigation
     ) {
     }
+
+            private record PersistedNavigation(
+                PersistedVec3 targetPosition,
+                String targetState,
+                long remainingMs
+            ) {
+            }
 
     private record PersistedVec3(double x, double y, double z) {
     }

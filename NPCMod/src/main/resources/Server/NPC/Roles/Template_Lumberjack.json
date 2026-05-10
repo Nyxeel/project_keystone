@@ -2,7 +2,7 @@
   "Type": "Abstract",
   "Parameters": {
     "Appearance": {
-      "Value": "Goblin_Ogre",
+      "Value": "Temple_Mithril_Guard",
       "Description": "Model to be used"
     },
     "DropList": {
@@ -28,7 +28,7 @@
   "MotionControllerList": [
     {
       "Type": "Walk",
-      "MaxWalkSpeed": 3,
+      "MaxWalkSpeed": 2,
       "Gravity": 10,
       "MaxFallSpeed": 8,
       "Acceleration": 10
