@@ -179,7 +179,9 @@ public final class JsonFileStateStore implements StateStore {
         return new PersistedNavigation(
                 new PersistedVec3(targetPosition.x(), targetPosition.y(), targetPosition.z()),
                 targetState.name(),
-                remainingMs
+            remainingMs,
+            navigationState.getTargetMarkerType() == null ? null : navigationState.getTargetMarkerType().name(),
+            navigationState.getTargetMarkerId()
         );
     }
 
@@ -248,7 +250,26 @@ public final class JsonFileStateStore implements StateStore {
 
         Vec3 targetPosition = toVec3(persistedNavigation.targetPosition());
         Vec3 currentPosition = record.currentPosition();
-        record.navigationState().resumeNavigation(currentPosition, targetPosition, persistedNavigation.remainingMs(), targetState);
+
+        MarkerType targetMarkerType = null;
+        String persistedMarkerType = persistedNavigation.markerType();
+        if (persistedMarkerType != null && !persistedMarkerType.isBlank()) {
+            try {
+                targetMarkerType = MarkerType.valueOf(persistedMarkerType);
+            } catch (IllegalArgumentException ex) {
+                System.err.println("[KeystoneNPC] Ignoring invalid persisted navigation marker type: "
+                    + persistedMarkerType);
+            }
+        }
+
+        record.navigationState().resumeNavigation(
+            currentPosition,
+            targetPosition,
+            persistedNavigation.remainingMs(),
+            targetState,
+            targetMarkerType,
+            persistedNavigation.markerId()
+        );
     }
 
     private Vec3 toVec3(PersistedVec3 vec3) {

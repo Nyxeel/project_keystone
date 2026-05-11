@@ -16,6 +16,8 @@ import keystone.npc.navigation.EngineNavigationController;
 import keystone.npc.navigation.NavigationTarget;
 
 public final class NavigationRuntimeService {
+    private static final double ARRIVAL_Y_TOLERANCE = 1.25d;
+
     private final EngineNavigationController engineNavigation;
     private final PathfindingSupport pathfindingSupport;
     private final DoorwayFlow doorWorkflowService;
@@ -61,7 +63,7 @@ public final class NavigationRuntimeService {
             doorWorkflowService.maybeHandleDoorNavigation(world, npc, navState, currentPos);
         }
 
-        if (currentPos != null && distanceSq(currentPos, routeTarget) <= effectiveArrivalDistanceSq(npc)) {
+        if (currentPos != null && hasReachedNavigationTarget(npc, currentPos, routeTarget)) {
             finishNavigation(world, npc, navState);
         }
 
@@ -149,12 +151,18 @@ public final class NavigationRuntimeService {
         return dx * dx + dy * dy + dz * dz;
     }
 
-    private double effectiveArrivalDistanceSq(NpcRecord npc) {
-        Double stopDistance = npc.stopDistance();
-        if (stopDistance == null || !Double.isFinite(stopDistance) || stopDistance <= 0.0d) {
-            return engineNavigationArrivalDistanceSq;
+    private double horizontalDistanceSq(Vec3 a, Vec3 b) {
+        double dx = a.x() - b.x();
+        double dz = a.z() - b.z();
+        return dx * dx + dz * dz;
+    }
+
+    private boolean hasReachedNavigationTarget(NpcRecord npc, Vec3 currentPos, Vec3 routeTarget) {
+        double stopDistance = effectiveStopDistance(npc);
+        if (horizontalDistanceSq(currentPos, routeTarget) > stopDistance * stopDistance) {
+            return false;
         }
-        return stopDistance * stopDistance;
+        return Math.abs(currentPos.y() - routeTarget.y()) <= ARRIVAL_Y_TOLERANCE;
     }
 
     private double effectiveStopDistance(NpcRecord npc) {

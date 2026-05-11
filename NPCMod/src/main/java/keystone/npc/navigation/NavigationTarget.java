@@ -1,6 +1,7 @@
 package keystone.npc.navigation;
 
 import keystone.npc.domain.NpcState;
+import keystone.npc.markers.MarkerType;
 import keystone.npc.markers.Vec3;
 
 /**
@@ -15,6 +16,8 @@ public final class NavigationTarget {
     private long startTimeMs;
     private long durationMs;
     private NpcState targetState;
+    private MarkerType targetMarkerType;
+    private String targetMarkerId;
 
     public NavigationTarget() {
     }
@@ -23,6 +26,20 @@ public final class NavigationTarget {
      * Start navigating from start to target over duration.
      */
     public void startNavigation(Vec3 start, Vec3 target, long durationMs, NpcState targetState) {
+        startNavigation(start, target, durationMs, targetState, null, null);
+    }
+
+    /**
+     * Start navigating from start to target over duration and store target marker identity.
+     */
+    public void startNavigation(
+        Vec3 start,
+        Vec3 target,
+        long durationMs,
+        NpcState targetState,
+        MarkerType targetMarkerType,
+        String targetMarkerId
+    ) {
         if (start == null || target == null || targetState == null || durationMs <= 0) {
             clear();
             return;
@@ -33,12 +50,28 @@ public final class NavigationTarget {
         this.startTimeMs = System.currentTimeMillis();
         this.durationMs = Math.max(1L, durationMs);
         this.targetState = targetState;
+        this.targetMarkerType = targetMarkerType;
+        this.targetMarkerId = targetMarkerId;
     }
 
     /**
      * Resume navigation from current position with remaining duration.
      */
     public void resumeNavigation(Vec3 currentPosition, Vec3 target, long remainingMs, NpcState targetState) {
+        resumeNavigation(currentPosition, target, remainingMs, targetState, null, null);
+    }
+
+    /**
+     * Resume navigation from current position with remaining duration and marker identity.
+     */
+    public void resumeNavigation(
+        Vec3 currentPosition,
+        Vec3 target,
+        long remainingMs,
+        NpcState targetState,
+        MarkerType targetMarkerType,
+        String targetMarkerId
+    ) {
         if (currentPosition == null || target == null || targetState == null || remainingMs <= 0) {
             clear();
             return;
@@ -49,6 +82,8 @@ public final class NavigationTarget {
         this.startTimeMs = System.currentTimeMillis();
         this.durationMs = Math.max(1L, remainingMs);
         this.targetState = targetState;
+        this.targetMarkerType = targetMarkerType;
+        this.targetMarkerId = targetMarkerId;
     }
 
     /**
@@ -114,6 +149,20 @@ public final class NavigationTarget {
     }
 
     /**
+     * Get the marker type of the current target, if known.
+     */
+    public MarkerType getTargetMarkerType() {
+        return targetMarkerType;
+    }
+
+    /**
+     * Get the marker id of the current target, if known.
+     */
+    public String getTargetMarkerId() {
+        return targetMarkerId;
+    }
+
+    /**
      * Get target position.
      */
     public Vec3 getTargetPosition() {
@@ -129,6 +178,8 @@ public final class NavigationTarget {
         startTimeMs = 0;
         durationMs = 0;
         targetState = null;
+        targetMarkerType = null;
+        targetMarkerId = null;
     }
 
     /**

@@ -36,7 +36,9 @@ record PersistedNpc(
 record PersistedNavigation(
     PersistedVec3 targetPosition,
     String targetState,
-    long remainingMs
+    long remainingMs,
+    String markerType,
+    String markerId
 ) {
 }
 

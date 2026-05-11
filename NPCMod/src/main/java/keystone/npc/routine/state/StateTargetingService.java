@@ -54,7 +54,14 @@ public final class StateTargetingService {
     private final Predicate<NpcRecord> routineChatEnabled;
     private final BiConsumer<NpcRecord, String> routineChatSink;
 
-    public record DesiredTarget(NpcState targetState, MarkerType markerType, String actionId, String source) {
+    public record DesiredTarget(
+        NpcState targetState,
+        MarkerType markerType,
+        String markerId,
+        Vec3 targetPosition,
+        String actionId,
+        String source
+    ) {
     }
 
     public StateTargetingService(
@@ -93,6 +100,24 @@ public final class StateTargetingService {
         return startNavigationToMarker(npc, MarkerType.WORK, NpcState.WORKING);
     }
 
+    public boolean startNavigationToTarget(NpcRecord npc, DesiredTarget desiredTarget) {
+        if (desiredTarget == null
+            || desiredTarget.targetState() == null
+            || desiredTarget.markerType() == null
+            || desiredTarget.targetPosition() == null) {
+            return false;
+        }
+
+        return startNavigationToResolvedTarget(
+            npc,
+            desiredTarget.markerType(),
+            desiredTarget.markerId(),
+            desiredTarget.targetPosition(),
+            desiredTarget.targetState(),
+            desiredTarget.source()
+        );
+    }
+
     public boolean startNavigationToMarker(NpcRecord npc, MarkerType markerType, NpcState targetState) {
         Optional<MarkerRecord> marker = markerResolver.resolveRequiredMarkerWithFallback(npc, markerType);
         if (marker.isEmpty()) {
@@ -107,11 +132,29 @@ public final class StateTargetingService {
             return false;
         }
 
-        Vec3 markerPos = marker.get().position();
+        MarkerRecord markerRecord = marker.get();
+        return startNavigationToResolvedTarget(
+            npc,
+            markerType,
+            markerRecord.markerId(),
+            markerRecord.position(),
+            targetState,
+            npc.movementProfileId() != null ? "json" : "fallback"
+        );
+    }
+
+    private boolean startNavigationToResolvedTarget(
+        NpcRecord npc,
+        MarkerType markerType,
+        String markerId,
+        Vec3 markerPos,
+        NpcState targetState,
+        String source
+    ) {
         Vec3 startPos = pathfindingSupport.resolveNavigationStartPosition(npc, markerPos);
         long durationMs = NpcNavigation.calculateDurationMs(startPos, markerPos);
 
-        npc.navigationState().startNavigation(startPos, markerPos, durationMs, targetState);
+        npc.navigationState().startNavigation(startPos, markerPos, durationMs, targetState, markerType, markerId);
         npc.state(walkingStateForMarker(markerType));
         clearDoorTracking(npc.npcId());
 
@@ -119,9 +162,12 @@ public final class StateTargetingService {
             engineNavigation.setTarget(npc.entityRef(), markerPos, npc.motionControllerType());
         }
 
-        String movementSource = npc.movementProfileId() != null ? "json" : "fallback";
+        String movementSource = source == null || source.isBlank()
+            ? (npc.movementProfileId() != null ? "json" : "fallback")
+            : source;
         System.out.println("[KNPC][Movement] " + npc.npcName()
             + " target=" + markerType.name().toLowerCase(Locale.ROOT)
+            + " markerId=" + nullToDash(markerId)
             + " pos=" + formatPosition(markerPos)
             + " stopDistance=" + nullToDashDouble(npc.stopDistance())
             + " slowDownDistance=" + nullToDashDouble(npc.slowDownDistance())
@@ -177,9 +223,27 @@ public final class StateTargetingService {
                             "json",
                             minuteOfDay
                         );
+
+                        Optional<MarkerRecord> resolvedMarker = markerResolver
+                            .resolveRequiredMarkerWithFallback(npc, routineMarker.get());
+                        if (resolvedMarker.isEmpty()) {
+                            warnOnce(
+                                npc,
+                                "routine-marker-missing:" + routineMarker.get().name(),
+                                "[KNPC][Warning] " + npc.npcName() + " routine marker '"
+                                    + routineMarker.get().name().toLowerCase(Locale.ROOT)
+                                    + "' has no assigned position."
+                            );
+                            npc.state(NpcState.PAUSED_MISSING_MARKER);
+                            return null;
+                        }
+
+                        MarkerRecord markerRecord = resolvedMarker.get();
                         return new DesiredTarget(
                             entryState,
                             routineMarker.get(),
+                            markerRecord.markerId(),
+                            markerRecord.position(),
                             actionId,
                             "json"
                         );
@@ -231,7 +295,29 @@ public final class StateTargetingService {
                 "legacy",
                 minuteOfDay
             );
-            return new DesiredTarget(legacyTargetState, markerType, null, "legacy");
+
+            Optional<MarkerRecord> resolvedMarker = markerResolver.resolveRequiredMarkerWithFallback(npc, markerType);
+            if (resolvedMarker.isEmpty()) {
+                warnOnce(
+                    npc,
+                    "legacy-marker-missing:" + markerType.name(),
+                    "[KNPC][Warning] " + npc.npcName() + " legacy marker '"
+                        + markerType.name().toLowerCase(Locale.ROOT)
+                        + "' has no assigned position."
+                );
+                npc.state(NpcState.PAUSED_MISSING_MARKER);
+                return null;
+            }
+
+            MarkerRecord markerRecord = resolvedMarker.get();
+            return new DesiredTarget(
+                legacyTargetState,
+                markerType,
+                markerRecord.markerId(),
+                markerRecord.position(),
+                null,
+                "legacy"
+            );
         } catch (Exception e) {
             System.err.println("[KNPC][Warning] " + npc.npcName() + " has no valid routine target: time query failed ("
                 + e.getClass().getSimpleName() + ": " + e.getMessage() + ")");
@@ -605,7 +691,6 @@ public final class StateTargetingService {
                 previousAction,
                 nextMarker,
                 targetState,
-                actionId,
                 minuteOfDay
             ));
         }
@@ -618,7 +703,6 @@ public final class StateTargetingService {
         String previousAction,
         String nextMarker,
         NpcState targetState,
-        String actionId,
         int minuteOfDay
     ) {
         String timeLabel = formatMinuteOfDay(minuteOfDay);

@@ -3,9 +3,9 @@ package keystone.npc.routine.pathfinding;
 import java.util.Objects;
 
 import keystone.npc.domain.NpcRecord;
+import keystone.npc.markers.Vec3;
 import keystone.npc.navigation.EngineNavigationController;
 import keystone.npc.navigation.NavigationTarget;
-import keystone.npc.markers.Vec3;
 
 public final class PathfindingSupport {
     private final EngineNavigationController engineNavigation;
@@ -19,15 +19,15 @@ public final class PathfindingSupport {
     }
 
     public Vec3 resolveNavigationStartPosition(NpcRecord npc, Vec3 fallback) {
-        Vec3 current = npc.currentPosition();
-        if (current != null) {
-            return current;
-        }
-
         Vec3 live = engineNavigation.readCurrentPosition(npc.entityRef());
         if (live != null) {
             npc.currentPosition(live);
             return live;
+        }
+
+        Vec3 current = npc.currentPosition();
+        if (current != null) {
+            return current;
         }
 
         npc.currentPosition(fallback);

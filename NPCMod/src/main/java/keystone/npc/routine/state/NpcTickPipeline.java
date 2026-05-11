@@ -9,6 +9,7 @@ import com.hypixel.hytale.server.core.universe.world.World;
 import keystone.npc.domain.NpcRecord;
 import keystone.npc.domain.NpcState;
 import keystone.npc.domain.TargetRole;
+import keystone.npc.markers.MarkerType;
 import keystone.npc.markers.Vec3;
 import keystone.npc.navigation.NavigationTarget;
 import keystone.npc.roles.RoleDefinition;
@@ -18,6 +19,10 @@ import keystone.npc.routine.marker.IdleMarkerService;
 import keystone.npc.routine.pathfinding.NavigationRuntimeService;
 
 public final class NpcTickPipeline {
+    private static final double TARGET_POSITION_REROUTE_EPSILON_SQ = 0.01d;
+    private static final double IDLE_TARGET_HORIZONTAL_EPSILON_SQ = 0.25d;
+    private static final double IDLE_TARGET_Y_TOLERANCE = 1.25d;
+
     private final RoleDefinitionRegistry roleDefinitions;
     private final StateTargetingService stateTargetingService;
     private final NavigationRuntimeService navigationRuntimeService;
@@ -83,18 +88,25 @@ public final class NpcTickPipeline {
         navigationRuntimeService.maybeTickDoorCloseMaintenance(world, npc);
 
         if (navigationRuntimeService.hasActiveNavigation(navState)) {
-            NpcState activeTargetState = navState.getTargetState();
-            if (activeTargetState != null && activeTargetState != desiredTargetState) {
+            String rerouteReason = resolveActiveNavigationRerouteReason(navState, desiredTarget);
+            if (rerouteReason != null) {
                 System.out.println("[KeystoneNPC] Navigation reroute: npc=" + npc.npcName()
-                    + " activeTarget=" + targetTypeForState(activeTargetState)
+                    + " activeTarget=" + targetTypeForState(navState.getTargetState())
                     + " newTarget=" + targetTypeForState(desiredTargetState)
+                    + " reason=" + rerouteReason
                     + " currentPos=" + npc.currentPosition());
+
+                syncNpcPositionFromLiveEntity(npc);
                 navState.clear();
 
                 stopActionForTargetChange(npc, desiredTarget.actionId());
                 npc.pendingActionId(desiredTarget.actionId());
-                stateTargetingService.startNavigationToMarker(npc, desiredTarget.markerType(), desiredTargetState);
+                stateTargetingService.startNavigationToTarget(npc, desiredTarget);
                 return;
+            }
+
+            if (!Objects.equals(npc.pendingActionId(), desiredTarget.actionId())) {
+                npc.pendingActionId(desiredTarget.actionId());
             }
 
             if (engineNavigationEnabled) {
@@ -127,10 +139,10 @@ public final class NpcTickPipeline {
             return;
         }
 
-        if (npc.state() != desiredTargetState) {
+        if (npc.state() != desiredTargetState || shouldStartNavigationFromIdleSameState(npc, desiredTarget)) {
             stopActionForTargetChange(npc, desiredTarget.actionId());
             npc.pendingActionId(desiredTarget.actionId());
-            stateTargetingService.startNavigationToMarker(npc, desiredTarget.markerType(), desiredTargetState);
+            stateTargetingService.startNavigationToTarget(npc, desiredTarget);
             return;
         }
 
@@ -185,6 +197,137 @@ public final class NpcTickPipeline {
             + " reason=target_changed");
         npc.activeActionId(null);
         npc.lastActionNoRestartLog(null);
+    }
+
+    private String resolveActiveNavigationRerouteReason(
+        NavigationTarget navState,
+        StateTargetingService.DesiredTarget desiredTarget
+    ) {
+        NpcState activeTargetState = navState.getTargetState();
+        if (!Objects.equals(activeTargetState, desiredTarget.targetState())) {
+            return "state";
+        }
+
+        if (!Objects.equals(navState.getTargetMarkerType(), desiredTarget.markerType())) {
+            return "marker-type";
+        }
+
+        if (!Objects.equals(navState.getTargetMarkerId(), desiredTarget.markerId())) {
+            return "marker-id";
+        }
+
+        if (!sameTargetPosition(navState.getTargetPosition(), desiredTarget.targetPosition(), TARGET_POSITION_REROUTE_EPSILON_SQ)) {
+            return "target-position";
+        }
+
+        return null;
+    }
+
+    private boolean shouldStartNavigationFromIdleSameState(
+        NpcRecord npc,
+        StateTargetingService.DesiredTarget desiredTarget
+    ) {
+        if (npc.state() != desiredTarget.targetState()) {
+            return false;
+        }
+
+        if (!npc.state().isIdle()) {
+            return false;
+        }
+
+        MarkerType stateMarkerType = markerTypeForState(npc.state());
+        if (stateMarkerType == null) {
+            return false;
+        }
+
+        if (!Objects.equals(stateMarkerType, desiredTarget.markerType())) {
+            return true;
+        }
+
+        String currentMarkerId = markerIdForType(npc, stateMarkerType);
+        if (!Objects.equals(currentMarkerId, desiredTarget.markerId())) {
+            return true;
+        }
+
+        Vec3 desiredTargetPosition = desiredTarget.targetPosition();
+        if (desiredTargetPosition == null) {
+            return false;
+        }
+
+        Vec3 livePosition = entitySync.readPosition(npc.entityRef());
+        Vec3 currentPosition = livePosition != null ? livePosition : npc.currentPosition();
+        if (livePosition != null) {
+            npc.currentPosition(livePosition);
+        }
+
+        if (currentPosition == null) {
+            return true;
+        }
+
+        return !isAtIdleTarget(currentPosition, desiredTargetPosition);
+    }
+
+    private MarkerType markerTypeForState(NpcState state) {
+        if (state == null) {
+            return null;
+        }
+
+        return switch (state.markerRole()) {
+            case BED -> MarkerType.BED;
+            case WORK -> MarkerType.WORK;
+            case DOOR -> MarkerType.DOOR;
+            case CHEST -> MarkerType.CHEST;
+            case FOOD -> MarkerType.FOOD;
+            case CHILL -> MarkerType.CHILL;
+            case NONE -> null;
+        };
+    }
+
+    private String markerIdForType(NpcRecord npc, MarkerType markerType) {
+        if (markerType == null) {
+            return null;
+        }
+
+        return switch (markerType) {
+            case BED -> npc.bedMarkerId();
+            case DOOR -> npc.doorMarkerId();
+            case CHEST -> npc.chestMarkerId();
+            case FOOD -> npc.foodMarkerId();
+            case WORK -> npc.workMarkerId();
+            case CHILL -> npc.chillMarkerId();
+        };
+    }
+
+    private boolean sameTargetPosition(Vec3 left, Vec3 right, double epsilonSq) {
+        if (left == null || right == null) {
+            return left == right;
+        }
+        return distanceSq(left, right) <= epsilonSq;
+    }
+
+    private double distanceSq(Vec3 a, Vec3 b) {
+        double dx = a.x() - b.x();
+        double dy = a.y() - b.y();
+        double dz = a.z() - b.z();
+        return dx * dx + dy * dy + dz * dz;
+    }
+
+    private boolean isAtIdleTarget(Vec3 currentPosition, Vec3 targetPosition) {
+        double dx = currentPosition.x() - targetPosition.x();
+        double dz = currentPosition.z() - targetPosition.z();
+        double horizontalDistanceSq = dx * dx + dz * dz;
+        if (horizontalDistanceSq > IDLE_TARGET_HORIZONTAL_EPSILON_SQ) {
+            return false;
+        }
+
+        return Math.abs(currentPosition.y() - targetPosition.y()) <= IDLE_TARGET_Y_TOLERANCE;
+    }
+
+    private void syncNpcPositionFromLiveEntity(NpcRecord npc) {
+        Vec3 livePosition = entitySync.readPosition(npc.entityRef());
+        if (livePosition != null) {
+            npc.currentPosition(livePosition);
+        }
     }
 
     private String markerLabel(String marker) {
