@@ -1,6 +1,9 @@
 package keystone.npc.schedule;
 
 import java.util.ArrayList;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -12,24 +15,39 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 
 import org.joml.Vector3d;
+import org.joml.Vector3i;
 
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.RemoveReason;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.component.query.Query;
+import com.hypixel.hytale.math.util.ChunkUtil;
 import com.hypixel.hytale.math.vector.Rotation3f;
+import com.hypixel.hytale.protocol.BlockPosition;
+import com.hypixel.hytale.protocol.InteractionType;
 import com.hypixel.hytale.server.core.entity.UUIDComponent;
+import com.hypixel.hytale.server.core.asset.type.blocktype.config.BlockType;
+import com.hypixel.hytale.server.core.entity.InteractionChain;
+import com.hypixel.hytale.server.core.entity.InteractionContext;
+import com.hypixel.hytale.server.core.entity.InteractionManager;
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
+import com.hypixel.hytale.server.core.modules.interaction.InteractionModule;
+import com.hypixel.hytale.server.core.modules.interaction.interaction.config.Interaction;
+import com.hypixel.hytale.server.core.modules.interaction.interaction.config.RootInteraction;
+import com.hypixel.hytale.server.core.modules.interaction.interaction.config.server.DoorInteraction;
 import com.hypixel.hytale.server.core.modules.time.WorldTimeResource;
 import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.World;
+import com.hypixel.hytale.server.core.universe.world.chunk.WorldChunk;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import com.hypixel.hytale.server.core.util.FillerBlockUtil;
 import com.hypixel.hytale.server.npc.NPCPlugin;
 import com.hypixel.hytale.server.npc.entities.NPCEntity;
 
 import keystone.npc.model.MarkerRole;
 import keystone.npc.model.NpcRecord;
 import keystone.npc.model.NpcState;
+import keystone.npc.navigation.EngineNavigationController;
 import keystone.npc.navigation.NavigationState;
 import keystone.npc.navigation.NpcNavigation;
 import keystone.npc.role.RoleDefinition;
@@ -58,21 +76,52 @@ public final class NpcScheduler {
     private static final double ROLEID_DEDUPE_RADIUS_SQ = ROLEID_DEDUPE_RADIUS * ROLEID_DEDUPE_RADIUS;
     private static final double ROLEID_ANCHOR_RELINK_RADIUS = 2.5;
     private static final double ROLEID_ANCHOR_RELINK_RADIUS_SQ = ROLEID_ANCHOR_RELINK_RADIUS * ROLEID_ANCHOR_RELINK_RADIUS;
+    private static final boolean ENGINE_NAVIGATION_ENABLED = true;
+    private static final double ENGINE_NAVIGATION_ARRIVAL_DISTANCE = 0.6;
+    private static final double ENGINE_NAVIGATION_ARRIVAL_DISTANCE_SQ = ENGINE_NAVIGATION_ARRIVAL_DISTANCE * ENGINE_NAVIGATION_ARRIVAL_DISTANCE;
+    private static final double DOOR_TRIGGER_DISTANCE = 1.00;
+    private static final double DOOR_TRIGGER_DISTANCE_SQ = DOOR_TRIGGER_DISTANCE * DOOR_TRIGGER_DISTANCE;
+    private static final double DOOR_ROUTE_MAX_DISTANCE = 2.0;
+    private static final double DOOR_ROUTE_MAX_DISTANCE_SQ = DOOR_ROUTE_MAX_DISTANCE * DOOR_ROUTE_MAX_DISTANCE;
+    private static final long DOOR_ACTION_COOLDOWN_MS = 1_500L;
+    private static final long DOOR_CHAIN_TIMEOUT_MS = 500L;
+    private static final String OPEN_DOOR_IN = "OpenDoorIn";
+    private static final String OPEN_DOOR_OUT = "OpenDoorOut";
+    private static final String CLOSE_DOOR_IN = "CloseDoorIn";
+    private static final String CLOSE_DOOR_OUT = "CloseDoorOut";
+    private static final double DOOR_CLOSE_MIN_DISTANCE = 1.5;
+    private static final double DOOR_CLOSE_MIN_DISTANCE_SQ = DOOR_CLOSE_MIN_DISTANCE * DOOR_CLOSE_MIN_DISTANCE;
+    private static final double DOOR_DIRECTION_DOT_EPSILON = 0.05;
+    private static final double DOOR_LOCAL_SEARCH_DISTANCE = 3.0;
+    private static final double DOOR_LOCAL_SEARCH_DISTANCE_SQ = DOOR_LOCAL_SEARCH_DISTANCE * DOOR_LOCAL_SEARCH_DISTANCE;
+    private static final int DOOR_LOCAL_SEARCH_RADIUS_BLOCKS = 3;
 
     private final MarkerRegistry markerRegistry;
     private final RoleDefinitionRegistry roleDefinitions;
+    private final EngineNavigationController engineNavigation = new EngineNavigationController();
     private final Map<String, NpcRecord> npcs = new ConcurrentHashMap<>();
     private final Set<String> spawnRequestsInFlight = ConcurrentHashMap.newKeySet();
     private final Map<String, Long> respawnRetryAtMs = new ConcurrentHashMap<>();
     private final Map<String, Integer> respawnFailureCounts = new ConcurrentHashMap<>();
     private final Map<String, Integer> uuidRelinkMissCounts = new ConcurrentHashMap<>();
     private final Map<String, Long> uuidRelinkFirstMissAtMs = new ConcurrentHashMap<>();
+    private final Map<String, Long> nextDoorActionAtMs = new ConcurrentHashMap<>();
+    private final Map<String, Long> nextDoorCloseActionAtMs = new ConcurrentHashMap<>();
+    private final Map<String, PendingDoorAttempt> pendingDoorAttempts = new ConcurrentHashMap<>();
+    private final Map<String, PendingDoorAttempt> pendingDoorCloseAttempts = new ConcurrentHashMap<>();
+    private final Map<String, Deque<ActiveDoorPass>> activeDoorPasses = new ConcurrentHashMap<>();
     private volatile long lastRestoreAtMs = 0L;
 
     private enum RelinkOutcome {
         SUCCESS,
         PENDING,
         NO_MATCH
+    }
+
+    private record PendingDoorAttempt(BlockPosition doorBlock, String doorMarkerId, long startedAtMs) {
+    }
+
+    private record ActiveDoorPass(BlockPosition doorBlock, String doorMarkerId, Vec3 targetPosition, long openedAtMs) {
     }
 
     public NpcScheduler(MarkerRegistry markerRegistry, RoleDefinitionRegistry roleDefinitions) {
@@ -87,6 +136,11 @@ public final class NpcScheduler {
         respawnFailureCounts.clear();
         uuidRelinkMissCounts.clear();
         uuidRelinkFirstMissAtMs.clear();
+        nextDoorActionAtMs.clear();
+        nextDoorCloseActionAtMs.clear();
+        pendingDoorAttempts.clear();
+        pendingDoorCloseAttempts.clear();
+        activeDoorPasses.clear();
         lastRestoreAtMs = System.currentTimeMillis();
 
         int cleaned = 0;
@@ -139,6 +193,11 @@ public final class NpcScheduler {
 
         spawnRequestsInFlight.remove(npc.npcId());
         clearRespawnFailureState(npc.npcId());
+        nextDoorActionAtMs.remove(npc.npcId());
+        nextDoorCloseActionAtMs.remove(npc.npcId());
+        pendingDoorAttempts.remove(npc.npcId());
+        pendingDoorCloseAttempts.remove(npc.npcId());
+        activeDoorPasses.remove(npc.npcId());
         removeLiveEntity(npc);
         return true;
     }
@@ -423,21 +482,10 @@ public final class NpcScheduler {
         }
 
         NavigationState navState = npc.navigationState();
+        maybeTickDoorCloseMaintenance(world, npc);
 
         // 2) Handle active navigation.
         if (hasActiveNavigation(navState)) {
-            if (navState.isComplete()) {
-                finishNavigation(npc, navState);
-                return;
-            }
-
-            // Update both logical and visible entity position.
-            Vec3 currentPos = navState.getCurrentPosition();
-            if (currentPos != null) {
-                npc.currentPosition(currentPos);
-                updateEntityPosition(npc, currentPos);
-            }
-
             // Re-route if day/night target changed while still walking.
             NpcState activeTargetState = navState.getTargetState();
             if (activeTargetState != null && activeTargetState != desiredTargetState) {
@@ -455,8 +503,36 @@ public final class NpcScheduler {
                 return;
             }
 
+            boolean engineNavigationTicked = false;
+            if (ENGINE_NAVIGATION_ENABLED) {
+                engineNavigationTicked = tickEngineNavigation(world, npc, navState);
+
+                // tickEngineNavigation may already finish and clear navigation.
+                if (!hasActiveNavigation(navState)) {
+                    return;
+                }
+
+                // While engine navigation is actively ticking, do not allow
+                // time-based nav completion to force an abrupt finish.
+                if (engineNavigationTicked) {
+                    return;
+                }
+            }
+
             if (navState.isComplete()) {
-                finishNavigation(npc, navState);
+                finishNavigation(world, npc, navState);
+                return;
+            }
+
+            // Legacy fallback: time-based interpolation movement.
+            Vec3 currentPos = navState.getCurrentPosition();
+            if (currentPos != null) {
+                npc.currentPosition(currentPos);
+                updateEntityPosition(npc, currentPos);
+            }
+
+            if (navState.isComplete()) {
+                finishNavigation(world, npc, navState);
             }
             return;
         }
@@ -496,11 +572,18 @@ public final class NpcScheduler {
             return;
         }
 
-        Vec3 startPos = npc.currentPosition();
+        Vec3 startPos = resolveNavigationStartPosition(npc, bedMarker.get().position());
         Vec3 bedPos = bedMarker.get().position();
         long durationMs = NpcNavigation.calculateDurationMs(startPos, bedPos);
         npc.navigationState().startNavigation(startPos, bedPos, durationMs, NpcState.SLEEPING);
         npc.state(NpcState.WALKING_TO_BED);
+        activeDoorPasses.remove(npc.npcId());
+        pendingDoorAttempts.remove(npc.npcId());
+        pendingDoorCloseAttempts.remove(npc.npcId());
+
+        if (ENGINE_NAVIGATION_ENABLED) {
+            engineNavigation.setTarget(npc.entityRef(), bedPos);
+        }
 
         System.out.println("[KeystoneNPC] Navigation start: npc=" + npc.npcName()
             + " start=" + startPos
@@ -520,11 +603,18 @@ public final class NpcScheduler {
             return;
         }
 
-        Vec3 startPos = npc.currentPosition();
+        Vec3 startPos = resolveNavigationStartPosition(npc, workMarker.get().position());
         Vec3 workPos = workMarker.get().position();
         long durationMs = NpcNavigation.calculateDurationMs(startPos, workPos);
         npc.navigationState().startNavigation(startPos, workPos, durationMs, NpcState.WORKING);
         npc.state(NpcState.WALKING_TO_WORK);
+        activeDoorPasses.remove(npc.npcId());
+        pendingDoorAttempts.remove(npc.npcId());
+        pendingDoorCloseAttempts.remove(npc.npcId());
+
+        if (ENGINE_NAVIGATION_ENABLED) {
+            engineNavigation.setTarget(npc.entityRef(), workPos);
+        }
 
         System.out.println("[KeystoneNPC] Navigation start: npc=" + npc.npcName()
             + " start=" + startPos
@@ -1127,6 +1217,12 @@ public final class NpcScheduler {
         return resolveAuthoritativeMarkerType(state).isPresent();
     }
 
+    private boolean isSoftIdleAlignmentReason(String reason) {
+        return "idle-state-check".equals(reason)
+            || "idle-marker-authority".equals(reason)
+            || "startup-idle-guard".equals(reason);
+    }
+
     private boolean enforceAuthoritativeIdlePosition(NpcRecord npc, String reason, boolean alignEntity) {
         Optional<MarkerType> markerType = resolveAuthoritativeMarkerType(npc.state());
         if (markerType.isEmpty()) {
@@ -1140,7 +1236,10 @@ public final class NpcScheduler {
 
         Vec3 authoritativePos = marker.get().position();
         Vec3 currentPos = npc.currentPosition();
-        boolean changed = currentPos == null || distanceSq(currentPos, authoritativePos) > IDLE_POSITION_EPSILON_SQ;
+        double allowedDriftSq = isSoftIdleAlignmentReason(reason)
+            ? ENGINE_NAVIGATION_ARRIVAL_DISTANCE_SQ
+            : IDLE_POSITION_EPSILON_SQ;
+        boolean changed = currentPos == null || distanceSq(currentPos, authoritativePos) > allowedDriftSq;
 
         if (changed) {
             npc.currentPosition(authoritativePos);
@@ -1376,15 +1475,74 @@ public final class NpcScheduler {
         System.err.println("[KeystoneNPC][" + eventKey + "] " + message);
     }
 
+    private boolean shouldLogDoorEvent(NpcRecord npc) {
+        return npc != null && npc.state() != null && npc.state().isWalking();
+    }
+
+    private void logDoorInfo(NpcRecord npc, String eventKey, String message) {
+        if (!shouldLogDoorEvent(npc)) {
+            return;
+        }
+        logInfo(eventKey, message);
+    }
+
     private boolean hasActiveNavigation(NavigationState navState) {
         return navState.hasTarget();
     }
 
-    private void finishNavigation(NpcRecord npc, NavigationState navState) {
+    private boolean tickEngineNavigation(World world, NpcRecord npc, NavigationState navState) {
+        if (!hasLiveEntity(npc)) {
+            return false;
+        }
+
+        Vec3 routeTarget = navState.getTargetPosition();
+        if (routeTarget == null) {
+            return false;
+        }
+
+        Ref<EntityStore> entityRef = npc.entityRef();
+        if (!engineNavigation.setTarget(entityRef, routeTarget)) {
+            return false;
+        }
+
+        Vec3 currentPos = engineNavigation.readCurrentPosition(entityRef);
+        if (currentPos != null) {
+            npc.currentPosition(currentPos);
+            maybeHandleDoorNavigation(world, npc, navState, currentPos);
+        }
+
+        if (currentPos != null && distanceSq(currentPos, routeTarget) <= ENGINE_NAVIGATION_ARRIVAL_DISTANCE_SQ) {
+            finishNavigation(world, npc, navState);
+        }
+
+        return true;
+    }
+
+    private Vec3 resolveNavigationStartPosition(NpcRecord npc, Vec3 fallback) {
+        Vec3 current = npc.currentPosition();
+        if (current != null) {
+            return current;
+        }
+
+        Vec3 live = engineNavigation.readCurrentPosition(npc.entityRef());
+        if (live != null) {
+            npc.currentPosition(live);
+            return live;
+        }
+
+        npc.currentPosition(fallback);
+        return fallback;
+    }
+
+    private void finishNavigation(World world, NpcRecord npc, NavigationState navState) {
+        closeTrackedDoorAfterNavigation(world, npc);
+
         Vec3 targetPos = navState.getTargetPosition();
-        if (targetPos != null) {
+        Vec3 livePos = engineNavigation.readCurrentPosition(npc.entityRef());
+        if (livePos != null) {
+            npc.currentPosition(livePos);
+        } else if (targetPos != null) {
             npc.currentPosition(targetPos);
-            updateEntityPosition(npc, targetPos);
         }
 
         NpcState targetState = navState.getTargetState();
@@ -1395,7 +1553,665 @@ public final class NpcScheduler {
         System.out.println("[KeystoneNPC] Navigation reached: npc=" + npc.npcName()
             + " reachedTarget=" + targetTypeForState(targetState)
             + " newState=" + npc.state());
+        pendingDoorAttempts.remove(npc.npcId());
         navState.clear();
+    }
+
+    private void maybeHandleDoorNavigation(World world, NpcRecord npc, NavigationState navState, Vec3 currentPos) {
+        if (npc.state() != NpcState.WALKING_TO_BED && npc.state() != NpcState.WALKING_TO_WORK) {
+            return;
+        }
+
+        Vec3 targetPos = navState.getTargetPosition();
+        if (targetPos == null || currentPos == null) {
+            return;
+        }
+
+        maybeHandleDoorCloseAfterPass(world, npc, currentPos, targetPos);
+
+        PendingDoorAttempt pending = pendingDoorAttempts.get(npc.npcId());
+        if (pending != null) {
+            maybeFinalizePendingDoorAttempt(world, npc, pending, targetPos);
+            if (pendingDoorAttempts.containsKey(npc.npcId())) {
+                return;
+            }
+        }
+
+        Optional<MarkerRecord> doorMarker = resolveMarkerInNpcWorld(npc, MarkerType.DOOR, npc.doorMarkerId());
+        BlockPosition markerDoorBlock = null;
+        if (doorMarker.isPresent()) {
+            Vec3 doorPos = doorMarker.get().position();
+            if (distanceSq(currentPos, doorPos) <= DOOR_TRIGGER_DISTANCE_SQ
+                && distanceSqToSegment(doorPos, currentPos, targetPos) <= DOOR_ROUTE_MAX_DISTANCE_SQ) {
+                markerDoorBlock = resolveDoorBlock(world, doorPos);
+            }
+        }
+
+        BlockPosition doorBlock = resolveApproachDoorBlock(world, currentPos, targetPos, markerDoorBlock);
+        if (doorBlock == null) {
+            logDoorInfo(npc, "DOOR_ATTEMPT_SKIPPED", "No reachable route-door detected near NPC: "
+                + "npcId=" + npc.npcId()
+                + " npcName=" + quote(npc.npcName())
+                + " markerId=" + nullToDash(doorMarker.map(MarkerRecord::markerId).orElse(null))
+                + " currentPos=" + formatPosition(currentPos)
+                + " targetPos=" + formatPosition(targetPos));
+            return;
+        }
+
+        String doorMarkerId = doorMarker.isPresent() && sameBlock(doorBlock, markerDoorBlock)
+            ? doorMarker.get().markerId()
+            : "local-route-door";
+
+        if (isDoorOpened(world, doorBlock)) {
+            pendingDoorAttempts.remove(npc.npcId());
+            registerOpenedDoorForClose(npc, doorBlock, doorMarkerId, targetPos);
+            return;
+        }
+
+        long now = System.currentTimeMillis();
+        long nextAllowedAt = nextDoorActionAtMs.getOrDefault(npc.npcId(), 0L);
+        if (now < nextAllowedAt) {
+            return;
+        }
+
+        boolean chainStarted = tryQueueDoorInteractionChain(world, npc, doorBlock);
+        if (chainStarted) {
+            pendingDoorAttempts.put(npc.npcId(), new PendingDoorAttempt(doorBlock, doorMarkerId, now));
+            nextDoorActionAtMs.put(npc.npcId(), now + DOOR_ACTION_COOLDOWN_MS);
+            logDoorInfo(npc, "DOOR_ATTEMPT_CHAIN", "Queued interaction-chain door open attempt: "
+                + "npcId=" + npc.npcId()
+                + " npcName=" + quote(npc.npcName())
+                + " markerId=" + nullToDash(doorMarkerId)
+                + " block=" + formatBlockPosition(doorBlock)
+                + " cooldownMs=" + DOOR_ACTION_COOLDOWN_MS);
+            return;
+        }
+
+        boolean fallbackSuccess = tryOpenDoorFallback(world, doorBlock);
+        nextDoorActionAtMs.put(npc.npcId(), now + DOOR_ACTION_COOLDOWN_MS);
+        if (fallbackSuccess) {
+            registerOpenedDoorForClose(npc, doorBlock, doorMarkerId, targetPos);
+        }
+        logDoorInfo(npc, "DOOR_ATTEMPT_FALLBACK", "Interaction-chain unavailable, used direct fallback: "
+            + "npcId=" + npc.npcId()
+            + " npcName=" + quote(npc.npcName())
+            + " markerId=" + nullToDash(doorMarkerId)
+            + " block=" + formatBlockPosition(doorBlock)
+            + " finalResult=" + (fallbackSuccess ? "OPENED" : "FAILED"));
+    }
+
+    private BlockPosition resolveApproachDoorBlock(World world, Vec3 currentPos, Vec3 targetPos, BlockPosition markerDoorBlock) {
+        BlockPosition best = null;
+        double bestDistanceSq = Double.MAX_VALUE;
+
+        if (markerDoorBlock != null) {
+            Vec3 markerCenter = toBlockCenter(markerDoorBlock);
+            double markerDistanceSq = distanceSq(currentPos, markerCenter);
+            if (markerDistanceSq <= DOOR_LOCAL_SEARCH_DISTANCE_SQ * 2.0
+                && distanceSqToSegment(markerCenter, currentPos, targetPos) <= DOOR_ROUTE_MAX_DISTANCE_SQ) {
+                best = markerDoorBlock;
+                bestDistanceSq = markerDistanceSq;
+            }
+        }
+
+        int baseX = (int) Math.floor(currentPos.x());
+        int baseY = (int) Math.floor(currentPos.y());
+        int baseZ = (int) Math.floor(currentPos.z());
+        Set<String> visited = new HashSet<>();
+
+        for (int dx = -DOOR_LOCAL_SEARCH_RADIUS_BLOCKS; dx <= DOOR_LOCAL_SEARCH_RADIUS_BLOCKS; dx++) {
+            for (int dy = -1; dy <= 1; dy++) {
+                for (int dz = -DOOR_LOCAL_SEARCH_RADIUS_BLOCKS; dz <= DOOR_LOCAL_SEARCH_RADIUS_BLOCKS; dz++) {
+                    BlockPosition raw = new BlockPosition(baseX + dx, baseY + dy, baseZ + dz);
+                    BlockPosition anchor = resolveDoorAnchor(world, raw);
+                    if (anchor == null) {
+                        continue;
+                    }
+
+                    String key = doorBlockKey(anchor);
+                    if (!visited.add(key)) {
+                        continue;
+                    }
+
+                    BlockType type = getDoorBlockType(world, anchor);
+                    if (type == null) {
+                        continue;
+                    }
+
+                    Vec3 center = toBlockCenter(anchor);
+                    double distanceSq = distanceSq(currentPos, center);
+                    if (distanceSq > DOOR_LOCAL_SEARCH_DISTANCE_SQ) {
+                        continue;
+                    }
+
+                    if (isMovingAwayFromDoor(currentPos, targetPos, center)) {
+                        continue;
+                    }
+
+                    if (distanceSqToSegment(center, currentPos, targetPos) > DOOR_ROUTE_MAX_DISTANCE_SQ) {
+                        continue;
+                    }
+
+                    if (best == null || distanceSq < bestDistanceSq) {
+                        best = anchor;
+                        bestDistanceSq = distanceSq;
+                    }
+                }
+            }
+        }
+
+        return best;
+    }
+
+    private boolean isMovingAwayFromDoor(Vec3 currentPos, Vec3 targetPos, Vec3 doorCenter) {
+        if (currentPos == null || targetPos == null || doorCenter == null) {
+            return false;
+        }
+
+        double moveX = targetPos.x() - currentPos.x();
+        double moveY = targetPos.y() - currentPos.y();
+        double moveZ = targetPos.z() - currentPos.z();
+
+        double toDoorX = doorCenter.x() - currentPos.x();
+        double toDoorY = doorCenter.y() - currentPos.y();
+        double toDoorZ = doorCenter.z() - currentPos.z();
+
+        double dot = moveX * toDoorX + moveY * toDoorY + moveZ * toDoorZ;
+        return dot < -DOOR_DIRECTION_DOT_EPSILON;
+    }
+
+    private void maybeFinalizePendingDoorAttempt(World world, NpcRecord npc, PendingDoorAttempt pending, Vec3 targetPos) {
+        if (isDoorOpened(world, pending.doorBlock())) {
+            pendingDoorAttempts.remove(npc.npcId());
+            registerOpenedDoorForClose(npc, pending.doorBlock(), pending.doorMarkerId(), targetPos);
+            logDoorInfo(npc, "DOOR_CHAIN_RESULT", "Interaction-chain opened door successfully: "
+                + "npcId=" + npc.npcId()
+                + " npcName=" + quote(npc.npcName())
+                + " markerId=" + nullToDash(pending.doorMarkerId())
+                + " block=" + formatBlockPosition(pending.doorBlock()));
+            return;
+        }
+
+        long elapsedMs = System.currentTimeMillis() - pending.startedAtMs();
+        if (elapsedMs < DOOR_CHAIN_TIMEOUT_MS) {
+            return;
+        }
+
+        boolean fallbackSuccess = tryOpenDoorFallback(world, pending.doorBlock());
+        pendingDoorAttempts.remove(npc.npcId());
+        if (fallbackSuccess) {
+            registerOpenedDoorForClose(npc, pending.doorBlock(), pending.doorMarkerId(), targetPos);
+        }
+
+        logDoorInfo(npc, "DOOR_CHAIN_TIMEOUT", "Interaction-chain timed out, fallback executed: "
+            + "npcId=" + npc.npcId()
+            + " npcName=" + quote(npc.npcName())
+            + " markerId=" + nullToDash(pending.doorMarkerId())
+            + " block=" + formatBlockPosition(pending.doorBlock())
+            + " timeoutMs=" + DOOR_CHAIN_TIMEOUT_MS
+            + " finalResult=" + (fallbackSuccess ? "OPENED" : "FAILED"));
+    }
+
+    private void maybeTickDoorCloseMaintenance(World world, NpcRecord npc) {
+        ActiveDoorPass activeDoor = peekActiveDoorPass(npc.npcId());
+        if (activeDoor == null) {
+            return;
+        }
+
+        Vec3 currentPos = engineNavigation.readCurrentPosition(npc.entityRef());
+        if (currentPos != null) {
+            npc.currentPosition(currentPos);
+        } else {
+            currentPos = npc.currentPosition();
+        }
+
+        if (currentPos != null) {
+            maybeHandleDoorCloseAfterPass(world, npc, currentPos, null);
+        }
+    }
+
+    private void registerOpenedDoorForClose(NpcRecord npc, BlockPosition doorBlock, String doorMarkerId, Vec3 targetPos) {
+        if (doorBlock == null) {
+            return;
+        }
+
+        Deque<ActiveDoorPass> queue = activeDoorPasses.computeIfAbsent(npc.npcId(), key -> new ArrayDeque<>());
+        for (ActiveDoorPass tracked : queue) {
+            if (sameBlock(tracked.doorBlock(), doorBlock)) {
+                return;
+            }
+        }
+
+        ActiveDoorPass existing = queue.peekLast();
+        Vec3 effectiveTarget = targetPos;
+        if (effectiveTarget == null && existing != null) {
+            effectiveTarget = existing.targetPosition();
+        }
+
+        queue.addLast(new ActiveDoorPass(doorBlock, doorMarkerId, effectiveTarget, System.currentTimeMillis()));
+    }
+
+    private void maybeHandleDoorCloseAfterPass(World world, NpcRecord npc, Vec3 currentPos, Vec3 targetPos) {
+        ActiveDoorPass activeDoor = peekActiveDoorPass(npc.npcId());
+        if (activeDoor == null) {
+            return;
+        }
+
+        if (!isDoorOpened(world, activeDoor.doorBlock())) {
+            pendingDoorCloseAttempts.remove(npc.npcId());
+            removeTrackedDoorPass(npc.npcId(), activeDoor.doorBlock());
+            return;
+        }
+
+        PendingDoorAttempt pendingClose = pendingDoorCloseAttempts.get(npc.npcId());
+        if (pendingClose != null) {
+            maybeFinalizePendingDoorCloseAttempt(world, npc, pendingClose);
+            if (pendingDoorCloseAttempts.containsKey(npc.npcId())) {
+                return;
+            }
+
+            activeDoor = peekActiveDoorPass(npc.npcId());
+            if (activeDoor == null) {
+                return;
+            }
+        }
+
+        Vec3 closeTarget = activeDoor.targetPosition() != null ? activeDoor.targetPosition() : targetPos;
+        if (closeTarget == null) {
+            return;
+        }
+
+        Vec3 doorCenter = toBlockCenter(activeDoor.doorBlock());
+        if (distanceSq(currentPos, doorCenter) < DOOR_CLOSE_MIN_DISTANCE_SQ) {
+            return;
+        }
+
+        if (distanceSq(currentPos, closeTarget) >= distanceSq(doorCenter, closeTarget)) {
+            return;
+        }
+
+        long now = System.currentTimeMillis();
+        long nextAllowedAt = nextDoorCloseActionAtMs.getOrDefault(npc.npcId(), 0L);
+        if (now < nextAllowedAt) {
+            return;
+        }
+
+        boolean chainStarted = tryQueueDoorInteractionChain(world, npc, activeDoor.doorBlock());
+        if (chainStarted) {
+            pendingDoorCloseAttempts.put(npc.npcId(), new PendingDoorAttempt(activeDoor.doorBlock(), activeDoor.doorMarkerId(), now));
+            nextDoorCloseActionAtMs.put(npc.npcId(), now + DOOR_ACTION_COOLDOWN_MS);
+            logDoorInfo(npc, "DOOR_CLOSE_CHAIN", "Queued interaction-chain close-after-pass attempt: "
+                + "npcId=" + npc.npcId()
+                + " npcName=" + quote(npc.npcName())
+                + " markerId=" + nullToDash(activeDoor.doorMarkerId())
+                + " block=" + formatBlockPosition(activeDoor.doorBlock()));
+            return;
+        }
+
+        boolean fallbackSuccess = tryCloseDoorFallback(world, activeDoor.doorBlock());
+        nextDoorCloseActionAtMs.put(npc.npcId(), now + DOOR_ACTION_COOLDOWN_MS);
+        if (fallbackSuccess) {
+            pendingDoorCloseAttempts.remove(npc.npcId());
+            removeTrackedDoorPass(npc.npcId(), activeDoor.doorBlock());
+        }
+
+        logDoorInfo(npc, "DOOR_CLOSE_FALLBACK", "Close-after-pass chain unavailable, used fallback: "
+            + "npcId=" + npc.npcId()
+            + " npcName=" + quote(npc.npcName())
+            + " markerId=" + nullToDash(activeDoor.doorMarkerId())
+            + " block=" + formatBlockPosition(activeDoor.doorBlock())
+            + " finalResult=" + (fallbackSuccess ? "CLOSED" : "FAILED"));
+    }
+
+    private void maybeFinalizePendingDoorCloseAttempt(World world, NpcRecord npc, PendingDoorAttempt pendingClose) {
+        if (!isDoorOpened(world, pendingClose.doorBlock())) {
+            pendingDoorCloseAttempts.remove(npc.npcId());
+            removeTrackedDoorPass(npc.npcId(), pendingClose.doorBlock());
+            logDoorInfo(npc, "DOOR_CLOSE_RESULT", "Interaction-chain closed door successfully: "
+                + "npcId=" + npc.npcId()
+                + " npcName=" + quote(npc.npcName())
+                + " markerId=" + nullToDash(pendingClose.doorMarkerId())
+                + " block=" + formatBlockPosition(pendingClose.doorBlock()));
+            return;
+        }
+
+        long elapsedMs = System.currentTimeMillis() - pendingClose.startedAtMs();
+        if (elapsedMs < DOOR_CHAIN_TIMEOUT_MS) {
+            return;
+        }
+
+        boolean fallbackSuccess = tryCloseDoorFallback(world, pendingClose.doorBlock());
+        pendingDoorCloseAttempts.remove(npc.npcId());
+        if (fallbackSuccess) {
+            removeTrackedDoorPass(npc.npcId(), pendingClose.doorBlock());
+        }
+
+        logDoorInfo(npc, "DOOR_CLOSE_TIMEOUT", "Close chain timed out, fallback executed: "
+            + "npcId=" + npc.npcId()
+            + " npcName=" + quote(npc.npcName())
+            + " markerId=" + nullToDash(pendingClose.doorMarkerId())
+            + " block=" + formatBlockPosition(pendingClose.doorBlock())
+            + " timeoutMs=" + DOOR_CHAIN_TIMEOUT_MS
+            + " finalResult=" + (fallbackSuccess ? "CLOSED" : "FAILED"));
+    }
+
+    private void closeTrackedDoorAfterNavigation(World world, NpcRecord npc) {
+        ActiveDoorPass activeDoor = peekActiveDoorPass(npc.npcId());
+        if (activeDoor == null) {
+            return;
+        }
+
+        if (!isDoorOpened(world, activeDoor.doorBlock())) {
+            pendingDoorCloseAttempts.remove(npc.npcId());
+            removeTrackedDoorPass(npc.npcId(), activeDoor.doorBlock());
+            return;
+        }
+
+        long now = System.currentTimeMillis();
+        long nextAllowedAt = nextDoorCloseActionAtMs.getOrDefault(npc.npcId(), 0L);
+        if (now < nextAllowedAt) {
+            return;
+        }
+
+        boolean chainStarted = tryQueueDoorInteractionChain(world, npc, activeDoor.doorBlock());
+        if (chainStarted) {
+            pendingDoorCloseAttempts.put(npc.npcId(), new PendingDoorAttempt(activeDoor.doorBlock(), activeDoor.doorMarkerId(), now));
+            nextDoorCloseActionAtMs.put(npc.npcId(), now + DOOR_ACTION_COOLDOWN_MS);
+            logDoorInfo(npc, "DOOR_CLOSE_ON_ARRIVAL", "Queued door close attempt at navigation finish: "
+                + "npcId=" + npc.npcId()
+                + " npcName=" + quote(npc.npcName())
+                + " markerId=" + nullToDash(activeDoor.doorMarkerId())
+                + " block=" + formatBlockPosition(activeDoor.doorBlock()));
+            return;
+        }
+
+        boolean fallbackSuccess = tryCloseDoorFallback(world, activeDoor.doorBlock());
+        nextDoorCloseActionAtMs.put(npc.npcId(), now + DOOR_ACTION_COOLDOWN_MS);
+        if (fallbackSuccess) {
+            pendingDoorCloseAttempts.remove(npc.npcId());
+            removeTrackedDoorPass(npc.npcId(), activeDoor.doorBlock());
+        }
+
+        logDoorInfo(npc, "DOOR_CLOSE_ON_ARRIVAL_FALLBACK", "Close on arrival used fallback: "
+            + "npcId=" + npc.npcId()
+            + " npcName=" + quote(npc.npcName())
+            + " markerId=" + nullToDash(activeDoor.doorMarkerId())
+            + " block=" + formatBlockPosition(activeDoor.doorBlock())
+            + " finalResult=" + (fallbackSuccess ? "CLOSED" : "FAILED"));
+    }
+
+    private boolean tryQueueDoorInteractionChain(World world, NpcRecord npc, BlockPosition doorBlock) {
+        Ref<EntityStore> entityRef = npc.entityRef();
+        if (entityRef == null || !entityRef.isValid()) {
+            return false;
+        }
+
+        Store<EntityStore> store = entityRef.getStore();
+        InteractionManager interactionManager = store.getComponent(entityRef, InteractionModule.get().getInteractionManagerComponent());
+        if (interactionManager == null) {
+            return false;
+        }
+
+        BlockType doorType = getDoorBlockType(world, doorBlock);
+        if (doorType == null) {
+            return false;
+        }
+
+        String rootInteractionId = doorType.getInteractions().get(InteractionType.Use);
+        if (rootInteractionId == null || rootInteractionId.isBlank()) {
+            return false;
+        }
+
+        RootInteraction rootInteraction = RootInteraction.getAssetMap().getAsset(rootInteractionId);
+        if (rootInteraction == null) {
+            return false;
+        }
+
+        InteractionContext context = InteractionContext.forInteraction(interactionManager, entityRef, InteractionType.Use, store);
+        context.getMetaStore().putMetaObject(Interaction.TARGET_BLOCK, doorBlock);
+        context.getMetaStore().putMetaObject(Interaction.TARGET_BLOCK_RAW, doorBlock);
+
+        InteractionChain chain = interactionManager.initChain(InteractionType.Use, context, rootInteraction, -1, doorBlock, false);
+        interactionManager.queueExecuteChain(chain);
+        return true;
+    }
+
+    private boolean tryOpenDoorFallback(World world, BlockPosition doorBlock) {
+        Vector3i pos = new Vector3i(doorBlock.x, doorBlock.y, doorBlock.z);
+        BlockType doorType = getDoorBlockType(world, doorBlock);
+        if (doorType == null) {
+            return false;
+        }
+
+        world.setBlockInteractionState(pos, doorType, OPEN_DOOR_IN);
+        if (isDoorOpened(world, doorBlock)) {
+            return true;
+        }
+
+        BlockType updatedDoorType = getDoorBlockType(world, doorBlock);
+        if (updatedDoorType == null) {
+            return false;
+        }
+
+        world.setBlockInteractionState(pos, updatedDoorType, OPEN_DOOR_OUT);
+        return isDoorOpened(world, doorBlock);
+    }
+
+    private boolean tryCloseDoorFallback(World world, BlockPosition doorBlock) {
+        Vector3i pos = new Vector3i(doorBlock.x, doorBlock.y, doorBlock.z);
+        BlockType doorType = getDoorBlockType(world, doorBlock);
+        if (doorType == null) {
+            return false;
+        }
+
+        world.setBlockInteractionState(pos, doorType, CLOSE_DOOR_IN);
+        if (!isDoorOpened(world, doorBlock)) {
+            return true;
+        }
+
+        BlockType updatedDoorType = getDoorBlockType(world, doorBlock);
+        if (updatedDoorType == null) {
+            return false;
+        }
+
+        world.setBlockInteractionState(pos, updatedDoorType, CLOSE_DOOR_OUT);
+        return !isDoorOpened(world, doorBlock);
+    }
+
+    private boolean sameBlock(BlockPosition a, BlockPosition b) {
+        if (a == null || b == null) {
+            return false;
+        }
+        return a.x == b.x && a.y == b.y && a.z == b.z;
+    }
+
+    private ActiveDoorPass peekActiveDoorPass(String npcId) {
+        Deque<ActiveDoorPass> queue = activeDoorPasses.get(npcId);
+        if (queue == null || queue.isEmpty()) {
+            return null;
+        }
+
+        ActiveDoorPass head = queue.peekFirst();
+        if (head == null && queue.isEmpty()) {
+            activeDoorPasses.remove(npcId);
+        }
+        return head;
+    }
+
+    private void removeTrackedDoorPass(String npcId, BlockPosition doorBlock) {
+        Deque<ActiveDoorPass> queue = activeDoorPasses.get(npcId);
+        if (queue == null || queue.isEmpty()) {
+            return;
+        }
+
+        if (doorBlock == null) {
+            queue.pollFirst();
+        } else {
+            queue.removeIf(pass -> sameBlock(pass.doorBlock(), doorBlock));
+        }
+
+        if (queue.isEmpty()) {
+            activeDoorPasses.remove(npcId);
+        }
+    }
+
+    private String doorBlockKey(BlockPosition doorBlock) {
+        return doorBlock.x + ":" + doorBlock.y + ":" + doorBlock.z;
+    }
+
+    private BlockPosition resolveDoorBlock(World world, Vec3 doorPos) {
+        int baseX = (int) Math.floor(doorPos.x());
+        int baseY = (int) Math.floor(doorPos.y());
+        int baseZ = (int) Math.floor(doorPos.z());
+
+        int[][] offsets = new int[][]{
+            {0, 0, 0},
+            {1, 0, 0},
+            {-1, 0, 0},
+            {0, 0, 1},
+            {0, 0, -1},
+            {0, 1, 0},
+            {0, -1, 0}
+        };
+
+        for (int[] offset : offsets) {
+            BlockPosition raw = new BlockPosition(baseX + offset[0], baseY + offset[1], baseZ + offset[2]);
+            BlockPosition base = resolveDoorAnchor(world, raw);
+            BlockType type = getDoorBlockType(world, base);
+            if (type != null) {
+                return base;
+            }
+        }
+
+        return null;
+    }
+
+    private BlockType getDoorBlockType(World world, BlockPosition block) {
+        if (block == null) {
+            return null;
+        }
+
+        WorldChunk chunk = world.getChunkIfInMemory(ChunkUtil.indexChunkFromBlock(block.x, block.z));
+        if (chunk == null) {
+            return null;
+        }
+
+        BlockType blockType = chunk.getBlockType(block.x, block.y, block.z);
+        if (!isDoorBlockType(blockType)) {
+            return null;
+        }
+
+        return blockType;
+    }
+
+    private BlockPosition resolveDoorAnchor(World world, BlockPosition block) {
+        if (block == null) {
+            return null;
+        }
+
+        WorldChunk chunk = world.getChunkIfInMemory(ChunkUtil.indexChunkFromBlock(block.x, block.z));
+        if (chunk == null) {
+            return block;
+        }
+
+        int filler = chunk.getFiller(block.x, block.y, block.z);
+        if (filler == 0) {
+            return block;
+        }
+
+        return new BlockPosition(
+            block.x - FillerBlockUtil.unpackX(filler),
+            block.y - FillerBlockUtil.unpackY(filler),
+            block.z - FillerBlockUtil.unpackZ(filler)
+        );
+    }
+
+    private boolean isDoorBlockType(BlockType blockType) {
+        if (blockType == null) {
+            return false;
+        }
+
+        String rootInteractionId = blockType.getInteractions().get(InteractionType.Use);
+        if (rootInteractionId == null || rootInteractionId.isBlank()) {
+            return false;
+        }
+
+        RootInteraction rootInteraction = RootInteraction.getAssetMap().getAsset(rootInteractionId);
+        if (rootInteraction == null) {
+            return false;
+        }
+
+        for (String interactionId : rootInteraction.getInteractionIds()) {
+            Interaction interaction = Interaction.getAssetMap().getAsset(interactionId);
+            if (interaction instanceof DoorInteraction) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private boolean isDoorOpened(World world, BlockPosition block) {
+        BlockType blockType = getDoorBlockType(world, block);
+        if (blockType == null) {
+            return false;
+        }
+
+        String state = blockType.getStateForBlock(blockType);
+        return OPEN_DOOR_IN.equals(state) || OPEN_DOOR_OUT.equals(state);
+    }
+
+    private String formatBlockPosition(BlockPosition blockPosition) {
+        if (blockPosition == null) {
+            return "-";
+        }
+        return blockPosition.x + "," + blockPosition.y + "," + blockPosition.z;
+    }
+
+    private Vec3 toBlockCenter(BlockPosition blockPosition) {
+        return new Vec3(blockPosition.x + 0.5, blockPosition.y + 0.5, blockPosition.z + 0.5);
+    }
+
+    private double distanceSqToSegment(Vec3 point, Vec3 segmentStart, Vec3 segmentEnd) {
+        double ax = segmentStart.x();
+        double ay = segmentStart.y();
+        double az = segmentStart.z();
+
+        double bx = segmentEnd.x();
+        double by = segmentEnd.y();
+        double bz = segmentEnd.z();
+
+        double px = point.x();
+        double py = point.y();
+        double pz = point.z();
+
+        double abx = bx - ax;
+        double aby = by - ay;
+        double abz = bz - az;
+
+        double apx = px - ax;
+        double apy = py - ay;
+        double apz = pz - az;
+
+        double abLenSq = abx * abx + aby * aby + abz * abz;
+        if (abLenSq <= 1.0E-6) {
+            double dx = px - ax;
+            double dy = py - ay;
+            double dz = pz - az;
+            return dx * dx + dy * dy + dz * dz;
+        }
+
+        double t = (apx * abx + apy * aby + apz * abz) / abLenSq;
+        double clamped = Math.max(0.0, Math.min(1.0, t));
+
+        double cx = ax + abx * clamped;
+        double cy = ay + aby * clamped;
+        double cz = az + abz * clamped;
+
+        double dx = px - cx;
+        double dy = py - cy;
+        double dz = pz - cz;
+        return dx * dx + dy * dy + dz * dz;
     }
 
     private String targetTypeForState(NpcState state) {
