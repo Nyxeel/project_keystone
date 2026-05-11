@@ -9,7 +9,7 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.hypixel.hytale.server.npc.entities.NPCEntity;
 import com.hypixel.hytale.server.npc.role.Role;
 
-import keystone.npc.world.Vec3;
+import keystone.npc.markers.Vec3;
 
 /**
  * Bridges scheduler-owned targets into the engine NPC motion pipeline.

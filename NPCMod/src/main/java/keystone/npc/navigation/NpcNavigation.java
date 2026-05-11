@@ -1,6 +1,6 @@
 package keystone.npc.navigation;
 
-import keystone.npc.world.Vec3;
+import keystone.npc.markers.Vec3;
 
 /**
  * Utility for NPC navigation calculations.

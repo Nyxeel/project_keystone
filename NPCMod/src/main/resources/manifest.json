@@ -8,7 +8,7 @@
       "Name": "Nyxeel"
     }
   ],
-  "Main": "keystone.npc.KeystoneNPCPlugin",
+  "Main": "keystone.npc.KeystoneNpcPlugin",
   "IncludesAssetPack": true,
   "ServerVersion": "2026.05.07-5efa15f6d"
 }
