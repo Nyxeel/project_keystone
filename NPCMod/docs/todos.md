@@ -343,33 +343,5 @@ Bob sieht wie ein echter Hytale-Avatar aus, nicht nur wie ein Platzhaltermodell.
 
 ---
 
-## 4. Echten Hytale-Timer/Tick anbinden
 
-In der Plugin-Datei steht noch ein TODO für echten Server-Tick/Timer.
 
-Für MVP A sollte der Scheduler sauber über Hytale laufen, nicht nur als Java-Testlogik.
-
----
-
-## 5. Speicherpfad sauber machen
-
-Auch der Datenpfad ist noch TODO.
-
-Bedeutet:
-
-`state.json` soll sicher im richtigen Mod-/Serverdatenordner landen.
-
----
-
-## 6. MVP-A-Testliste machen
-
-Teste genau diese Fälle:
-
-- Marker setzen
-- Bob spawnen
-- Bob läuft bei Tag zu Work
-- Bob läuft bei Nacht zu Bed
-- Server/Welt neu starten
-- Bob + Marker werden wieder geladen
-- Bob läuft nach Restart weiter korrekt
-- Fehlender Marker macht keinen Crash
