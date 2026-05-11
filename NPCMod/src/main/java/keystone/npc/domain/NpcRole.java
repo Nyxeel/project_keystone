@@ -2,9 +2,10 @@ package keystone.npc.domain;
 
 import java.util.EnumSet;
 import java.util.Set;
-import keystone.npc.roles.RoleDefinition;
-import keystone.npc.roles.DailyRoutine;
+
 import keystone.npc.markers.MarkerType;
+import keystone.npc.roles.DailyRoutine;
+import keystone.npc.roles.RoleDefinition;
 
 /**
  * Built-in role defaults.
@@ -15,7 +16,7 @@ public enum NpcRole {
     LUMBERJACK(
         "lumberjack",
         "Lumberjack",
-        EnumSet.of(MarkerType.BED, MarkerType.DOOR, MarkerType.WORK),
+        EnumSet.of(MarkerType.BED, MarkerType.WORK),
         new DailyRoutine(21, 7)
     );
 

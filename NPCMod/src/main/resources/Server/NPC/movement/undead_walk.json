@@ -1,0 +1,14 @@
+{
+	"id": "undead_walk",
+	"version": 1,
+	"motionControllerList": [
+		{
+			"type": "Walk",
+			"maxWalkSpeed": 1.7,
+			"gravity": 10,
+			"maxFallSpeed": 8,
+			"acceleration": 8
+		}
+	],
+	"instructions": []
+}

@@ -8,11 +8,12 @@ import java.util.function.BiConsumer;
 import com.hypixel.hytale.server.core.universe.world.World;
 
 import keystone.npc.domain.NpcRecord;
+import keystone.npc.markers.MarkerRecord;
+import keystone.npc.markers.MarkerType;
+import keystone.npc.markers.RequiredMarkerResolver;
 import keystone.npc.roles.RoleDefinition;
 import keystone.npc.roles.RoleDefinitionRegistry;
 import keystone.npc.routine.marker.MarkerResolver;
-import keystone.npc.markers.MarkerRecord;
-import keystone.npc.markers.MarkerType;
 
 public final class RespawnRecoveryService {
     @FunctionalInterface
@@ -31,6 +32,7 @@ public final class RespawnRecoveryService {
     private final long respawnRetryBaseMs;
     private final long respawnRetryMaxMs;
     private final int respawnMaxFailures;
+    private final RequiredMarkerResolver requiredMarkerResolver;
     private final BiConsumer<String, String> logSevereSink;
     private final SpawnContextFormatter spawnContextFormatter;
 
@@ -46,6 +48,7 @@ public final class RespawnRecoveryService {
         long respawnRetryBaseMs,
         long respawnRetryMaxMs,
         int respawnMaxFailures,
+        RequiredMarkerResolver requiredMarkerResolver,
         BiConsumer<String, String> logSevereSink,
         SpawnContextFormatter spawnContextFormatter
     ) {
@@ -60,6 +63,7 @@ public final class RespawnRecoveryService {
         this.respawnRetryBaseMs = respawnRetryBaseMs;
         this.respawnRetryMaxMs = respawnRetryMaxMs;
         this.respawnMaxFailures = respawnMaxFailures;
+        this.requiredMarkerResolver = requiredMarkerResolver;
         this.logSevereSink = logSevereSink;
         this.spawnContextFormatter = spawnContextFormatter;
     }
@@ -112,15 +116,20 @@ public final class RespawnRecoveryService {
             return "unknown-role roleId=" + npc.roleId();
         }
 
-        for (MarkerType markerType : roleDefinition.get().requiredMarkers()) {
-            String markerId = markerResolver.markerIdForType(npc, markerType);
-            if (markerId == null || markerId.isBlank()) {
-                return "missing-marker-id markerType=" + markerType;
+        for (RequiredMarkerResolver.Requirement requirement : requiredMarkerResolver.resolveRequirements(npc.roleId())) {
+            MarkerType markerType = requirement.markerType();
+            if (markerType == null) {
+                continue;
             }
 
+            String markerId = markerResolver.markerIdForType(npc, markerType);
             Optional<MarkerRecord> marker = markerResolver.resolveRequiredMarkerWithFallback(npc, markerType);
             if (marker.isEmpty()) {
-                return "missing-marker-record markerType=" + markerType + " markerId=" + markerId + " fallback=none";
+                String normalizedMarkerId = markerId == null || markerId.isBlank() ? "-" : markerId;
+                System.err.println("[KNPC][Warning] restore marker missing for npcId=" + npc.npcId()
+                    + " marker=" + requirement.name()
+                    + " markerType=" + markerType.name()
+                    + " markerId=" + normalizedMarkerId);
             }
         }
 

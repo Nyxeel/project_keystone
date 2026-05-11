@@ -17,11 +17,11 @@ import com.google.gson.JsonParseException;
 
 import keystone.npc.domain.NpcRecord;
 import keystone.npc.domain.NpcState;
-import keystone.npc.navigation.NavigationTarget;
 import keystone.npc.markers.MarkerRecord;
 import keystone.npc.markers.MarkerType;
 import keystone.npc.markers.Vec3;
 import keystone.npc.markers.WorldId;
+import keystone.npc.navigation.NavigationTarget;
 
 /**
  * MVP A: simpelstes Persistenz-Skeleton.
@@ -154,7 +154,10 @@ public final class JsonFileStateStore implements StateStore {
                 npc.workInstanceId(),
                 npc.bedMarkerId(),
                 npc.doorMarkerId(),
+                npc.chestMarkerId(),
+                npc.foodMarkerId(),
                 npc.workMarkerId(),
+                npc.chillMarkerId(),
                 npc.entityUuid(),
                 navigation
         );
@@ -209,7 +212,10 @@ public final class JsonFileStateStore implements StateStore {
         record.workInstanceId(npc.workInstanceId());
         record.bedMarkerId(npc.bedMarkerId());
         record.doorMarkerId(npc.doorMarkerId());
+        record.chestMarkerId(npc.chestMarkerId());
+        record.foodMarkerId(npc.foodMarkerId());
         record.workMarkerId(npc.workMarkerId());
+        record.chillMarkerId(npc.chillMarkerId());
         record.entityUuid(npc.entityUuid());
 
         restorePersistedNavigation(record, npc.navigation());

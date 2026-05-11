@@ -1,0 +1,50 @@
+{
+  "id": "lumberjack_day_cycle",
+  "version": 1,
+  "schedule": [
+    {
+      "time": "01:00",
+      "targetMarker": "chest",
+      "state": "USING_CHEST",
+      "action": "open_chest",
+      "durationMinutes": 60
+    },
+    {
+      "time": "02:00",
+      "targetMarker": "food",
+      "state": "EATING",
+      "action": "eat_meal",
+      "durationMinutes": 60
+    },
+    {
+      "time": "03:00",
+      "targetMarker": "work",
+      "state": "WORKING",
+      "action": "chop_wood",
+      "durationMinutes": 60
+    },
+    {
+      "time": "4:00",
+      "targetMarker": "food",
+      "state": "EATING",
+      "action": "eat_meal",
+      "durationMinutes": 60
+    },
+    {
+      "time": "5:00",
+      "targetMarker": "work",
+      "state": "WORKING",
+      "action": "chop_wood",
+      "durationMinutes": 120
+    },
+
+
+    {
+      "time": "7:00",
+      "targetMarker": "bed",
+      "state": "SLEEPING",
+      "action": "sleep",
+      "durationMinutes": 1080
+    }
+  ]
+}

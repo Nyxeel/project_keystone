@@ -1,22 +1,29 @@
 package keystone.npc.doorway;
 
-import com.hypixel.hytale.protocol.BlockPosition;
-import com.hypixel.hytale.server.core.universe.world.World;
 import java.util.Map;
 import java.util.Optional;
+
+import com.hypixel.hytale.protocol.BlockPosition;
+import com.hypixel.hytale.server.core.universe.world.World;
+
 import keystone.npc.domain.NpcRecord;
 import keystone.npc.domain.NpcState;
-import keystone.npc.navigation.NavigationTarget;
-import keystone.npc.routine.marker.MarkerResolver;
 import keystone.npc.markers.MarkerRecord;
 import keystone.npc.markers.MarkerType;
 import keystone.npc.markers.Vec3;
+import keystone.npc.navigation.NavigationTarget;
+import keystone.npc.routine.marker.MarkerResolver;
 
 public final class DoorwayFlow {
 
     @FunctionalInterface
     public interface DoorLogSink {
         void log(NpcRecord npc, String eventKey, String message);
+    }
+
+    @FunctionalInterface
+    public interface DoorCapabilityGate {
+        boolean canOpenDoors(NpcRecord npc);
     }
 
     private final MarkerResolver markerResolver;
@@ -32,6 +39,7 @@ public final class DoorwayFlow {
     private final long doorChainTimeoutMs;
     private final double doorCloseMinDistanceSq;
     private final DoorLogSink doorLogSink;
+    private final DoorCapabilityGate doorCapabilityGate;
 
     public DoorwayFlow(
         MarkerResolver markerResolver,
@@ -46,7 +54,8 @@ public final class DoorwayFlow {
         long doorActionCooldownMs,
         long doorChainTimeoutMs,
         double doorCloseMinDistanceSq,
-        DoorLogSink doorLogSink
+        DoorLogSink doorLogSink,
+        DoorCapabilityGate doorCapabilityGate
     ) {
         this.markerResolver = markerResolver;
         this.doorSupport = doorSupport;
@@ -61,10 +70,15 @@ public final class DoorwayFlow {
         this.doorChainTimeoutMs = doorChainTimeoutMs;
         this.doorCloseMinDistanceSq = doorCloseMinDistanceSq;
         this.doorLogSink = doorLogSink;
+        this.doorCapabilityGate = doorCapabilityGate;
     }
 
     public void maybeHandleDoorNavigation(World world, NpcRecord npc, NavigationTarget navState, Vec3 currentPos) {
         if (npc.state() != NpcState.WALKING_TO_BED && npc.state() != NpcState.WALKING_TO_WORK) {
+            return;
+        }
+
+        if (!doorCapabilityGate.canOpenDoors(npc)) {
             return;
         }
 

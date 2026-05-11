@@ -11,6 +11,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.joml.Vector3d;
+
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.RemoveReason;
 import com.hypixel.hytale.component.Store;
@@ -20,33 +21,38 @@ import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.hypixel.hytale.server.npc.NPCPlugin;
 
-import keystone.npc.domain.TargetRole;
+import keystone.npc.capabilities.CapabilityChecks;
+import keystone.npc.capabilities.NpcCapability;
+import keystone.npc.debug.NpcDebugSupport;
+import keystone.npc.definition.NpcTemplateResolver;
 import keystone.npc.domain.NpcRecord;
 import keystone.npc.domain.NpcState;
+import keystone.npc.domain.TargetRole;
+import keystone.npc.doorway.ActiveDoorPass;
+import keystone.npc.doorway.DoorPassTracker;
+import keystone.npc.doorway.DoorwayConfig;
+import keystone.npc.doorway.DoorwayFlow;
+import keystone.npc.doorway.DoorwayScanner;
+import keystone.npc.doorway.PendingDoorAttempt;
+import keystone.npc.markers.MarkerRecord;
+import keystone.npc.markers.MarkerRegistry;
+import keystone.npc.markers.MarkerType;
+import keystone.npc.markers.RequiredMarkerResolver;
+import keystone.npc.markers.Vec3;
 import keystone.npc.navigation.EngineNavigationController;
 import keystone.npc.navigation.NavigationTarget;
+import keystone.npc.recovery.RespawnRecoveryService;
+import keystone.npc.relink.RelinkSupport;
+import keystone.npc.relink.RelinkWorkflowService;
 import keystone.npc.roles.RoleDefinition;
 import keystone.npc.roles.RoleDefinitionRegistry;
-import keystone.npc.doorway.ActiveDoorPass;
-import keystone.npc.doorway.PendingDoorAttempt;
-import keystone.npc.doorway.DoorwayConfig;
-import keystone.npc.doorway.DoorPassTracker;
-import keystone.npc.doorway.DoorwayScanner;
-import keystone.npc.doorway.DoorwayFlow;
 import keystone.npc.routine.entity.EntitySyncService;
 import keystone.npc.routine.marker.IdleMarkerService;
 import keystone.npc.routine.marker.MarkerResolver;
 import keystone.npc.routine.pathfinding.NavigationRuntimeService;
 import keystone.npc.routine.pathfinding.PathfindingSupport;
-import keystone.npc.relink.RelinkSupport;
-import keystone.npc.relink.RelinkWorkflowService;
-import keystone.npc.recovery.RespawnRecoveryService;
 import keystone.npc.routine.state.NpcTickPipeline;
 import keystone.npc.routine.state.StateTargetingService;
-import keystone.npc.markers.MarkerRecord;
-import keystone.npc.markers.MarkerRegistry;
-import keystone.npc.markers.MarkerType;
-import keystone.npc.markers.Vec3;
 
 /**
  * MVP A: minimaler Routine-Runner.
@@ -89,6 +95,9 @@ public final class NpcRoutineRunner {
 
     private final MarkerRegistry markerRegistry;
     private final RoleDefinitionRegistry roleDefinitions;
+    private final CapabilityChecks capabilityChecks;
+    private final NpcTemplateResolver templateResolver;
+    private final RequiredMarkerResolver requiredMarkerResolver;
     private final MarkerResolver markerResolver;
     private final EntitySyncService entitySync = new EntitySyncService();
     private final IdleMarkerService idleMarkerService;
@@ -100,6 +109,7 @@ public final class NpcRoutineRunner {
     private final NavigationRuntimeService navigationRuntimeService;
     private final StateTargetingService stateTargetingService;
     private final NpcTickPipeline npcUpdateWorkflowService;
+    private final RoutineRunner routineRunner = new RoutineRunner();
     private final DoorwayScanner doorSupport = new DoorwayScanner(
         pathfindingSupport,
         new DoorwayConfig(
@@ -128,9 +138,17 @@ public final class NpcRoutineRunner {
     private final DoorwayFlow doorWorkflowService;
     private volatile long lastRestoreAtMs = 0L;
 
-    public NpcRoutineRunner(MarkerRegistry markerRegistry, RoleDefinitionRegistry roleDefinitions) {
+    public NpcRoutineRunner(
+        MarkerRegistry markerRegistry,
+        RoleDefinitionRegistry roleDefinitions,
+        CapabilityChecks capabilityChecks,
+        NpcTemplateResolver templateResolver
+    ) {
         this.markerRegistry = Objects.requireNonNull(markerRegistry);
         this.roleDefinitions = Objects.requireNonNull(roleDefinitions);
+        this.capabilityChecks = Objects.requireNonNull(capabilityChecks);
+        this.templateResolver = Objects.requireNonNull(templateResolver);
+        this.requiredMarkerResolver = new RequiredMarkerResolver(this.templateResolver, this.roleDefinitions);
         this.markerResolver = new MarkerResolver(this.markerRegistry, this::logInfo);
         this.idleMarkerService = new IdleMarkerService(
             this.markerResolver,
@@ -170,6 +188,7 @@ public final class NpcRoutineRunner {
             RESPAWN_RETRY_BASE_MS,
             RESPAWN_RETRY_MAX_MS,
             RESPAWN_MAX_FAILURES,
+            this.requiredMarkerResolver,
             this::logSevere,
             this::spawnContext
         );
@@ -186,7 +205,8 @@ public final class NpcRoutineRunner {
             DOOR_ACTION_COOLDOWN_MS,
             DOOR_CHAIN_TIMEOUT_MS,
             DOOR_CLOSE_MIN_DISTANCE_SQ,
-            this::logDoorInfo
+            this::logDoorInfo,
+            this::canOpenDoorsWithDebug
         );
         this.navigationRuntimeService = new NavigationRuntimeService(
             this.engineNavigation,
@@ -202,7 +222,12 @@ public final class NpcRoutineRunner {
             this.activeDoorPasses,
             this.pendingDoorAttempts,
             this.pendingDoorCloseAttempts,
-            ENGINE_NAVIGATION_ENABLED
+            this.templateResolver,
+            this.requiredMarkerResolver,
+            this.routineRunner,
+            ENGINE_NAVIGATION_ENABLED,
+            this::isRoutineLoggingEnabled,
+            this::emitRoutineChatMessage
         );
         this.npcUpdateWorkflowService = new NpcTickPipeline(
             this.roleDefinitions,
@@ -210,7 +235,8 @@ public final class NpcRoutineRunner {
             this.navigationRuntimeService,
             this.idleMarkerService,
             this.entitySync,
-            ENGINE_NAVIGATION_ENABLED
+            ENGINE_NAVIGATION_ENABLED,
+            this::emitMissingMarkerWarnings
         );
     }
 
@@ -230,6 +256,8 @@ public final class NpcRoutineRunner {
 
         int cleaned = 0;
         for (var npc : loaded) {
+            reconcilePersistedMarkerAssignments(npc);
+
             String staleReason = staleReasonForRestore(npc);
             if (staleReason != null) {
                 cleaned++;
@@ -266,8 +294,146 @@ public final class NpcRoutineRunner {
         return npcs.values().stream().toList();
     }
 
+    private void reconcilePersistedMarkerAssignments(NpcRecord npc) {
+        List<MarkerType> requiredTypes = requiredMarkerResolver.resolveSupportedRequiredMarkerTypes(npc.roleId());
+        Set<MarkerType> requiredSet = Set.copyOf(requiredTypes);
+
+        for (MarkerType markerType : MarkerType.values()) {
+            if (requiredSet.contains(markerType)) {
+                continue;
+            }
+
+            if (markerResolver.markerIdForType(npc, markerType) != null) {
+                markerResolver.setMarkerIdForType(npc, markerType, null);
+            }
+        }
+
+        for (MarkerType markerType : requiredTypes) {
+            markerResolver.resolveRequiredMarkerWithFallback(npc, markerType);
+        }
+    }
+
+    private void bindActiveMarkersByRole(NpcRecord npc) {
+        Set<MarkerType> requiredSet = Set.copyOf(requiredMarkerResolver.resolveSupportedRequiredMarkerTypes(npc.roleId()));
+        for (MarkerType markerType : MarkerType.values()) {
+            String markerId = requiredSet.contains(markerType)
+                ? markerRegistry.getActive(markerType).map(MarkerRecord::markerId).orElse(null)
+                : null;
+            markerResolver.setMarkerIdForType(npc, markerType, markerId);
+        }
+    }
+
+    public List<NpcRecord> snapshotIndexed() {
+        List<NpcRecord> npcList = new ArrayList<>(npcs.values());
+        npcList.sort((left, right) -> {
+            int byName = safeLower(left.npcName()).compareTo(safeLower(right.npcName()));
+            if (byName != 0) {
+                return byName;
+            }
+
+            int byRole = safeLower(left.roleId()).compareTo(safeLower(right.roleId()));
+            if (byRole != 0) {
+                return byRole;
+            }
+
+            return safeLower(left.npcId()).compareTo(safeLower(right.npcId()));
+        });
+        return npcList;
+    }
+
+    public NpcRecord getNpcByIndex(int index) {
+        List<NpcRecord> npcList = snapshotIndexed();
+        if (index < 0 || index >= npcList.size()) {
+            return null;
+        }
+        return npcList.get(index);
+    }
+
+    public int indexOfNpc(String npcId) {
+        if (npcId == null || npcId.isBlank()) {
+            return -1;
+        }
+
+        List<NpcRecord> npcList = snapshotIndexed();
+        for (int i = 0; i < npcList.size(); i++) {
+            if (npcId.equalsIgnoreCase(npcList.get(i).npcId())) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    public Optional<NpcRecord> findNpcByNameOrId(String query) {
+        List<NpcRecord> matches = findNpcMatchesByNameOrId(query);
+        if (matches.size() == 1) {
+            return Optional.of(matches.get(0));
+        }
+        return Optional.empty();
+    }
+
+    public List<NpcRecord> findNpcMatchesByNameOrId(String query) {
+        if (query == null || query.isBlank()) {
+            return List.of();
+        }
+
+        String normalized = query.trim().toLowerCase(Locale.ROOT);
+        List<NpcRecord> exact = new ArrayList<>();
+        List<NpcRecord> partial = new ArrayList<>();
+
+        for (NpcRecord npc : snapshotIndexed()) {
+            String name = safeLower(npc.npcName());
+            String id = safeLower(npc.npcId());
+
+            if (name.equals(normalized) || id.equals(normalized)) {
+                exact.add(npc);
+                continue;
+            }
+
+            if (name.contains(normalized) || id.contains(normalized)) {
+                partial.add(npc);
+            }
+        }
+
+        if (!exact.isEmpty()) {
+            return exact;
+        }
+        return partial;
+    }
+
     public NpcRecord getNpc(String npcId) {
         return npcs.get(npcId);
+    }
+
+    public boolean assignMarkerToNpc(NpcRecord npc, MarkerType markerType, String markerId) {
+        if (npc == null || markerType == null || markerId == null || markerId.isBlank()) {
+            return false;
+        }
+
+        String previousMarkerId = markerResolver.markerIdForType(npc, markerType);
+        MarkerRecord previousMarker = markerResolver.resolveMarkerInNpcWorld(npc, markerType, previousMarkerId).orElse(null);
+
+        markerResolver.setMarkerIdForType(npc, markerType, markerId);
+
+        if (!shouldStartRetargetWalkFromCurrentMarker(npc, markerType, previousMarker)) {
+            return false;
+        }
+
+        NpcState targetState = idleStateForMarker(markerType);
+        if (targetState == null) {
+            return false;
+        }
+
+        resetNavigationForRetarget(npc);
+        boolean started = stateTargetingService.startNavigationToMarker(npc, markerType, targetState);
+        if (started) {
+            logInfo("MARKER_RETARGET_REROUTE", "Started immediate reroute after marker retarget: "
+                + "npcId=" + npc.npcId()
+                + " npcName=" + quote(npc.npcName())
+                + " markerType=" + markerType.name()
+                + " oldMarkerId=" + nullToDash(previousMarkerId)
+                + " newMarkerId=" + markerId);
+        }
+        return started;
     }
 
     public boolean removeNpc(String npcId) {
@@ -288,7 +454,7 @@ public final class NpcRoutineRunner {
     }
 
     public boolean removeNpcByIndex(int index) {
-        var npcList = new ArrayList<>(npcs.values());
+        var npcList = snapshotIndexed();
         if (index < 0 || index >= npcList.size()) {
             return false;
         }
@@ -394,10 +560,9 @@ public final class NpcRoutineRunner {
         // Set spawn position
         npc.currentPosition(position);
 
-        // MVP A: bind to "active" markers (last set)
-        npc.bedMarkerId(markerRegistry.getActive(MarkerType.BED).map(m -> m.markerId()).orElse(null));
-        npc.doorMarkerId(markerRegistry.getActive(MarkerType.DOOR).map(m -> m.markerId()).orElse(null));
-        npc.workMarkerId(markerRegistry.getActive(MarkerType.WORK).map(m -> m.markerId()).orElse(null));
+        // Bind only role-required markers from current "active" markers.
+        bindActiveMarkersByRole(npc);
+        reconcilePersistedMarkerAssignments(npc);
 
         npcs.put(npc.npcId(), npc);
         return npc;
@@ -541,7 +706,66 @@ public final class NpcRoutineRunner {
     }
 
     private void updateNpc(NpcRecord npc, World world) {
+        if (npc.state() == null || !npc.state().isWalking()) {
+            npc.lastCapabilityDecisionKey(null);
+        }
+        reconcilePersistedMarkerAssignments(npc);
         npcUpdateWorkflowService.updateNpc(npc, world);
+    }
+
+    private boolean shouldStartRetargetWalkFromCurrentMarker(NpcRecord npc, MarkerType markerType, MarkerRecord previousMarker) {
+        if (previousMarker == null) {
+            return false;
+        }
+
+        NpcState state = npc.state();
+        if (state == null || !state.isIdle()) {
+            return false;
+        }
+
+        Optional<MarkerType> authoritativeType = resolveAuthoritativeMarkerType(state);
+        if (authoritativeType.isEmpty() || authoritativeType.get() != markerType) {
+            return false;
+        }
+
+        Vec3 currentPos = resolveCurrentNpcPosition(npc);
+        if (currentPos == null) {
+            return false;
+        }
+
+        return distanceSq(currentPos, previousMarker.position()) <= ENGINE_NAVIGATION_ARRIVAL_DISTANCE_SQ;
+    }
+
+    private Vec3 resolveCurrentNpcPosition(NpcRecord npc) {
+        Vec3 livePos = readPosition(npc.entityRef());
+        if (livePos != null) {
+            npc.currentPosition(livePos);
+            return livePos;
+        }
+        return npc.currentPosition();
+    }
+
+    private NpcState idleStateForMarker(MarkerType markerType) {
+        return switch (markerType) {
+            case BED -> NpcState.SLEEPING;
+            case DOOR -> NpcState.OPENING_DOOR;
+            case CHEST -> NpcState.USING_CHEST;
+            case FOOD -> NpcState.EATING;
+            case WORK -> NpcState.WORKING;
+            case CHILL -> NpcState.CHILLING;
+        };
+    }
+
+    private void resetNavigationForRetarget(NpcRecord npc) {
+        npc.navigationState().clear();
+        npc.pendingActionId(null);
+        npc.activeActionId(null);
+        npc.lastActionNoRestartLog(null);
+        nextDoorActionAtMs.remove(npc.npcId());
+        nextDoorCloseActionAtMs.remove(npc.npcId());
+        pendingDoorAttempts.remove(npc.npcId());
+        pendingDoorCloseAttempts.remove(npc.npcId());
+        activeDoorPasses.remove(npc.npcId());
     }
 
     private RelinkWorkflowService.RelinkOutcome tryRelinkEntityRef(World world, NpcRecord npc, String trigger)
@@ -655,7 +879,10 @@ public final class NpcRoutineRunner {
             + " failures=" + failures
             + " markers={bed=" + nullToDash(npc.bedMarkerId())
             + ",door=" + nullToDash(npc.doorMarkerId())
-            + ",work=" + nullToDash(npc.workMarkerId()) + "}";
+                + ",chest=" + nullToDash(npc.chestMarkerId())
+                + ",food=" + nullToDash(npc.foodMarkerId())
+                + ",work=" + nullToDash(npc.workMarkerId())
+                + ",chill=" + nullToDash(npc.chillMarkerId()) + "}";
     }
 
     private String nullToDash(String value) {
@@ -690,6 +917,52 @@ public final class NpcRoutineRunner {
             return;
         }
         logInfo(eventKey, message);
+    }
+
+    private boolean canOpenDoorsWithDebug(NpcRecord npc) {
+        boolean canOpen = capabilityChecks.hasOrDefault(npc.roleId(), NpcCapability.OPEN_DOORS, true);
+
+        NpcState state = npc.state();
+        if (state == null || !state.isWalking()) {
+            npc.lastCapabilityDecisionKey(null);
+            return canOpen;
+        }
+
+        if (NpcDebugSupport.logCapabilityChecksEnabled(templateResolver, npc.roleId())) {
+            String decisionKey = "door-capability:" + state.name() + ":" + canOpen;
+            if (!decisionKey.equals(npc.lastCapabilityDecisionKey())) {
+                logInfo("DOOR_CAPABILITY_CHECK", "Open-door capability check: npcId=" + npc.npcId()
+                    + " npcName=" + quote(npc.npcName())
+                    + " roleId=" + npc.roleId()
+                    + " state=" + state.name()
+                    + " allowed=" + canOpen);
+                npc.lastCapabilityDecisionKey(decisionKey);
+            }
+        }
+        return canOpen;
+    }
+
+    private boolean isRoutineLoggingEnabled(NpcRecord npc) {
+        return NpcDebugSupport.logRoutineChangesEnabled(templateResolver, npc.roleId());
+    }
+
+    private void emitRoutineChatMessage(NpcRecord npc, String message) {
+        if (npc == null || message == null || message.isBlank()) {
+            return;
+        }
+        NpcDebugSupport.sendGlobalChat(message);
+    }
+
+    private void emitMissingMarkerWarnings(NpcRecord npc, String missingMarkers) {
+        if (npc == null) {
+            return;
+        }
+        logSevere("MISSING_REQUIRED_MARKERS", "NPC is missing required marker assignments: npcId="
+            + npc.npcId() + " npcName=" + quote(npc.npcName()) + " missing=" + missingMarkers);
+    }
+
+    private String safeLower(String value) {
+        return value == null ? "" : value.toLowerCase(Locale.ROOT);
     }
 
     private boolean hasActiveNavigation(NavigationTarget navState) {

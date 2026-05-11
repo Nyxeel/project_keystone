@@ -1,24 +1,29 @@
 package keystone.npc;
 
-import com.hypixel.hytale.server.core.plugin.JavaPlugin;
-import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
-import com.hypixel.hytale.server.core.universe.world.events.AllWorldsLoadedEvent;
-import com.hypixel.hytale.server.npc.AllNPCsLoadedEvent;
-import javax.annotation.Nonnull;
-
 import java.io.File;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+import javax.annotation.Nonnull;
+
+import com.hypixel.hytale.server.core.plugin.JavaPlugin;
+import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
+import com.hypixel.hytale.server.core.universe.world.events.AllWorldsLoadedEvent;
+import com.hypixel.hytale.server.npc.AllNPCsLoadedEvent;
+
+import keystone.npc.capabilities.CapabilityChecks;
+import keystone.npc.capabilities.CapabilityResolver;
 import keystone.npc.commands.NpcCommandRegistrar;
+import keystone.npc.definition.NpcDefinitionRegistry;
+import keystone.npc.definition.NpcTemplateResolver;
+import keystone.npc.markers.MarkerRegistry;
 import keystone.npc.persistence.JsonFileStateStore;
 import keystone.npc.persistence.StateStore;
 import keystone.npc.roles.RoleDefinitionRegistry;
 import keystone.npc.routine.NpcRoutineRunner;
 import keystone.npc.routine.NpcTickSystem;
-import keystone.npc.markers.MarkerRegistry;
 
 /**
  * MVP A: server-first, 1 NPC (Lumberjack), 3 Marker (bed/door/work), Save/Load, einfacher Tagesablauf.
@@ -31,6 +36,9 @@ public class KeystoneNpcPlugin extends JavaPlugin {
 
     private final MarkerRegistry markerRegistry = new MarkerRegistry();
     private final RoleDefinitionRegistry roleDefinitions;
+    private final NpcDefinitionRegistry npcDefinitions;
+    private final NpcTemplateResolver templateResolver;
+    private final CapabilityChecks capabilityChecks;
     private final StateStore stateStore;
     private final NpcRoutineRunner scheduler;
     private final Path pluginDataDirectory;
@@ -45,8 +53,11 @@ public class KeystoneNpcPlugin extends JavaPlugin {
 
         this.pluginDataDirectory = resolvePluginDataDirectory();
         this.roleDefinitions = new RoleDefinitionRegistry(pluginDataDirectory.resolve(ROLES_FILE).toString());
+        this.npcDefinitions = new NpcDefinitionRegistry(pluginDataDirectory, "Server/NPC");
+        this.templateResolver = new NpcTemplateResolver(npcDefinitions, new CapabilityResolver(npcDefinitions));
+        this.capabilityChecks = new CapabilityChecks(templateResolver);
         this.stateStore = new JsonFileStateStore(pluginDataDirectory.resolve(STATE_FILE).toString());
-        this.scheduler = new NpcRoutineRunner(markerRegistry, roleDefinitions);
+        this.scheduler = new NpcRoutineRunner(markerRegistry, roleDefinitions, capabilityChecks, templateResolver);
     }
 
     /**
@@ -64,10 +75,14 @@ public class KeystoneNpcPlugin extends JavaPlugin {
         roleDefinitions.ensureExampleFileExists();
         roleDefinitions.load();
         System.out.println("[KeystoneNPC] Loaded role definitions: " + String.join(", ", roleDefinitions.roleIds()));
+        npcDefinitions.load();
+        templateResolver.reload();
+        System.out.println("[KeystoneNPC] Loaded npc definitions: " + String.join(", ", templateResolver.definitionIds()));
 
         var loaded = stateStore.load();
         markerRegistry.restore(loaded.markers(), loaded.activeMarkerIds());
         scheduler.restore(loaded.npcs());
+        saveState();
 
         // Run scheduler in the native ECS tick pipeline.
         getEntityStoreRegistry().registerSystem(new NpcTickSystem(scheduler));
@@ -81,7 +96,7 @@ public class KeystoneNpcPlugin extends JavaPlugin {
         });
 
         // 2) Register commands
-        commands = new NpcCommandRegistrar(this, markerRegistry, roleDefinitions, scheduler);
+        commands = new NpcCommandRegistrar(this, markerRegistry, roleDefinitions, templateResolver, scheduler);
         commands.registerAll();
     }
 

@@ -1,0 +1,7 @@
+{
+	"id": "weak_melee",
+	"version": 1,
+	"mode": "melee",
+	"aggroRange": 8,
+	"leashRange": 20
+}

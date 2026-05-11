@@ -1,8 +1,5 @@
 package keystone.npc.roles;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonParseException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -15,6 +12,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonParseException;
+
 import keystone.npc.domain.NpcRole;
 import keystone.npc.markers.MarkerType;
 
@@ -22,6 +24,7 @@ import keystone.npc.markers.MarkerType;
  * Hybrid role registry:
  * - code defaults from NpcRole
  * - optional JSON overrides/new roles from keystone-npc/roles.json
+ * - kept as legacy fallback while JSON-first NPC definitions are activated incrementally
  */
 public final class RoleDefinitionRegistry {
 
@@ -90,6 +93,13 @@ public final class RoleDefinitionRegistry {
         return byRoleId.keySet().stream().toList();
     }
 
+    public synchronized void registerOrReplace(RoleDefinition definition) {
+        if (definition == null) {
+            return;
+        }
+        byRoleId.put(definition.roleId(), definition);
+    }
+
     public synchronized void ensureExampleFileExists() {
         if (Files.exists(path)) {
             return;
@@ -101,7 +111,7 @@ public final class RoleDefinitionRegistry {
                 new PersistedRole(
                     "lumberjack",
                     "Lumberjack",
-                    List.of("BED", "DOOR", "WORK"),
+                    List.of("BED", "WORK"),
                     new PersistedSchedule(21, 7)
                 )
             ));

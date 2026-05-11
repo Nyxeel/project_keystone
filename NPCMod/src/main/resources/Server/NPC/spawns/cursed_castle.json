@@ -1,0 +1,8 @@
+{
+	"id": "cursed_castle",
+	"allowedBiomes": ["cursed_forest"],
+	"blockedStructureTags": ["friendly_village"],
+	"spawnMode": "structure_guard",
+	"maxPerChunkArea": 4,
+	"despawnWhenFarFromPlayers": true
+}

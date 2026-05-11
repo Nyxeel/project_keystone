@@ -1,0 +1,10 @@
+{
+  "id": "hostile_hunter",
+  "version": 1,
+  "pathStyle": "aggressive",
+  "doorPolicy": "use_if_needed",
+  "dangerPolicy": "ignore",
+  "targetPolicy": "cut_off_target",
+  "shortcutPolicy": "prefer",
+  "climbPolicy": "if_useful"
+}

@@ -1,10 +1,13 @@
 package keystone.npc.commands.admin;
 
+import java.util.Objects;
+
+import javax.annotation.Nonnull;
+
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
-import java.util.Objects;
-import javax.annotation.Nonnull;
+
 import keystone.npc.routine.NpcRoutineRunner;
 
 public final class NpcListCommand extends CommandBase {
@@ -18,7 +21,7 @@ public final class NpcListCommand extends CommandBase {
 
     @Override
     protected void executeSync(@Nonnull CommandContext context) {
-        var npcs = scheduler.snapshot();
+        var npcs = scheduler.snapshotIndexed();
         if (npcs.isEmpty()) {
             context.sendMessage(Message.raw("[knpc] No NPCs saved."));
             return;

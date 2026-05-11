@@ -24,7 +24,10 @@ record PersistedNpc(
     String workInstanceId,
     String bedMarkerId,
     String doorMarkerId,
+    String chestMarkerId,
+    String foodMarkerId,
     String workMarkerId,
+    String chillMarkerId,
     String entityUuid,
     PersistedNavigation navigation
 ) {

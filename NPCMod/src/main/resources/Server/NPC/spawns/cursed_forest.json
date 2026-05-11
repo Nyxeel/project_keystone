@@ -1,0 +1,8 @@
+{
+	"id": "cursed_forest",
+	"allowedBiomes": ["cursed_forest"],
+	"blockedStructureTags": ["friendly_village", "human_house"],
+	"spawnMode": "biome_wander",
+	"maxPerChunkArea": 3,
+	"despawnWhenFarFromPlayers": true
+}

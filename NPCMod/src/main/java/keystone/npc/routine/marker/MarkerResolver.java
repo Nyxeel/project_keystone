@@ -5,9 +5,9 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 
-import keystone.npc.domain.TargetRole;
 import keystone.npc.domain.NpcRecord;
 import keystone.npc.domain.NpcState;
+import keystone.npc.domain.TargetRole;
 import keystone.npc.markers.MarkerRecord;
 import keystone.npc.markers.MarkerRegistry;
 import keystone.npc.markers.MarkerType;
@@ -26,7 +26,10 @@ public final class MarkerResolver {
         return switch (markerType) {
             case BED -> npc.bedMarkerId();
             case DOOR -> npc.doorMarkerId();
+            case CHEST -> npc.chestMarkerId();
+            case FOOD -> npc.foodMarkerId();
             case WORK -> npc.workMarkerId();
+            case CHILL -> npc.chillMarkerId();
         };
     }
 
@@ -34,7 +37,10 @@ public final class MarkerResolver {
         switch (markerType) {
             case BED -> npc.bedMarkerId(markerId);
             case DOOR -> npc.doorMarkerId(markerId);
+            case CHEST -> npc.chestMarkerId(markerId);
+            case FOOD -> npc.foodMarkerId(markerId);
             case WORK -> npc.workMarkerId(markerId);
+            case CHILL -> npc.chillMarkerId(markerId);
         }
     }
 
@@ -126,6 +132,9 @@ public final class MarkerResolver {
             case BED -> Optional.of(MarkerType.BED);
             case WORK -> Optional.of(MarkerType.WORK);
             case DOOR -> Optional.of(MarkerType.DOOR);
+            case CHEST -> Optional.of(MarkerType.CHEST);
+            case FOOD -> Optional.of(MarkerType.FOOD);
+            case CHILL -> Optional.of(MarkerType.CHILL);
             case NONE -> Optional.empty();
         };
     }

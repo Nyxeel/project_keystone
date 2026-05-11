@@ -1,17 +1,19 @@
 package keystone.npc.routine.pathfinding;
 
+import java.util.Locale;
+import java.util.Map;
+
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
-import java.util.Map;
-import keystone.npc.domain.TargetRole;
+
 import keystone.npc.domain.NpcRecord;
 import keystone.npc.domain.NpcState;
+import keystone.npc.doorway.DoorwayFlow;
+import keystone.npc.doorway.PendingDoorAttempt;
+import keystone.npc.markers.Vec3;
 import keystone.npc.navigation.EngineNavigationController;
 import keystone.npc.navigation.NavigationTarget;
-import keystone.npc.doorway.PendingDoorAttempt;
-import keystone.npc.doorway.DoorwayFlow;
-import keystone.npc.markers.Vec3;
 
 public final class NavigationRuntimeService {
     private final EngineNavigationController engineNavigation;
@@ -49,7 +51,7 @@ public final class NavigationRuntimeService {
         }
 
         Ref<EntityStore> entityRef = npc.entityRef();
-        if (!engineNavigation.setTarget(entityRef, routeTarget)) {
+        if (!engineNavigation.setTarget(entityRef, routeTarget, npc.motionControllerType())) {
             return false;
         }
 
@@ -59,7 +61,7 @@ public final class NavigationRuntimeService {
             doorWorkflowService.maybeHandleDoorNavigation(world, npc, navState, currentPos);
         }
 
-        if (currentPos != null && distanceSq(currentPos, routeTarget) <= engineNavigationArrivalDistanceSq) {
+        if (currentPos != null && distanceSq(currentPos, routeTarget) <= effectiveArrivalDistanceSq(npc)) {
             finishNavigation(world, npc, navState);
         }
 
@@ -82,9 +84,42 @@ public final class NavigationRuntimeService {
             npc.state(targetState);
         }
 
-        System.out.println("[KeystoneNPC] Navigation reached: npc=" + npc.npcName()
-            + " reachedTarget=" + targetTypeForState(targetState)
-            + " newState=" + npc.state());
+        String pendingActionId = npc.pendingActionId();
+        double arrivalDistance = targetPos == null || npc.currentPosition() == null
+            ? 0.0d
+            : Math.sqrt(distanceSq(npc.currentPosition(), targetPos));
+        double stopDistance = effectiveStopDistance(npc);
+
+        if (pendingActionId != null && !pendingActionId.isBlank()) {
+            if (!pendingActionId.equals(npc.activeActionId())) {
+                npc.activeActionId(pendingActionId);
+                npc.lastActionNoRestartLog(null);
+                System.out.println("[KNPC][Action] " + npc.npcName()
+                    + " start action=" + pendingActionId
+                    + " state=" + npc.state().name()
+                    + " marker=" + markerLabel(npc.activeRoutineMarker()));
+            } else if (!pendingActionId.equals(npc.lastActionNoRestartLog())) {
+                System.out.println("[KNPC][Action] " + npc.npcName()
+                    + " keep action=" + pendingActionId
+                    + " reason=already_active");
+                npc.lastActionNoRestartLog(pendingActionId);
+            }
+        } else if (npc.activeActionId() != null) {
+            System.out.println("[KNPC][Action] " + npc.npcName()
+                + " stop action=" + npc.activeActionId()
+                + " reason=target_changed");
+            npc.activeActionId(null);
+            npc.lastActionNoRestartLog(null);
+        }
+
+        System.out.println("[KNPC][Navigation] " + npc.npcName()
+            + " reached marker=" + markerLabel(npc.activeRoutineMarker())
+            + " distance=" + String.format(Locale.ROOT, "%.2f", arrivalDistance)
+            + " stopDistance=" + String.format(Locale.ROOT, "%.2f", stopDistance)
+            + " nextAction=" + nullToDash(pendingActionId));
+
+        npc.pendingActionId(null);
+
         pendingDoorAttempts.remove(npc.npcId());
         navState.clear();
     }
@@ -107,28 +142,37 @@ public final class NavigationRuntimeService {
         return entityRef != null && entityRef.isValid();
     }
 
-    private String targetTypeForState(NpcState state) {
-        if (state == null) {
-            return "UNKNOWN";
-        }
-
-        TargetRole markerRole = state.markerRole();
-        if (markerRole == null || markerRole == TargetRole.NONE) {
-            return "UNKNOWN";
-        }
-
-        return switch (markerRole) {
-            case BED -> "BED";
-            case WORK -> "WORK";
-            case DOOR -> "DOOR";
-            case NONE -> "UNKNOWN";
-        };
-    }
-
     private double distanceSq(Vec3 a, Vec3 b) {
         double dx = a.x() - b.x();
         double dy = a.y() - b.y();
         double dz = a.z() - b.z();
         return dx * dx + dy * dy + dz * dz;
+    }
+
+    private double effectiveArrivalDistanceSq(NpcRecord npc) {
+        Double stopDistance = npc.stopDistance();
+        if (stopDistance == null || !Double.isFinite(stopDistance) || stopDistance <= 0.0d) {
+            return engineNavigationArrivalDistanceSq;
+        }
+        return stopDistance * stopDistance;
+    }
+
+    private double effectiveStopDistance(NpcRecord npc) {
+        Double stopDistance = npc.stopDistance();
+        if (stopDistance == null || !Double.isFinite(stopDistance) || stopDistance <= 0.0d) {
+            return Math.sqrt(engineNavigationArrivalDistanceSq);
+        }
+        return stopDistance;
+    }
+
+    private String markerLabel(String marker) {
+        if (marker == null || marker.isBlank()) {
+            return "-";
+        }
+        return marker;
+    }
+
+    private String nullToDash(String value) {
+        return value == null || value.isBlank() ? "-" : value;
     }
 }

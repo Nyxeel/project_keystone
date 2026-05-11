@@ -1,0 +1,5 @@
+{
+	"id": "lumberjack_house",
+	"version": 1,
+	"requiredMarkers": ["bed", "door", "chest", "food", "work", "chill"]
+}

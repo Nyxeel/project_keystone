@@ -31,6 +31,10 @@ public final class EngineNavigationController {
     }
 
     public boolean setTarget(Ref<EntityStore> entityRef, Vec3 target) {
+        return setTarget(entityRef, target, null);
+    }
+
+    public boolean setTarget(Ref<EntityStore> entityRef, Vec3 target, String overrideMotionControllerName) {
         if (entityRef == null || !entityRef.isValid() || target == null) {
             return false;
         }
@@ -48,7 +52,10 @@ public final class EngineNavigationController {
 
         Role role = npc.getRole();
         if (role != null) {
-            role.setActiveMotionController(entityRef, npc, Objects.requireNonNull(motionControllerName), store);
+            String controllerName = overrideMotionControllerName != null && !overrideMotionControllerName.isBlank()
+                ? overrideMotionControllerName
+                : motionControllerName;
+            role.setActiveMotionController(entityRef, npc, Objects.requireNonNull(controllerName), store);
         }
 
         npc.getLeashPoint().set(target.x(), target.y(), target.z());

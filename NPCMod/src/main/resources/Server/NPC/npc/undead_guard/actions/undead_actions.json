@@ -1,0 +1,13 @@
+{
+	"id": "undead_actions",
+	"version": 1,
+	"actions": {
+		"guard_patrol": {
+			"animation": "undead.patrol",
+			"loop": true,
+			"sound": "npc.undead.growl",
+			"soundIntervalSeconds": 3.0,
+			"requiresCapability": "PATROL"
+		}
+	}
+}

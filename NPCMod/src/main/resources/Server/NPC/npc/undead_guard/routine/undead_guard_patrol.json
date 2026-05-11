@@ -1,0 +1,13 @@
+{
+  "id": "undead_guard_patrol",
+  "version": 1,
+  "schedule": [
+    {
+      "time": "00:00",
+      "targetMarker": "work",
+      "state": "PATROLLING",
+      "action": "guard_patrol",
+      "durationMinutes": 1440
+    }
+  ]
+}

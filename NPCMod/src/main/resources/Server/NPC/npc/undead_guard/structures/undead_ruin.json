@@ -1,0 +1,5 @@
+{
+	"id": "undead_ruin",
+	"version": 1,
+	"requiredMarkers": ["door", "work"]
+}
