@@ -19,7 +19,8 @@
       "maxWalkSpeed": 2,
       "gravity": 10,
       "maxFallSpeed": 8,
-      "acceleration": 10
+      "acceleration": 10,
+	  "runThreshold": 1.1
     }
   ],
   "instructions": [
@@ -31,7 +32,7 @@
       "bodyMotion": {
         "type": "Seek",
         "reachable": false,
-        "relativeSpeed": 1.0,
+        "relativeSpeed": 0.25,
         "slowDownDistance": 1.5,
         "stopDistance": 0.5,
         "switchToSteeringDistance": 2.0,

@@ -2,7 +2,7 @@
   "Type": "Abstract",
   "Parameters": {
     "Appearance": {
-      "Value": "Temple_Mithril_Guard",
+      "Value": "Player",
       "Description": "Model to be used"
     },
     "DropList": {
@@ -43,7 +43,7 @@
       "BodyMotion": {
         "Type": "Seek",
         "Reachable": false,
-        "RelativeSpeed": 1.0,
+        "RelativeSpeed": 0.75,
         "SlowDownDistance": 1.5,
         "StopDistance": 0.5,
         "SwitchToSteeringDistance": 2.0,

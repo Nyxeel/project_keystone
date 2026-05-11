@@ -10,7 +10,7 @@
   "role": "lumberjack",
   "appearance": {
     "profile": "npc/lumberjack/appearance/lumberjack_default.json",
-    "value": "Temple_Mithril_Guard"
+    "value": "Player"
   },
   "stats": {
     "maxHealth": 100
@@ -64,7 +64,7 @@
       "bodyMotion": {
         "type": "Seek",
         "reachable": false,
-        "relativeSpeed": 1.0,
+        "relativeSpeed": 0.75,
         "slowDownDistance": 1.5,
         "stopDistance": 0.5,
         "switchToSteeringDistance": 2.0,

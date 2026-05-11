@@ -1,5 +1,5 @@
 {
-	"id": "human_walk",
+	"id": "human_run",
 	"version": 1,
 	"motionControllerList": [
 		{
@@ -19,7 +19,7 @@
 			"bodyMotion": {
 				"type": "Seek",
 				"reachable": false,
-				"relativeSpeed": 0.75,
+				"relativeSpeed": 1.0,
 				"slowDownDistance": 1.5,
 				"stopDistance": 0.5,
 				"switchToSteeringDistance": 2.0,
