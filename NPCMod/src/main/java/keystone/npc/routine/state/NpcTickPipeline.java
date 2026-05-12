@@ -6,6 +6,7 @@ import java.util.function.BiConsumer;
 
 import com.hypixel.hytale.server.core.universe.world.World;
 
+import keystone.npc.domain.NpcEntityStatus;
 import keystone.npc.domain.NpcRecord;
 import keystone.npc.domain.NpcState;
 import keystone.npc.domain.TargetRole;
@@ -50,6 +51,14 @@ public final class NpcTickPipeline {
     }
 
     public void updateNpc(NpcRecord npc, World world) {
+        if (npc.entityStatus() == NpcEntityStatus.DISABLED) {
+            return;
+        }
+
+        if (npc.entityRef() == null || !npc.entityRef().isValid()) {
+            return;
+        }
+
         // Runtime role definitions are loaded from JSON and must resolve before targeting/navigation.
         Optional<RoleDefinition> roleDefinition = roleDefinitions.findByRoleId(npc.roleId());
         if (roleDefinition.isEmpty()) {

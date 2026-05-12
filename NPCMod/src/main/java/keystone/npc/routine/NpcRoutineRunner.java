@@ -1440,11 +1440,46 @@ public final class NpcRoutineRunner {
     }
 
     private void updateNpc(NpcRecord npc, World world) {
+        if (!passesLiveEntityGate(npc)) {
+            return;
+        }
+
         if (npc.state() == null || !npc.state().isWalking()) {
             npc.lastCapabilityDecisionKey(null);
         }
         reconcilePersistedMarkerAssignments(npc);
         npcUpdateWorkflowService.updateNpc(npc, world);
+    }
+
+    private boolean passesLiveEntityGate(NpcRecord npc) {
+        if (npc.entityStatus() == NpcEntityStatus.DISABLED) {
+            return false;
+        }
+
+        Ref<EntityStore> entityRef = npc.entityRef();
+        if (entityRef != null && entityRef.isValid()) {
+            return true;
+        }
+
+        npc.entityRef(null);
+        npc.entityId(0);
+        if (npc.entityUuid() == null || npc.entityUuid().isBlank()) {
+            npc.entityStatus(NpcEntityStatus.MISSING_ENTITY);
+        } else {
+            npc.entityStatus(NpcEntityStatus.NEEDS_RELINK);
+        }
+
+        clearRuntimeStateForMissingLiveEntity(npc);
+        return false;
+    }
+
+    private void clearRuntimeStateForMissingLiveEntity(NpcRecord npc) {
+        resetNavigationForRetarget(npc);
+        npc.activeRoutineMarker(null);
+        npc.activeRoutineState(null);
+        npc.activeRoutineActionId(null);
+        npc.activeRoutineSource(null);
+        npc.lastCapabilityDecisionKey(null);
     }
 
     private boolean shouldStartRetargetWalkFromCurrentMarker(NpcRecord npc, MarkerType markerType, MarkerRecord previousMarker) {
@@ -1497,6 +1532,7 @@ public final class NpcRoutineRunner {
         npc.lastActionNoRestartLog(null);
         nextDoorActionAtMs.remove(npc.npcId());
         nextDoorCloseActionAtMs.remove(npc.npcId());
+        nextDoorMarkerSkipLogAtMs.remove(npc.npcId());
         pendingDoorAttempts.remove(npc.npcId());
         pendingDoorCloseAttempts.remove(npc.npcId());
         activeDoorPasses.remove(npc.npcId());
