@@ -12,6 +12,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BooleanSupplier;
 
 import org.joml.Vector3d;
 
@@ -90,6 +91,7 @@ public final class NpcRoutineRunner {
     private static final long DOOR_ACTION_COOLDOWN_MS = 1_500L;
     private static final long DOOR_CHAIN_TIMEOUT_MS = 500L;
     private static final long RUNTIME_LOG_COOLDOWN_MS = 5_000L;
+    private static final long DIRTY_SAVE_INTERVAL_MS = 5_000L;
     private static final int CLEANUP_ORPHAN_MAX_RADIUS_BLOCKS = 256;
     private static final int CHUNK_SIZE_BLOCKS = 16;
     private static final Set<String> RUNTIME_COOLDOWN_EVENT_KEYS = Set.of(
@@ -159,6 +161,9 @@ public final class NpcRoutineRunner {
     private final Map<String, Long> runtimeLogCooldownByNpcEvent = new ConcurrentHashMap<>();
     private final DoorPassTracker doorPassTracker = new DoorPassTracker(activeDoorPasses);
     private final DoorwayFlow doorWorkflowService;
+    private BooleanSupplier stateSaveCallback;
+    private boolean stateDirty;
+    private long nextDirtySaveAtMs;
     private volatile long lastRestoreAtMs = 0L;
 
     public NpcRoutineRunner(
@@ -279,6 +284,8 @@ public final class NpcRoutineRunner {
         pendingDoorCloseAttempts.clear();
         activeDoorPasses.clear();
         runtimeLogCooldownByNpcEvent.clear();
+        stateDirty = false;
+        nextDirtySaveAtMs = 0L;
         lastRestoreAtMs = System.currentTimeMillis();
 
         int restoredDisabled = 0;
@@ -473,6 +480,7 @@ public final class NpcRoutineRunner {
         MarkerRecord previousMarker = markerResolver.resolveMarkerInNpcWorld(npc, markerType, previousMarkerId).orElse(null);
 
         markerResolver.setMarkerIdForType(npc, markerType, markerId);
+        markDirty();
 
         if (!shouldStartRetargetWalkFromCurrentMarker(npc, markerType, previousMarker)) {
             return false;
@@ -511,6 +519,7 @@ public final class NpcRoutineRunner {
         activeDoorPasses.remove(npc.npcId());
         clearRuntimeLogCooldownForNpc(npc.npcId());
         removeLiveEntity(npc);
+        markDirty();
         return true;
     }
 
@@ -640,7 +649,70 @@ public final class NpcRoutineRunner {
                         + spawnContext(npc, trigger, world, null, null));
                     relinked++;
                     stateChanged = true;
+                    markDirty();
                     clearRespawnFailureState(npc.npcId());
+                }
+                continue;
+            }
+
+            RelinkWorkflowService.RolePrefixRelinkEvaluationOutcome rolePrefixEvaluation = dryRun
+                ? evaluateRolePrefixRelinkEntityRefDetailed(world, npc, ownership)
+                : null;
+            RelinkWorkflowService.RolePrefixRelinkOutcome rolePrefixOutcome = dryRun
+                ? rolePrefixEvaluation.outcome()
+                : tryRolePrefixRelinkEntityRef(world, npc, trigger, ownership);
+            if (rolePrefixOutcome == RelinkWorkflowService.RolePrefixRelinkOutcome.SUCCESS) {
+                if (dryRun) {
+                    if (rolePrefixEvaluation == null) {
+                        skipped++;
+                        wouldSkip++;
+                        ambiguous++;
+                        logSevere("RESPAWN_DRY_RUN_AMBIGUOUS", "Dry-run role-prefix relink evaluation missing candidate details: "
+                            + spawnContext(npc, trigger, world, null, null));
+                        continue;
+                    }
+
+                    if (!registerDryRunPlannedClaim(
+                        plannedClaimedEntityUuids,
+                        plannedClaimedEntityRefs,
+                        rolePrefixEvaluation.candidateRef(),
+                        rolePrefixEvaluation.candidateUuid(),
+                        npc.npcId()
+                    )) {
+                        skipped++;
+                        wouldSkip++;
+                        ambiguous++;
+                        logSevere("RESPAWN_DRY_RUN_SKIPPED_PLANNED_CLAIMED", "Dry-run role-prefix relink candidate already planned for another record: "
+                            + spawnContext(npc, trigger, world, null, null));
+                        continue;
+                    }
+
+                    skipped++;
+                    wouldSkip++;
+                    wouldRelink++;
+                    logInfo("RESPAWN_DRY_RUN_WOULD_RELINK", "Dry-run would relink missing NPC via role-prefix fallback: "
+                        + spawnContext(npc, trigger, world, null, null));
+                } else {
+                    logInfo("RESPAWN_MATCH_FOUND_EXISTING_ENTITY", "Found existing entity through role-prefix fallback before replacement spawn: "
+                        + spawnContext(npc, trigger, world, null, null));
+                    relinked++;
+                    stateChanged = true;
+                    markDirty();
+                    clearRespawnFailureState(npc.npcId());
+                }
+                continue;
+            }
+
+            if (rolePrefixOutcome == RelinkWorkflowService.RolePrefixRelinkOutcome.AMBIGUOUS) {
+                skipped++;
+                ambiguous++;
+                if (dryRun) {
+                    wouldSkip++;
+                    logSevere("RESPAWN_DRY_RUN_AMBIGUOUS", "Dry-run blocked by ambiguous role-prefix relink candidates: "
+                        + spawnContext(npc, trigger, world, null, null));
+                } else {
+                    logSevere("RESPAWN_RELINK_AMBIGUOUS", "Skipped replacement spawn due to ambiguous role-prefix relink candidates: "
+                        + spawnContext(npc, trigger, world, null, null));
                 }
                 continue;
             }
@@ -687,6 +759,7 @@ public final class NpcRoutineRunner {
                         + spawnContext(npc, trigger, world, null, null));
                     relinked++;
                     stateChanged = true;
+                    markDirty();
                     clearRespawnFailureState(npc.npcId());
                 }
                 continue;
@@ -739,6 +812,7 @@ public final class NpcRoutineRunner {
                     + spawnContext(npc, trigger, world, null, null));
                 respawned++;
                 stateChanged = true;
+                markDirty();
                 clearRespawnFailureState(npc.npcId());
             } else {
                 skipped++;
@@ -890,9 +964,11 @@ public final class NpcRoutineRunner {
             }
 
             if (hasLiveEntity(npc)) {
+                PersistedIdentitySnapshot before = capturePersistedIdentitySnapshot(npc);
                 npc.entityId(1);
                 npc.entityStatus(NpcEntityStatus.ACTIVE);
                 updatePersistedEntityIdentity(npc, npc.entityRef());
+                markDirtyIfPersistedIdentityChanged(npc, before);
                 clearRespawnFailureState(npc.npcId());
                 npc.lastValidationWarningKey(null);
                 continue;
@@ -907,7 +983,27 @@ public final class NpcRoutineRunner {
                 RelinkWorkflowService.RelinkOutcome relinkOutcome = tryRelinkEntityRef(world, npc, trigger, ownership);
                 if (relinkOutcome == RelinkWorkflowService.RelinkOutcome.SUCCESS) {
                     clearRespawnFailureState(npc.npcId());
+                    markDirty();
                     npc.lastValidationWarningKey(null);
+                    continue;
+                }
+
+                RelinkWorkflowService.RolePrefixRelinkOutcome rolePrefixOutcome = tryRolePrefixRelinkEntityRef(world, npc, trigger, ownership);
+                if (rolePrefixOutcome == RelinkWorkflowService.RolePrefixRelinkOutcome.SUCCESS) {
+                    clearRespawnFailureState(npc.npcId());
+                    logInfo("RESPAWN_MATCH_FOUND_EXISTING_ENTITY", "Found existing entity during role-prefix relink fallback: "
+                        + spawnContext(npc, trigger, world, null, null));
+                    markDirty();
+                    npc.lastValidationWarningKey(null);
+                    continue;
+                }
+                if (rolePrefixOutcome == RelinkWorkflowService.RolePrefixRelinkOutcome.AMBIGUOUS) {
+                    String warnKey = "role-prefix-relink-ambiguous:" + npc.entityUuid();
+                    if (!warnKey.equals(npc.lastValidationWarningKey())) {
+                        logSevere("RESPAWN_RELINK_AMBIGUOUS", "Skipped replacement spawn due to ambiguous role-prefix relink candidates: "
+                            + spawnContext(npc, trigger, world, null, null));
+                        npc.lastValidationWarningKey(warnKey);
+                    }
                     continue;
                 }
 
@@ -916,6 +1012,7 @@ public final class NpcRoutineRunner {
                     clearRespawnFailureState(npc.npcId());
                     logInfo("RESPAWN_MATCH_FOUND_EXISTING_ENTITY", "Found existing entity during relink fallback: "
                         + spawnContext(npc, trigger, world, null, null));
+                    markDirty();
                     npc.lastValidationWarningKey(null);
                     continue;
                 }
@@ -934,7 +1031,9 @@ public final class NpcRoutineRunner {
                 }
             } else {
                 if (npc.entityStatus() != NpcEntityStatus.MISSING_ENTITY) {
+                    PersistedIdentitySnapshot beforeStatus = capturePersistedIdentitySnapshot(npc);
                     npc.entityStatus(NpcEntityStatus.NEEDS_RELINK);
+                    markDirtyIfPersistedIdentityChanged(npc, beforeStatus);
                 }
                 continue;
             }
@@ -969,6 +1068,7 @@ public final class NpcRoutineRunner {
                         logInfo("RESPAWN_CREATED_REPLACEMENT", "Created replacement entity for missing NPC: "
                             + spawnContext(npc, trigger, world, null, null));
                         clearRespawnFailureState(npc.npcId());
+                        markDirty();
                         npc.lastValidationWarningKey(null);
                     } else {
                         int failureCount = respawnFailureCounts.getOrDefault(npc.npcId(), 0) + 1;
@@ -1009,6 +1109,7 @@ public final class NpcRoutineRunner {
         npc.entityStatus(NpcEntityStatus.NEEDS_RELINK);
 
         npcs.put(npc.npcId(), npc);
+        markDirty();
         logInfo("RECORD_CREATED", "Created NPC record: " + spawnContext(npc, "spawn-record-only", null, null, null));
         return npc;
     }
@@ -1043,6 +1144,7 @@ public final class NpcRoutineRunner {
 
             npcs.put(npc.npcId(), npc);
             recordRegistered = true;
+            markDirty();
             logInfo("RECORD_CREATED", "Created NPC record: " + spawnContext(npc, trigger, world, null, null));
             return npc;
         } catch (RuntimeException ex) {
@@ -1057,10 +1159,12 @@ public final class NpcRoutineRunner {
     public NpcRecord linkEntityRef(String npcId, Ref<EntityStore> entityRef) {
         NpcRecord npc = npcs.get(npcId);
         if (npc != null) {
+            PersistedIdentitySnapshot before = capturePersistedIdentitySnapshot(npc);
             npc.entityRef(entityRef);
             npc.entityId(1);  // Mark as spawned (persist to JSON)
             npc.entityStatus(NpcEntityStatus.ACTIVE);
             updatePersistedEntityIdentity(npc, entityRef);
+            markDirtyIfPersistedIdentityChanged(npc, before);
         }
         return npc;
     }
@@ -1203,6 +1307,7 @@ public final class NpcRoutineRunner {
         Store<EntityStore> store = world.getEntityStore().getStore();
 
         Ref<EntityStore> spawnedRef;
+        NPCEntity spawnedNpc;
         try {
             var pair = NPCPlugin.get().spawnEntity(store, roleIndex, spawnPosition, Rotation3f.IDENTITY, null, null);
             if (pair == null) {
@@ -1213,6 +1318,7 @@ public final class NpcRoutineRunner {
             }
 
             spawnedRef = pair.first();
+            spawnedNpc = pair.second();
             if (spawnedRef == null || !spawnedRef.isValid()) {
                 restoreSpawnIdentitySnapshot(npc, oldIdentity, world, trigger, "spawn-entity-invalid-ref");
                 logSevere("RESPAWN_INVALID_ENTITY_REF", "spawnEntity returned invalid ref: "
@@ -1231,6 +1337,7 @@ public final class NpcRoutineRunner {
             npc.entityRef(spawnedRef);
             npc.entityId(1);  // Mark as spawned (persist to JSON)
             npc.entityStatus(NpcEntityStatus.ACTIVE);
+            assignRuntimeRoleName(npc, definition, spawnedRef, spawnedNpc, world, trigger);
             updatePersistedEntityIdentity(npc, spawnedRef);
             logInfo("SPAWN_ENTITY_CREATED", "Spawned NPC entity: "
                 + spawnContext(npc, trigger, world, definition, roleIndex));
@@ -1240,6 +1347,7 @@ public final class NpcRoutineRunner {
                 logInfo("RESPAWN_SUCCESS_AFTER_RETRY", "Restored NPC entity after retries: "
                     + spawnContext(npc, trigger, world, definition, roleIndex));
             }
+            markDirty();
             return true;
         } catch (RuntimeException ex) {
             rollbackSpawnedEntityAfterSpawnFailure(world, npc, spawnedRef, oldIdentity, trigger, ex);
@@ -1261,6 +1369,14 @@ public final class NpcRoutineRunner {
     ) {
     }
 
+    private record PersistedIdentitySnapshot(
+        String entityUuid,
+        long entityId,
+        NpcEntityStatus entityStatus,
+        Vec3 currentPosition
+    ) {
+    }
+
     private SpawnIdentitySnapshot captureSpawnIdentitySnapshot(NpcRecord npc) {
         return new SpawnIdentitySnapshot(
             npc.entityUuid(),
@@ -1277,6 +1393,7 @@ public final class NpcRoutineRunner {
         String trigger,
         String reason
     ) {
+        PersistedIdentitySnapshot before = capturePersistedIdentitySnapshot(npc);
         Ref<EntityStore> oldRef = oldIdentity.entityRef();
         boolean oldRefValid = oldRef != null && oldRef.isValid();
         Ref<EntityStore> restoredRef = oldRefValid ? oldRef : null;
@@ -1308,6 +1425,42 @@ public final class NpcRoutineRunner {
             + " oldRefValid=" + oldRefValid
             + " oldEntityId=" + oldIdentity.entityId()
             + " oldEntityUuid=" + nullToDash(oldIdentity.entityUuid()));
+        markDirtyIfPersistedIdentityChanged(npc, before);
+    }
+
+    private void assignRuntimeRoleName(
+        NpcRecord npc,
+        RoleDefinition definition,
+        Ref<EntityStore> spawnedRef,
+        NPCEntity spawnedNpc,
+        World world,
+        String trigger
+    ) {
+        if (npc == null || definition == null) {
+            return;
+        }
+
+        NPCEntity liveNpc = spawnedNpc;
+        if (liveNpc == null && spawnedRef != null && spawnedRef.isValid()) {
+            var npcType = NPCEntity.getComponentType();
+            if (npcType != null) {
+                liveNpc = spawnedRef.getStore().getComponent(spawnedRef, npcType);
+            }
+        }
+
+        if (liveNpc == null) {
+            return;
+        }
+
+        String runtimeRoleName = buildRuntimeRoleName(npc.npcId(), npc.roleId());
+        liveNpc.setRoleName(runtimeRoleName);
+        logInfo("RUNTIME_ROLE_ASSIGNED", "Assigned unique runtime role name for NPC entity: "
+            + spawnContext(npc, trigger, world, definition, NPCPlugin.get().getIndex(definition.npcPluginRoleName()))
+            + " runtimeRoleName=" + runtimeRoleName);
+    }
+
+    private String buildRuntimeRoleName(String npcId, String roleId) {
+        return "KeystoneNPC_" + nullToDash(npcId) + "_" + nullToDash(roleId) + "_Role";
     }
 
     private boolean passesRespawnForcePrecheck(World world, NpcRecord npc, String trigger) {
@@ -1334,6 +1487,8 @@ public final class NpcRoutineRunner {
             return false;
         }
 
+        PersistedIdentitySnapshot before = capturePersistedIdentitySnapshot(npc);
+
         AutoRespawnChunkGateTarget target = resolveAutoRespawnChunkGateTarget(npc);
         if (target == null || target.position() == null) {
             npc.entityRef(null);
@@ -1344,6 +1499,7 @@ public final class NpcRoutineRunner {
             logInfo("AUTO_RESPAWN_SKIPPED", "Auto-respawn blocked: no safe position for chunk-gate precheck: "
                 + spawnContext(npc, trigger, world, null, null)
                 + " gateSource=-");
+            markDirtyIfPersistedIdentityChanged(npc, before);
             return false;
         }
 
@@ -1357,6 +1513,7 @@ public final class NpcRoutineRunner {
                 + spawnContext(npc, trigger, world, null, null)
                 + " gateSource=" + target.source()
                 + " gatePos=" + formatPosition(target.position()));
+            markDirtyIfPersistedIdentityChanged(npc, before);
             return false;
         }
 
@@ -1549,6 +1706,8 @@ public final class NpcRoutineRunner {
 
             updateNpc(npc, world);
         }
+
+        flushDirtyStateIfDue(System.currentTimeMillis());
     }
 
     /** MVP A Tick-Logik mit Ingame-Weltzeit. */
@@ -1561,6 +1720,44 @@ public final class NpcRoutineRunner {
             if (world != null) {
                 world.execute(() -> updateNpc(npc, world));
             }
+        }
+
+        flushDirtyStateIfDue(System.currentTimeMillis());
+    }
+
+    public void configureStateSaveCallback(BooleanSupplier stateSaveCallback) {
+        this.stateSaveCallback = stateSaveCallback;
+    }
+
+    public void markDirty() {
+        stateDirty = true;
+        if (nextDirtySaveAtMs <= 0L) {
+            nextDirtySaveAtMs = System.currentTimeMillis() + DIRTY_SAVE_INTERVAL_MS;
+        }
+    }
+
+    private void flushDirtyStateIfDue(long nowMs) {
+        if (!stateDirty || stateSaveCallback == null) {
+            return;
+        }
+
+        if (nowMs < nextDirtySaveAtMs) {
+            return;
+        }
+
+        boolean saved = false;
+        try {
+            saved = stateSaveCallback.getAsBoolean();
+        } catch (RuntimeException ex) {
+            logSevere("STATE_SAVE_CALLBACK_FAILED", "Deferred state save callback failed: "
+                + ex.getClass().getSimpleName() + ":" + ex.getMessage());
+        }
+
+        if (saved) {
+            stateDirty = false;
+            nextDirtySaveAtMs = 0L;
+        } else {
+            nextDirtySaveAtMs = nowMs + DIRTY_SAVE_INTERVAL_MS;
         }
     }
 
@@ -1586,6 +1783,8 @@ public final class NpcRoutineRunner {
             return true;
         }
 
+        PersistedIdentitySnapshot before = capturePersistedIdentitySnapshot(npc);
+
         npc.entityRef(null);
         npc.entityId(0);
         if (npc.entityUuid() == null || npc.entityUuid().isBlank()) {
@@ -1595,6 +1794,7 @@ public final class NpcRoutineRunner {
         }
 
         clearRuntimeStateForMissingLiveEntity(npc);
+        markDirtyIfPersistedIdentityChanged(npc, before);
         return false;
     }
 
@@ -1736,13 +1936,16 @@ public final class NpcRoutineRunner {
         String trigger,
         OwnershipSnapshot ownership
     ) {
-        return relinkWorkflowService.tryRelinkEntityRef(
+        PersistedIdentitySnapshot before = capturePersistedIdentitySnapshot(npc);
+        RelinkWorkflowService.RelinkOutcome outcome = relinkWorkflowService.tryRelinkEntityRef(
             world,
             npc,
             trigger,
             ownership.claimedEntityUuids(),
             ownership.claimedEntityRefs()
         );
+        markDirtyIfPersistedIdentityChanged(npc, before);
+        return outcome;
     }
 
     private RelinkWorkflowService.RelinkOutcome evaluateRelinkEntityRef(
@@ -1771,19 +1974,66 @@ public final class NpcRoutineRunner {
         );
     }
 
-    private RelinkWorkflowService.AnchorRelinkOutcome tryAnchorRelinkEntityRef(
+    private RelinkWorkflowService.RolePrefixRelinkOutcome tryRolePrefixRelinkEntityRef(
         World world,
         NpcRecord npc,
         String trigger,
         OwnershipSnapshot ownership
     ) {
-        return relinkWorkflowService.tryAnchorRelinkEntityRef(
+        PersistedIdentitySnapshot before = capturePersistedIdentitySnapshot(npc);
+        RelinkWorkflowService.RolePrefixRelinkOutcome outcome = relinkWorkflowService.tryRolePrefixRelinkEntityRef(
             world,
             npc,
             trigger,
             ownership.claimedEntityUuids(),
             ownership.claimedEntityRefs()
         );
+        markDirtyIfPersistedIdentityChanged(npc, before);
+        return outcome;
+    }
+
+    private RelinkWorkflowService.RolePrefixRelinkOutcome evaluateRolePrefixRelinkEntityRef(
+        World world,
+        NpcRecord npc,
+        OwnershipSnapshot ownership
+    ) {
+        return relinkWorkflowService.evaluateRolePrefixRelinkEntityRef(
+            world,
+            npc,
+            ownership.claimedEntityUuids(),
+            ownership.claimedEntityRefs()
+        );
+    }
+
+    private RelinkWorkflowService.RolePrefixRelinkEvaluationOutcome evaluateRolePrefixRelinkEntityRefDetailed(
+        World world,
+        NpcRecord npc,
+        OwnershipSnapshot ownership
+    ) {
+        return relinkWorkflowService.evaluateRolePrefixRelinkEntityRefDetailed(
+            world,
+            npc,
+            ownership.claimedEntityUuids(),
+            ownership.claimedEntityRefs()
+        );
+    }
+
+    private RelinkWorkflowService.AnchorRelinkOutcome tryAnchorRelinkEntityRef(
+        World world,
+        NpcRecord npc,
+        String trigger,
+        OwnershipSnapshot ownership
+    ) {
+        PersistedIdentitySnapshot before = capturePersistedIdentitySnapshot(npc);
+        RelinkWorkflowService.AnchorRelinkOutcome outcome = relinkWorkflowService.tryAnchorRelinkEntityRef(
+            world,
+            npc,
+            trigger,
+            ownership.claimedEntityUuids(),
+            ownership.claimedEntityRefs()
+        );
+        markDirtyIfPersistedIdentityChanged(npc, before);
+        return outcome;
     }
 
     private RelinkWorkflowService.AnchorRelinkOutcome evaluateAnchorRelinkEntityRef(
@@ -1894,10 +2144,13 @@ public final class NpcRoutineRunner {
     }
 
     private void updatePersistedEntityIdentity(NpcRecord npc, Ref<EntityStore> entityRef) {
+        PersistedIdentitySnapshot before = capturePersistedIdentitySnapshot(npc);
         entitySync.updatePersistedEntityIdentity(npc, entityRef);
+        markDirtyIfPersistedIdentityChanged(npc, before);
     }
 
     private void clearEntityIdentity(NpcRecord npc) {
+        PersistedIdentitySnapshot before = capturePersistedIdentitySnapshot(npc);
         npc.entityRef(null);
         npc.entityId(0);
         if (npc.entityStatus() != NpcEntityStatus.DISABLED) {
@@ -1906,6 +2159,33 @@ public final class NpcRoutineRunner {
                     ? NpcEntityStatus.MISSING_ENTITY
                     : NpcEntityStatus.NEEDS_RELINK
             );
+        }
+        markDirtyIfPersistedIdentityChanged(npc, before);
+    }
+
+    private PersistedIdentitySnapshot capturePersistedIdentitySnapshot(NpcRecord npc) {
+        if (npc == null) {
+            return new PersistedIdentitySnapshot(null, 0L, null, null);
+        }
+
+        return new PersistedIdentitySnapshot(
+            npc.entityUuid(),
+            npc.entityId(),
+            npc.entityStatus(),
+            npc.currentPosition()
+        );
+    }
+
+    private void markDirtyIfPersistedIdentityChanged(NpcRecord npc, PersistedIdentitySnapshot before) {
+        if (npc == null || before == null) {
+            return;
+        }
+
+        if (!Objects.equals(before.entityUuid(), npc.entityUuid())
+            || before.entityId() != npc.entityId()
+            || before.entityStatus() != npc.entityStatus()
+            || !Objects.equals(before.currentPosition(), npc.currentPosition())) {
+            markDirty();
         }
     }
 

@@ -67,6 +67,8 @@ public class KeystoneNpcPlugin extends JavaPlugin {
         // TODO: Logger aus Hytale-API verwenden
         System.out.println("[KeystoneNPC] setup...");
 
+        scheduler.configureStateSaveCallback(this::saveStateSafely);
+
         // 1) Load persisted state
         System.out.println("[KeystoneNPC] Data directory: " + pluginDataDirectory);
         npcDefinitions.load();

@@ -22,7 +22,6 @@ import keystone.npc.markers.MarkerRecord;
 import keystone.npc.markers.MarkerType;
 import keystone.npc.markers.Vec3;
 import keystone.npc.markers.WorldId;
-import keystone.npc.navigation.NavigationTarget;
 
 /**
  * MVP A: simpelstes Persistenz-Skeleton.
@@ -143,7 +142,7 @@ public final class JsonFileStateStore implements StateStore {
 
     private PersistedNpc toPersistedNpc(NpcRecord npc) {
         Vec3 position = npc.currentPosition();
-        PersistedNavigation navigation = toPersistedNavigation(npc.navigationState());
+        PersistedNavigation navigation = null;
         return new PersistedNpc(
                 npc.npcId(),
                 npc.npcName(),
@@ -162,28 +161,6 @@ public final class JsonFileStateStore implements StateStore {
                 npc.chillMarkerId(),
                 npc.entityUuid(),
                 navigation
-        );
-    }
-
-    private PersistedNavigation toPersistedNavigation(NavigationTarget navigationState) {
-        if (navigationState == null || !navigationState.hasTarget()) {
-            return null;
-        }
-
-        Vec3 targetPosition = navigationState.getTargetPosition();
-        NpcState targetState = navigationState.getTargetState();
-        long remainingMs = navigationState.getRemainingTimeMs();
-
-        if (targetPosition == null || targetState == null || remainingMs <= 0) {
-            return null;
-        }
-
-        return new PersistedNavigation(
-                new PersistedVec3(targetPosition.x(), targetPosition.y(), targetPosition.z()),
-                targetState.name(),
-            remainingMs,
-            navigationState.getTargetMarkerType() == null ? null : navigationState.getTargetMarkerType().name(),
-            navigationState.getTargetMarkerId()
         );
     }
 

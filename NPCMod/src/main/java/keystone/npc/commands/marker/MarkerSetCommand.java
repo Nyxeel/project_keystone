@@ -114,16 +114,23 @@ public final class MarkerSetCommand extends AbstractPlayerCommand {
 
         if (targetNpc != null) {
             scheduler.assignMarkerToNpc(targetNpc, type, markerId);
-            plugin.saveState();
+        }
 
+        if (!plugin.saveStateSafely()) {
+            context.sendMessage(Message.raw("[knpc] Marker wurde gesetzt, aber konnte nicht sicher persistiert werden."));
+            return;
+        }
+
+        if (targetNpc != null) {
             int npcIndex = scheduler.indexOfNpc(targetNpc.npcId());
             context.sendMessage(Message.raw("[KNPC][Marker] " + markerTypeName
                 + " gesetzt bei " + NpcDebugSupport.formatPositionForChat(pos)
                 + " und NPC #" + npcIndex + " ('" + targetNpc.npcName() + "') zugewiesen."));
-        } else {
-            context.sendMessage(Message.raw("[KNPC][Marker] " + markerTypeName
-                + " gesetzt bei " + NpcDebugSupport.formatPositionForChat(pos)));
+            return;
         }
+
+        context.sendMessage(Message.raw("[KNPC][Marker] " + markerTypeName
+            + " gesetzt bei " + NpcDebugSupport.formatPositionForChat(pos)));
     }
 
     private boolean isMarkerAllowedForNpc(NpcRecord npc, MarkerType markerType) {
