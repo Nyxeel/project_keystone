@@ -88,7 +88,18 @@ public final class NpcRoutineRunner {
     private static final double DOOR_ROUTE_MAX_DISTANCE_SQ = DOOR_ROUTE_MAX_DISTANCE * DOOR_ROUTE_MAX_DISTANCE;
     private static final long DOOR_ACTION_COOLDOWN_MS = 1_500L;
     private static final long DOOR_CHAIN_TIMEOUT_MS = 500L;
+    private static final long RUNTIME_LOG_COOLDOWN_MS = 5_000L;
     private static final int CLEANUP_ORPHAN_MAX_RADIUS_BLOCKS = 256;
+    private static final Set<String> RUNTIME_COOLDOWN_EVENT_KEYS = Set.of(
+        "ENTITY_REF_INVALID",
+        "MISSING_ENTITY",
+        "NEEDS_RELINK",
+        "RELINK_RETRY",
+        "RELINK_PENDING",
+        "AUTO_RESPAWN_SKIPPED",
+        "AUTO_RESPAWN_DISABLED",
+        "DEDUPE_ROLEID_CANDIDATE_UNCLAIMED"
+    );
     private static final String OPEN_DOOR_IN = "OpenDoorIn";
     private static final String OPEN_DOOR_OUT = "OpenDoorOut";
     private static final String CLOSE_DOOR_IN = "CloseDoorIn";
@@ -143,6 +154,7 @@ public final class NpcRoutineRunner {
     private final Map<String, PendingDoorAttempt> pendingDoorAttempts = new ConcurrentHashMap<>();
     private final Map<String, PendingDoorAttempt> pendingDoorCloseAttempts = new ConcurrentHashMap<>();
     private final Map<String, Deque<ActiveDoorPass>> activeDoorPasses = new ConcurrentHashMap<>();
+    private final Map<String, Long> runtimeLogCooldownByNpcEvent = new ConcurrentHashMap<>();
     private final DoorPassTracker doorPassTracker = new DoorPassTracker(activeDoorPasses);
     private final DoorwayFlow doorWorkflowService;
     private volatile long lastRestoreAtMs = 0L;
@@ -264,6 +276,7 @@ public final class NpcRoutineRunner {
         pendingDoorAttempts.clear();
         pendingDoorCloseAttempts.clear();
         activeDoorPasses.clear();
+        runtimeLogCooldownByNpcEvent.clear();
         lastRestoreAtMs = System.currentTimeMillis();
 
         int restoredDisabled = 0;
@@ -305,6 +318,7 @@ public final class NpcRoutineRunner {
                 restoredDisabled++;
             }
             normalizeRestorePosition(npc);
+            resetNavigationForRetarget(npc);
 
             NavigationTarget navigationState = npc.navigationState();
             logInfo("RESTORE_NAV_DEBUG", "Restore snapshot: "
@@ -493,6 +507,7 @@ public final class NpcRoutineRunner {
         pendingDoorAttempts.remove(npc.npcId());
         pendingDoorCloseAttempts.remove(npc.npcId());
         activeDoorPasses.remove(npc.npcId());
+        clearRuntimeLogCooldownForNpc(npc.npcId());
         removeLiveEntity(npc);
         return true;
     }
@@ -1865,11 +1880,64 @@ public final class NpcRoutineRunner {
     }
 
     private void logInfo(String eventKey, String message) {
+        if (isRuntimeCooldownEvent(eventKey)) {
+            String npcId = extractNpcIdFromLogMessage(message);
+            if (npcId != null && !logCooldown(eventKey, npcId, RUNTIME_LOG_COOLDOWN_MS)) {
+                return;
+            }
+        }
         System.out.println("[KeystoneNPC][" + eventKey + "] " + message);
     }
 
     private void logSevere(String eventKey, String message) {
         System.err.println("[KeystoneNPC][" + eventKey + "] " + message);
+    }
+
+    private boolean isRuntimeCooldownEvent(String eventKey) {
+        return eventKey != null && RUNTIME_COOLDOWN_EVENT_KEYS.contains(eventKey);
+    }
+
+    private boolean logCooldown(String eventKey, String npcId, long cooldownMs) {
+        if (eventKey == null || npcId == null || npcId.isBlank() || cooldownMs <= 0L) {
+            return true;
+        }
+
+        String key = eventKey + "|" + npcId;
+        long now = System.currentTimeMillis();
+        Long lastAt = runtimeLogCooldownByNpcEvent.get(key);
+        if (lastAt != null && (now - lastAt) < cooldownMs) {
+            return false;
+        }
+
+        runtimeLogCooldownByNpcEvent.put(key, now);
+        return true;
+    }
+
+    private String extractNpcIdFromLogMessage(String message) {
+        if (message == null || message.isBlank()) {
+            return null;
+        }
+
+        int index = message.indexOf("npcId=");
+        if (index < 0) {
+            return null;
+        }
+
+        int start = index + "npcId=".length();
+        int end = message.indexOf(' ', start);
+        String npcId = (end < 0 ? message.substring(start) : message.substring(start, end)).trim();
+        if (npcId.isBlank() || "-".equals(npcId)) {
+            return null;
+        }
+        return npcId;
+    }
+
+    private void clearRuntimeLogCooldownForNpc(String npcId) {
+        if (npcId == null || npcId.isBlank()) {
+            return;
+        }
+        String suffix = "|" + npcId;
+        runtimeLogCooldownByNpcEvent.keySet().removeIf(key -> key.endsWith(suffix));
     }
 
     private boolean shouldLogDoorEvent(NpcRecord npc) {

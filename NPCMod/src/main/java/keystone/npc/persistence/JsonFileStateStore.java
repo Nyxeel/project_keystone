@@ -245,49 +245,12 @@ public final class JsonFileStateStore implements StateStore {
     }
 
     private void restorePersistedNavigation(NpcRecord record, PersistedNavigation persistedNavigation) {
-        if (persistedNavigation == null || persistedNavigation.targetPosition() == null) {
-            return;
-        }
-
-        if (record.state() == null || !record.state().isWalking()) {
-            return;
-        }
-
-        if (persistedNavigation.targetState() == null || persistedNavigation.remainingMs() <= 0) {
-            return;
-        }
-
-        NpcState targetState;
-        try {
-            targetState = NpcState.valueOf(persistedNavigation.targetState());
-        } catch (IllegalArgumentException ex) {
-            System.err.println("[KeystoneNPC] Ignoring invalid persisted navigation target state: "
-                + persistedNavigation.targetState());
-            return;
-        }
-
-        Vec3 targetPosition = toVec3(persistedNavigation.targetPosition());
-        Vec3 currentPosition = record.currentPosition();
-
-        MarkerType targetMarkerType = null;
-        String persistedMarkerType = persistedNavigation.markerType();
-        if (persistedMarkerType != null && !persistedMarkerType.isBlank()) {
-            try {
-                targetMarkerType = MarkerType.valueOf(persistedMarkerType);
-            } catch (IllegalArgumentException ex) {
-                System.err.println("[KeystoneNPC] Ignoring invalid persisted navigation marker type: "
-                    + persistedMarkerType);
-            }
-        }
-
-        record.navigationState().resumeNavigation(
-            currentPosition,
-            targetPosition,
-            persistedNavigation.remainingMs(),
-            targetState,
-            targetMarkerType,
-            persistedNavigation.markerId()
-        );
+        // Restart safety: runtime route state is not trusted across server restarts.
+        // Keep persisted identity/state fields, but always reset live navigation/action runtime.
+        record.navigationState().clear();
+        record.pendingActionId(null);
+        record.activeActionId(null);
+        record.lastActionNoRestartLog(null);
     }
 
     private Vec3 toVec3(PersistedVec3 vec3) {
