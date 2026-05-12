@@ -7,6 +7,7 @@ import java.util.function.BiConsumer;
 
 import com.hypixel.hytale.server.core.universe.world.World;
 
+import keystone.npc.domain.NpcEntityStatus;
 import keystone.npc.domain.NpcRecord;
 import keystone.npc.markers.MarkerRecord;
 import keystone.npc.markers.MarkerType;
@@ -83,11 +84,15 @@ public final class RespawnRecoveryService {
 
         if (failureCount >= respawnMaxFailures && !"world-missing".equals(reason)) {
             if (npc != null) {
-                npcs.remove(npcId);
+                npc.entityRef(null);
+                npc.entityId(0);
+                if (npc.entityStatus() != NpcEntityStatus.DISABLED) {
+                    npc.entityStatus(NpcEntityStatus.MISSING_ENTITY);
+                }
                 clearRespawnFailureState(npcId);
                 spawnRequestsInFlight.remove(npcId);
 
-                logSevere("RESPAWN_HARD_CLEAN", "Removing NPC after repeated respawn failures: "
+                logSevere("RESPAWN_MARKED_MISSING", "Marked NPC as missing after repeated respawn failures: "
                     + spawnContextFormatter.format(npc, "tick-retry", null, null, null)
                     + " reason=" + reason + " failures=" + failureCount + " threshold=" + respawnMaxFailures);
             }

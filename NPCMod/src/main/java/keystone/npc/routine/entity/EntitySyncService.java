@@ -34,13 +34,15 @@ public final class EntitySyncService {
 
     public void updatePersistedEntityIdentity(NpcRecord npc, Ref<EntityStore> entityRef) {
         if (entityRef == null || !entityRef.isValid()) {
-            npc.entityUuid(null);
+            System.err.println("[KeystoneNPC][ENTITY_UUID_MISSING] Cannot refresh persisted entity UUID: invalid entityRef for npcId="
+                + npc.npcId());
             return;
         }
 
         UUIDComponent uuidComponent = entityRef.getStore().getComponent(entityRef, UUIDComponent.getComponentType());
-        if (uuidComponent == null) {
-            npc.entityUuid(null);
+        if (uuidComponent == null || uuidComponent.getUuid() == null) {
+            System.err.println("[KeystoneNPC][ENTITY_UUID_MISSING] Missing UUID component/value for live entity; preserving persisted UUID for npcId="
+                + npc.npcId());
             return;
         }
 

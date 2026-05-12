@@ -16,6 +16,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonParseException;
 
 import keystone.npc.domain.NpcRecord;
+import keystone.npc.domain.NpcEntityStatus;
 import keystone.npc.domain.NpcState;
 import keystone.npc.markers.MarkerRecord;
 import keystone.npc.markers.MarkerType;
@@ -148,6 +149,7 @@ public final class JsonFileStateStore implements StateStore {
                 npc.npcName(),
                 npc.roleId(),
                 npc.state().name(),
+            npc.entityStatus() == null ? null : npc.entityStatus().name(),
                 npc.worldId().value(),
                 position == null ? null : new PersistedVec3(position.x(), position.y(), position.z()),
                 npc.homeInstanceId(),
@@ -206,6 +208,23 @@ public final class JsonFileStateStore implements StateStore {
             record.state(NpcState.valueOf(npc.state()));
         }
 
+        record.entityUuid(npc.entityUuid());
+
+        if (npc.entityStatus() != null) {
+            try {
+                record.entityStatus(NpcEntityStatus.valueOf(npc.entityStatus()));
+            } catch (IllegalArgumentException ex) {
+                System.err.println("[KeystoneNPC] Ignoring invalid persisted entity status: " + npc.entityStatus());
+                record.entityStatus(record.entityUuid() == null || record.entityUuid().isBlank()
+                    ? NpcEntityStatus.MISSING_ENTITY
+                    : NpcEntityStatus.NEEDS_RELINK);
+            }
+        } else {
+            record.entityStatus(record.entityUuid() == null || record.entityUuid().isBlank()
+                ? NpcEntityStatus.MISSING_ENTITY
+                : NpcEntityStatus.NEEDS_RELINK);
+        }
+
         if (npc.currentPosition() != null) {
             record.currentPosition(toVec3(npc.currentPosition()));
         }
@@ -218,7 +237,6 @@ public final class JsonFileStateStore implements StateStore {
         record.foodMarkerId(npc.foodMarkerId());
         record.workMarkerId(npc.workMarkerId());
         record.chillMarkerId(npc.chillMarkerId());
-        record.entityUuid(npc.entityUuid());
 
         restorePersistedNavigation(record, npc.navigation());
 

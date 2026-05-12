@@ -4,8 +4,10 @@ import com.hypixel.hytale.server.core.command.system.basecommands.AbstractComman
 
 import keystone.npc.KeystoneNpcPlugin;
 import keystone.npc.commands.admin.NpcClearCommand;
+import keystone.npc.commands.admin.NpcCleanupOrphansCommand;
 import keystone.npc.commands.admin.NpcListCommand;
 import keystone.npc.commands.admin.NpcRemoveCommand;
+import keystone.npc.commands.admin.NpcRespawnMissingCommand;
 import keystone.npc.commands.debug.NpcStatusCommand;
 import keystone.npc.commands.marker.MarkerCommandGroup;
 import keystone.npc.commands.spawn.SpawnNpcCommand;
@@ -39,6 +41,8 @@ public final class KeystoneNpcCommands extends AbstractCommandCollection {
         this.addSubCommand(new NpcListCommand(scheduler));
         this.addSubCommand(new NpcRemoveCommand(plugin, scheduler));
         this.addSubCommand(new NpcClearCommand(plugin, scheduler));
+        this.addSubCommand(new NpcRespawnMissingCommand(plugin, scheduler));
+        this.addSubCommand(new NpcCleanupOrphansCommand(scheduler));
         this.addSubCommand(new NpcStatusCommand(markerRegistry, scheduler, templateResolver, roleDefinitions));
     }
 }

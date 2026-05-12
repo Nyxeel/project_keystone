@@ -2,7 +2,7 @@
   "Type": "Abstract",
   "Parameters": {
     "Appearance": {
-      "Value": "Player",
+      "Value": "Temple_Mithril_Guard",
       "Description": "Model to be used"
     },
     "DropList": {

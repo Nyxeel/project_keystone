@@ -18,6 +18,7 @@ record PersistedNpc(
     String npcName,
     String role,
     String state,
+    String entityStatus,
     String worldId,
     PersistedVec3 currentPosition,
     String homeInstanceId,

@@ -40,6 +40,7 @@ public final class NpcRecord {
 
     private long entityId = 0;  // Serializable: non-zero means entity was already spawned
     private String entityUuid;
+    private NpcEntityStatus entityStatus;
 
     private transient Ref<EntityStore> entityRef;
     private transient NavigationTarget navigationState;
@@ -76,6 +77,7 @@ public final class NpcRecord {
         this.worldId = Objects.requireNonNull(worldId);
         this.state = NpcState.IDLE;
         this.currentPosition = new Vec3(0, 0, 0);
+        this.entityStatus = NpcEntityStatus.NEEDS_RELINK;
     }
 
     public String npcId() { return npcId; }
@@ -124,6 +126,9 @@ public final class NpcRecord {
 
     public String entityUuid() { return entityUuid; }
     public void entityUuid(String entityUuid) { this.entityUuid = entityUuid; }
+
+    public NpcEntityStatus entityStatus() { return entityStatus; }
+    public void entityStatus(NpcEntityStatus entityStatus) { this.entityStatus = Objects.requireNonNull(entityStatus); }
 
     public NavigationTarget navigationState() {
         if (navigationState == null) {

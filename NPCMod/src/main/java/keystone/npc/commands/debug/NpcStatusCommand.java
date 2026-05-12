@@ -82,6 +82,7 @@ public final class NpcStatusCommand extends CommandBase {
     private void sendNpcSnapshot(CommandContext context, NpcRecord npc) {
         context.sendMessage(Message.raw("[KNPC][Status] " + npc.npcName()));
         context.sendMessage(Message.raw("state: " + npc.state().name()));
+        context.sendMessage(Message.raw("entityStatus: " + npc.entityStatus().name()));
         context.sendMessage(Message.raw("targetMarker: " + nullToNone(npc.activeRoutineMarker())));
         context.sendMessage(Message.raw("currentAction: " + nullToNone(npc.activeActionId())));
         context.sendMessage(Message.raw("routine: " + routineLabel(npc)));

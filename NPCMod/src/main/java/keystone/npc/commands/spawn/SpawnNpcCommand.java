@@ -74,6 +74,11 @@ public final class SpawnNpcCommand extends AbstractPlayerCommand {
             return;
         }
 
+        if (templateResolver.resolveById(role.roleId()).isEmpty()) {
+            context.sendMessage(Message.raw("[knpc] NPC definition not loadable for role '" + role.roleId() + "'."));
+            return;
+        }
+
         var missingMarkers = new java.util.ArrayList<String>();
         var unsupportedMarkers = new java.util.ArrayList<String>();
         for (RequiredMarkerResolver.Requirement requirement : requiredMarkerResolver.resolveRequirements(role.roleId())) {
@@ -95,8 +100,10 @@ public final class SpawnNpcCommand extends AbstractPlayerCommand {
         }
 
         if (!missingMarkers.isEmpty()) {
-            context.sendMessage(Message.raw("[knpc] Missing markers for role '" + role.roleId()
-                + "': " + String.join(", ", missingMarkers) + ". Use /knpc marker set <type>"));
+            String missingJoined = String.join("/", missingMarkers);
+            System.err.println("[KeystoneNPC][SPAWN_ABORT_MISSING_REQUIRED_MARKER] roleId=" + role.roleId()
+                + " missing=" + missingJoined);
+            context.sendMessage(Message.raw("[knpc] Missing required marker: " + missingJoined));
             return;
         }
 
@@ -114,18 +121,34 @@ public final class SpawnNpcCommand extends AbstractPlayerCommand {
         Vector3d forward = new Vector3d(0, 0, -2);
         playerRotation.transform(forward);
         Vector3d spawnPos = new Vector3d(playerPos).add(forward);
+        if (!Double.isFinite(spawnPos.x()) || !Double.isFinite(spawnPos.y()) || !Double.isFinite(spawnPos.z())) {
+            context.sendMessage(Message.raw("[knpc] Invalid spawn position."));
+            return;
+        }
 
         String npcId = java.util.UUID.randomUUID().toString();
-        var npc = scheduler.spawnNpc(npcId, name, role.roleId(), new WorldId(world.getName()), new Vec3(spawnPos.x(), spawnPos.y(), spawnPos.z()));
-        boolean spawned = scheduler.spawnEntityForNpc(world, npc, "command-spawn");
-        if (!spawned) {
-            scheduler.removeNpc(npc.npcId());
+        var npc = scheduler.spawnNpcWithEntity(
+            npcId,
+            name,
+            role.roleId(),
+            new WorldId(world.getName()),
+            new Vec3(spawnPos.x(), spawnPos.y(), spawnPos.z()),
+            world,
+            "command-spawn"
+        );
+        if (npc == null) {
             context.sendMessage(Message.raw("[knpc] Failed to spawn NPC for role '" + role.roleId() + "'."));
             return;
         }
 
         markerRegistry.clearActive();
-        plugin.saveState();
+        if (!plugin.saveStateSafely()) {
+            boolean rolledBack = scheduler.removeNpc(npc.npcId());
+            System.err.println("[KeystoneNPC][SPAWN_ROLLBACK_ORPHAN_PREVENTED] Spawn rollback executed after save failure: "
+                + "npcId=" + npc.npcId() + " rolledBack=" + rolledBack);
+            context.sendMessage(Message.raw("[knpc] Spawn aborted because state persistence failed. Entity rollback was executed."));
+            return;
+        }
 
         context.sendMessage(Message.raw("[knpc] Spawned " + role.roleId() + " '" + npc.npcName()
             + "' (id=" + npc.npcId() + "). Active markers reset."));

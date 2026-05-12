@@ -101,15 +101,22 @@ public class KeystoneNpcPlugin extends JavaPlugin {
     }
 
     public void saveState() {
+        saveStateSafely();
+    }
+
+    public boolean saveStateSafely() {
         try {
             logStateSavePathOnce();
             stateStore.save(markerRegistry.snapshot(), scheduler.snapshot(), markerRegistry.snapshotActiveMarkerIds());
+            return true;
         } catch (RuntimeException e) {
             System.err.println("[KeystoneNPC][PLUGIN_SAVE_RUNTIME_ERROR] Failed to persist plugin state: "
                 + e.getClass().getSimpleName() + ": " + e.getMessage());
+            return false;
         } catch (LinkageError e) {
             System.err.println("[KeystoneNPC][PLUGIN_SAVE_LINKAGE_ERROR] Persist skipped due to classloader/linkage issue: "
                 + e.getClass().getSimpleName() + ": " + e.getMessage());
+            return false;
         }
     }
 
