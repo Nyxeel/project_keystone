@@ -2,15 +2,15 @@ package keystone.npc.definition;
 
 import java.util.Objects;
 
-import keystone.npc.capabilities.CapabilitySet;
+import keystone.npc.skills.SkillSet;
 
 public record EffectiveNpcDefinition(
     NpcDefinition definition,
-    CapabilitySet capabilities
+    SkillSet skills
 ) {
     public EffectiveNpcDefinition {
         definition = Objects.requireNonNull(definition, "definition");
-        capabilities = Objects.requireNonNull(capabilities, "capabilities");
+        skills = Objects.requireNonNull(skills, "skills");
     }
 
     public String id() {

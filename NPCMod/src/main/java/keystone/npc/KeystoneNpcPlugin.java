@@ -13,8 +13,6 @@ import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
 import com.hypixel.hytale.server.core.universe.world.events.AllWorldsLoadedEvent;
 import com.hypixel.hytale.server.npc.AllNPCsLoadedEvent;
 
-import keystone.npc.capabilities.CapabilityChecks;
-import keystone.npc.capabilities.CapabilityResolver;
 import keystone.npc.commands.NpcCommandRegistrar;
 import keystone.npc.definition.NpcDefinitionRegistry;
 import keystone.npc.definition.NpcTemplateResolver;
@@ -24,6 +22,8 @@ import keystone.npc.persistence.StateStore;
 import keystone.npc.roles.RoleDefinitionRegistry;
 import keystone.npc.routine.NpcRoutineRunner;
 import keystone.npc.routine.NpcTickSystem;
+import keystone.npc.skills.SkillChecks;
+import keystone.npc.skills.SkillResolver;
 
 /**
  * MVP A: server-first, 1 NPC (Lumberjack), 3 Marker (bed/door/work), Save/Load, einfacher Tagesablauf.
@@ -37,7 +37,7 @@ public class KeystoneNpcPlugin extends JavaPlugin {
     private final RoleDefinitionRegistry roleDefinitions;
     private final NpcDefinitionRegistry npcDefinitions;
     private final NpcTemplateResolver templateResolver;
-    private final CapabilityChecks capabilityChecks;
+    private final SkillChecks skillChecks;
     private final StateStore stateStore;
     private final NpcRoutineRunner scheduler;
     private final Path pluginDataDirectory;
@@ -51,11 +51,11 @@ public class KeystoneNpcPlugin extends JavaPlugin {
 
         this.pluginDataDirectory = resolvePluginDataDirectory();
         this.npcDefinitions = new NpcDefinitionRegistry(pluginDataDirectory, "Server/NPC");
-        this.templateResolver = new NpcTemplateResolver(npcDefinitions, new CapabilityResolver(npcDefinitions));
+        this.templateResolver = new NpcTemplateResolver(npcDefinitions, new SkillResolver(npcDefinitions));
         this.roleDefinitions = new RoleDefinitionRegistry(templateResolver);
-        this.capabilityChecks = new CapabilityChecks(templateResolver);
+        this.skillChecks = new SkillChecks(templateResolver);
         this.stateStore = new JsonFileStateStore(pluginDataDirectory.resolve(STATE_FILE).toString());
-        this.scheduler = new NpcRoutineRunner(markerRegistry, roleDefinitions, capabilityChecks, templateResolver);
+        this.scheduler = new NpcRoutineRunner(markerRegistry, roleDefinitions, skillChecks, templateResolver);
     }
 
     /**

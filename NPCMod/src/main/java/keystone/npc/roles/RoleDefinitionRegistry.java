@@ -44,6 +44,8 @@ public final class RoleDefinitionRegistry {
         }
 
         Map<String, String> firstDefinitionIdByRoleId = new LinkedHashMap<>();
+        Map<String, String> firstDefinitionIdByEngineRoleName = new LinkedHashMap<>();
+        Map<String, String> firstRoleIdByEngineRoleName = new LinkedHashMap<>();
 
         for (String definitionId : templateResolver.definitionIds()) {
             Optional<EffectiveNpcDefinition> resolved = templateResolver.resolveById(definitionId);
@@ -75,8 +77,13 @@ public final class RoleDefinitionRegistry {
                 continue;
             }
 
+            // Spawn model source of truth:
+            // NPCPlugin.spawnEntity uses this engine role name, which resolves to
+            // Server/NPC/Roles/<RoleName>.json on the engine side.
+            // Keystone appearance JSON under Server/NPC/Keystone/... is configuration only
+            // unless explicit runtime apply code mutates the live entity after spawn.
             String roleSource = firstNonBlank(definition.role(), definition.id(), roleId);
-            String npcPluginRoleName = toPascalCase(roleSource);
+            String npcPluginRoleName = firstNonBlank(definition.hytaleRole(), toPascalCase(roleSource), null);
             if (npcPluginRoleName == null || npcPluginRoleName.isBlank()) {
                 addInvalidRoleReason(roleId,
                     "invalid role name source for NPCPlugin role mapping: " + String.valueOf(roleSource));
@@ -97,6 +104,25 @@ public final class RoleDefinitionRegistry {
 
             if (parsed.requiredMarkerTypes().isEmpty()) {
                 addInvalidRoleReason(roleId, "requiredMarkers is missing or empty");
+                byRoleId.remove(roleId);
+                continue;
+            }
+
+            String normalizedEngineRoleName = normalizeEngineRoleName(npcPluginRoleName);
+            String firstRoleIdForEngineRole = firstRoleIdByEngineRoleName.putIfAbsent(normalizedEngineRoleName, roleId);
+            String firstDefinitionIdForEngineRole = firstDefinitionIdByEngineRoleName.putIfAbsent(normalizedEngineRoleName, definitionId);
+            if (firstRoleIdForEngineRole != null && !firstRoleIdForEngineRole.equals(roleId)) {
+                String duplicateReason = "duplicate hytaleRole '" + npcPluginRoleName
+                    + "' found in multiple NPC role definitions: "
+                    + firstDefinitionIdForEngineRole + ", " + definitionId;
+
+                addInvalidRoleReason(roleId, duplicateReason);
+                addInvalidRoleReason(roleId, "Spawn blocked for role " + roleId + ".");
+
+                addInvalidRoleReason(firstRoleIdForEngineRole, duplicateReason);
+                addInvalidRoleReason(firstRoleIdForEngineRole, "Spawn blocked for role " + firstRoleIdForEngineRole + ".");
+
+                byRoleId.remove(firstRoleIdForEngineRole);
                 byRoleId.remove(roleId);
                 continue;
             }
@@ -340,6 +366,13 @@ public final class RoleDefinitionRegistry {
 
         String pascal = builder.toString();
         return pascal.isBlank() ? null : pascal;
+    }
+
+    private String normalizeEngineRoleName(String rawRoleName) {
+        if (rawRoleName == null || rawRoleName.isBlank()) {
+            return null;
+        }
+        return rawRoleName.trim().toLowerCase(java.util.Locale.ROOT);
     }
 
     private record ParsedRequiredMarkers(Set<MarkerType> requiredMarkerTypes, List<String> invalidRequiredMarkerNames) {

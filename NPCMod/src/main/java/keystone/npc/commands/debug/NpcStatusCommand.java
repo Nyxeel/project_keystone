@@ -13,7 +13,6 @@ import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalAr
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
 
-import keystone.npc.capabilities.NpcCapability;
 import keystone.npc.debug.NpcDebugSupport;
 import keystone.npc.definition.NpcTemplateResolver;
 import keystone.npc.domain.NpcRecord;
@@ -22,6 +21,7 @@ import keystone.npc.markers.MarkerType;
 import keystone.npc.markers.RequiredMarkerResolver;
 import keystone.npc.roles.RoleDefinitionRegistry;
 import keystone.npc.routine.NpcRoutineRunner;
+import keystone.npc.skills.NpcSkill;
 
 public final class NpcStatusCommand extends CommandBase {
 
@@ -88,18 +88,18 @@ public final class NpcStatusCommand extends CommandBase {
         context.sendMessage(Message.raw("currentAction: " + nullToNone(npc.activeActionId())));
         context.sendMessage(Message.raw("routine: " + routineLabel(npc)));
 
-        String capabilitySummary = "OPEN_DOORS=" + NpcDebugSupport.capabilityValueForStatus(
+        String skillSummary = "OPEN_DOORS=" + NpcDebugSupport.skillValueForStatus(
             templateResolver,
             npc,
-            NpcCapability.OPEN_DOORS,
+            NpcSkill.OPEN_DOORS,
             true
         )
-            + ", USE_CHEST=" + NpcDebugSupport.capabilityValueForStatus(templateResolver, npc, NpcCapability.USE_CHEST, false)
-            + ", USE_BED=" + NpcDebugSupport.capabilityValueForStatus(templateResolver, npc, NpcCapability.USE_BED, false)
-            + ", USE_TOOLS=" + NpcDebugSupport.capabilityValueForStatus(templateResolver, npc, NpcCapability.USE_TOOLS, false)
-            + ", ATTACK_MELEE=" + NpcDebugSupport.capabilityValueForStatus(templateResolver, npc, NpcCapability.ATTACK_MELEE, false)
-            + ", ATTACK_RANGED=" + NpcDebugSupport.capabilityValueForStatus(templateResolver, npc, NpcCapability.ATTACK_RANGED, false);
-        context.sendMessage(Message.raw("capabilities: " + capabilitySummary));
+            + ", USE_CHEST=" + NpcDebugSupport.skillValueForStatus(templateResolver, npc, NpcSkill.USE_CHEST, false)
+            + ", USE_BED=" + NpcDebugSupport.skillValueForStatus(templateResolver, npc, NpcSkill.USE_BED, false)
+            + ", USE_TOOLS=" + NpcDebugSupport.skillValueForStatus(templateResolver, npc, NpcSkill.USE_TOOLS, false)
+            + ", ATTACK_MELEE=" + NpcDebugSupport.skillValueForStatus(templateResolver, npc, NpcSkill.ATTACK_MELEE, false)
+            + ", ATTACK_RANGED=" + NpcDebugSupport.skillValueForStatus(templateResolver, npc, NpcSkill.ATTACK_RANGED, false);
+        context.sendMessage(Message.raw("skills: " + skillSummary));
 
         List<String> invalidRoleReasons = roleDefinitions.invalidRoleReasons(npc.roleId());
         if (!invalidRoleReasons.isEmpty()) {

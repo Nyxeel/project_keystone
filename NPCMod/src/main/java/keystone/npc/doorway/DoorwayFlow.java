@@ -26,7 +26,7 @@ public final class DoorwayFlow {
     }
 
     @FunctionalInterface
-    public interface DoorCapabilityGate {
+    public interface DoorSkillGate {
         boolean canOpenDoors(NpcRecord npc);
     }
 
@@ -45,7 +45,7 @@ public final class DoorwayFlow {
     private final long doorChainTimeoutMs;
     private final double doorCloseMinDistanceSq;
     private final DoorLogSink doorLogSink;
-    private final DoorCapabilityGate doorCapabilityGate;
+    private final DoorSkillGate doorSkillGate;
 
     public DoorwayFlow(
         MarkerResolver markerResolver,
@@ -63,7 +63,7 @@ public final class DoorwayFlow {
         long doorChainTimeoutMs,
         double doorCloseMinDistanceSq,
         DoorLogSink doorLogSink,
-        DoorCapabilityGate doorCapabilityGate
+        DoorSkillGate doorSkillGate
     ) {
         this.markerResolver = markerResolver;
         this.doorSupport = doorSupport;
@@ -80,7 +80,7 @@ public final class DoorwayFlow {
         this.doorChainTimeoutMs = doorChainTimeoutMs;
         this.doorCloseMinDistanceSq = doorCloseMinDistanceSq;
         this.doorLogSink = doorLogSink;
-        this.doorCapabilityGate = doorCapabilityGate;
+        this.doorSkillGate = doorSkillGate;
     }
 
     public void maybeHandleDoorNavigation(World world, NpcRecord npc, NavigationTarget navState, Vec3 currentPos) {
@@ -97,7 +97,7 @@ public final class DoorwayFlow {
             return;
         }
 
-        if (!doorCapabilityGate.canOpenDoors(npc)) {
+        if (!doorSkillGate.canOpenDoors(npc)) {
             return;
         }
 

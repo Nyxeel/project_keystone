@@ -52,7 +52,7 @@ public final class NpcRecord {
     private transient String activeActionId;
     private transient String lastActionNoRestartLog;
     private transient String lastValidationWarningKey;
-    private transient String lastCapabilityDecisionKey;
+    private transient String lastSkillDecisionKey;
     private transient String movementProfileId;
     private transient String navigationProfileId;
     private transient Integer navigationProfileVersion;
@@ -161,8 +161,8 @@ public final class NpcRecord {
     public String lastValidationWarningKey() { return lastValidationWarningKey; }
     public void lastValidationWarningKey(String lastValidationWarningKey) { this.lastValidationWarningKey = lastValidationWarningKey; }
 
-    public String lastCapabilityDecisionKey() { return lastCapabilityDecisionKey; }
-    public void lastCapabilityDecisionKey(String lastCapabilityDecisionKey) { this.lastCapabilityDecisionKey = lastCapabilityDecisionKey; }
+    public String lastSkillDecisionKey() { return lastSkillDecisionKey; }
+    public void lastSkillDecisionKey(String lastSkillDecisionKey) { this.lastSkillDecisionKey = lastSkillDecisionKey; }
 
     public String movementProfileId() { return movementProfileId; }
     public void movementProfileId(String movementProfileId) { this.movementProfileId = movementProfileId; }

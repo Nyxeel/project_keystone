@@ -1,0 +1,115 @@
+{
+  "id": "lumberjack_group",
+  "version": 1,
+  "type": "npc_group",
+  "shared": {
+    "skills": "skills/human_worker.json",
+    "movement": "movement/human_walk.json",
+    "navigation": "navigation/friendly_worker.json",
+    "combat": "combat/peaceful.json",
+    "spawn": "spawns/forest_village.json",
+    "persistence": "persistence/persistent_citizen.json"
+  },
+  "variants": [
+    {
+      "id": "lumberjack",
+      "role": "lumberjack",
+      "hytaleRole": "Lumberjack",
+      "displayName": "Lumberjack",
+      "nameTranslationKey": "keystone.npc.roles.lumberjack.name",
+      "appearance": {
+        "profile": "npc/lumberjack/appearances/lumberjack.json",
+        "value": "Player"
+      },
+      "routine": "npc/lumberjack/routines/default_day_cycle.json",
+      "actions": "npc/lumberjack/actions/lumberjack_actions.json",
+      "requiredMarkers": [
+        "bed",
+        "chest",
+        "food",
+        "work"
+      ],
+      "markerRoles": {
+        "bed": "BED",
+        "chest": "CHEST",
+        "food": "FOOD",
+        "work": "WORK"
+      }
+    },
+    {
+      "id": "lumberjack_wife",
+      "role": "lumberjack_wife",
+      "hytaleRole": "Lumberjack_Wife",
+      "displayName": "Lumberjack Wife",
+      "nameTranslationKey": "keystone.npc.roles.lumberjack_wife.name",
+      "appearance": {
+        "profile": "npc/lumberjack/appearances/lumberjack_wife.json",
+        "value": "Player"
+      },
+      "routine": "npc/lumberjack/routines/default_day_cycle.json",
+      "actions": "npc/lumberjack/actions/lumberjack_actions.json",
+      "requiredMarkers": [
+        "bed",
+        "chest",
+        "food",
+        "work"
+      ],
+      "markerRoles": {
+        "bed": "BED",
+        "chest": "CHEST",
+        "food": "FOOD",
+        "work": "WORK"
+      }
+    },
+    {
+      "id": "lumberjack_oldman",
+      "role": "lumberjack_oldman",
+      "hytaleRole": "Lumberjack_Oldman",
+      "displayName": "Lumberjack Oldman",
+      "nameTranslationKey": "keystone.npc.roles.lumberjack_oldman.name",
+      "appearance": {
+        "profile": "npc/lumberjack/appearances/lumberjack_oldman.json",
+        "value": "Player"
+      },
+      "routine": "npc/lumberjack/routines/default_day_cycle.json",
+      "actions": "npc/lumberjack/actions/lumberjack_actions.json",
+      "requiredMarkers": [
+        "bed",
+        "chest",
+        "food",
+        "work"
+      ],
+      "markerRoles": {
+        "bed": "BED",
+        "chest": "CHEST",
+        "food": "FOOD",
+        "work": "WORK"
+      }
+    },
+    {
+      "id": "lumberjack_oldwife",
+      "role": "lumberjack_oldwife",
+      "hytaleRole": "Lumberjack_Oldwife",
+      "displayName": "Lumberjack Oldwife",
+      "nameTranslationKey": "keystone.npc.roles.lumberjack_oldwife.name",
+      "appearance": {
+        "profile": "npc/lumberjack/appearances/lumberjack_oldwife.json",
+        "value": "Player"
+      },
+      "routine": "npc/lumberjack/routines/default_day_cycle.json",
+      "actions": "npc/lumberjack/actions/lumberjack_actions.json",
+      "requiredMarkers": [
+        "bed",
+        "chest",
+        "food",
+        "work"
+      ],
+      "markerRoles": {
+        "bed": "BED",
+        "chest": "CHEST",
+        "food": "FOOD",
+        "work": "WORK"
+      }
+    }
+  ]
+}

@@ -31,8 +31,6 @@ import keystone.npc.markers.MarkerType;
 import keystone.npc.markers.Vec3;
 
 public final class RelinkWorkflowService {
-    private static final String RUNTIME_ROLE_PREFIX = "KeystoneNPC_";
-
     public enum RelinkOutcome {
         SUCCESS,
         PENDING,
@@ -364,60 +362,7 @@ public final class RelinkWorkflowService {
         Map<String, String> claimedEntityUuids,
         List<OwnedEntityRefClaim> claimedEntityRefs
     ) {
-        RolePrefixRelinkEvaluationOutcome evaluation = evaluateRolePrefixRelinkEntityRefDetailed(
-            world,
-            npc,
-            claimedEntityUuids,
-            claimedEntityRefs
-        );
-
-        if (evaluation.outcome() == RolePrefixRelinkOutcome.AMBIGUOUS) {
-            logSevere("RELINK_ROLE_PREFIX_AMBIGUOUS", "Role-prefix relink found multiple ownership-safe candidates; skipping relink: "
-                + spawnContextFormatter.format(npc, trigger, world, null, null)
-                + " runtimeRolePrefix=" + buildRuntimeRolePrefix(npc.npcId())
-                + " candidates=" + evaluation.candidateCount());
-            return RolePrefixRelinkOutcome.AMBIGUOUS;
-        }
-
-        if (evaluation.outcome() != RolePrefixRelinkOutcome.SUCCESS) {
-            return RolePrefixRelinkOutcome.NO_MATCH;
-        }
-
-        Ref<EntityStore> keepRef = evaluation.candidateRef();
-        if (keepRef == null || !keepRef.isValid()) {
-            return RolePrefixRelinkOutcome.NO_MATCH;
-        }
-
-        Optional<RoleDefinition> roleDefinition = roleDefinitions.findByRoleId(npc.roleId());
-        int expectedRoleIndex = roleDefinition
-            .map(definition -> NPCPlugin.get().getIndex(definition.npcPluginRoleName()))
-            .orElse(-1);
-
-        npc.entityRef(keepRef);
-        npc.entityId(1);
-        npc.entityStatus(NpcEntityStatus.ACTIVE);
-        normalizeRuntimeRoleName(npc, keepRef, null, world, trigger, "role-prefix-relink");
-        entitySync.updatePersistedEntityIdentity(npc, keepRef);
-        dedupeRoleIdDuplicates(
-            world,
-            npc,
-            keepRef,
-            roleDefinition.orElse(null),
-            expectedRoleIndex,
-            trigger,
-            "role-prefix-relink",
-            claimedEntityUuids,
-            claimedEntityRefs
-        );
-        idleMarkerService.enforceAuthoritativeIdlePosition(npc, "role-prefix-relink", true);
-
-        uuidRelinkMissCounts.remove(npc.npcId());
-        uuidRelinkFirstMissAtMs.remove(npc.npcId());
-
-        logInfo("RELINK_ROLE_PREFIX_SUCCESS", "Role-prefix relink selected unique ownership-safe candidate: "
-            + spawnContextFormatter.format(npc, trigger, world, roleDefinition.orElse(null), expectedRoleIndex)
-            + " runtimeRoleName=" + buildRuntimeRoleName(npc.npcId(), npc.roleId()));
-        return RolePrefixRelinkOutcome.SUCCESS;
+        return RolePrefixRelinkOutcome.NO_MATCH;
     }
 
     public RolePrefixRelinkOutcome evaluateRolePrefixRelinkEntityRef(
@@ -435,88 +380,7 @@ public final class RelinkWorkflowService {
         Map<String, String> claimedEntityUuids,
         List<OwnedEntityRefClaim> claimedEntityRefs
     ) {
-        if (world == null || npc == null) {
-            return new RolePrefixRelinkEvaluationOutcome(RolePrefixRelinkOutcome.NO_MATCH, null, null, 0);
-        }
-
-        String runtimeRolePrefix = buildRuntimeRolePrefix(npc.npcId());
-        if (runtimeRolePrefix.isBlank()) {
-            return new RolePrefixRelinkEvaluationOutcome(RolePrefixRelinkOutcome.NO_MATCH, null, null, 0);
-        }
-
-        Optional<RoleDefinition> roleDefinition = roleDefinitions.findByRoleId(npc.roleId());
-        int expectedRoleIndex = roleDefinition
-            .map(definition -> NPCPlugin.get().getIndex(definition.npcPluginRoleName()))
-            .orElse(-1);
-
-        var npcType = NPCEntity.getComponentType();
-        if (npcType == null) {
-            return new RolePrefixRelinkEvaluationOutcome(RolePrefixRelinkOutcome.NO_MATCH, null, null, 0);
-        }
-
-        Store<EntityStore> store = world.getEntityStore().getStore();
-        List<Ref<EntityStore>> candidates = new ArrayList<>();
-        List<String> candidateUuids = new ArrayList<>();
-        Query<EntityStore> npcQuery = Query.and(npcType);
-
-        store.forEachChunk(npcQuery, (BiConsumer<com.hypixel.hytale.component.ArchetypeChunk<EntityStore>, com.hypixel.hytale.component.CommandBuffer<EntityStore>>) (archetypeChunk, commandBuffer) -> {
-            for (int index = 0; index < archetypeChunk.size(); index++) {
-                NPCEntity liveNpc = archetypeChunk.getComponent(index, npcType);
-                if (liveNpc == null) {
-                    continue;
-                }
-
-                String liveRoleName = liveNpc.getRoleName();
-                if (!startsWithIgnoreCase(liveRoleName, runtimeRolePrefix)) {
-                    continue;
-                }
-
-                if (expectedRoleIndex >= 0
-                    && liveNpc.getRoleIndex() != expectedRoleIndex
-                    && liveNpc.getSpawnRoleIndex() != expectedRoleIndex) {
-                    continue;
-                }
-
-                Ref<EntityStore> candidateRef = archetypeChunk.getReferenceTo(index);
-                if (candidateRef == null || !candidateRef.isValid()) {
-                    continue;
-                }
-
-                String ownerByRef = ownerByRef(candidateRef, claimedEntityRefs);
-                if (ownerByRef != null && !ownerByRef.equals(npc.npcId())) {
-                    continue;
-                }
-
-                String candidateUuid = readEntityUuid(candidateRef);
-                String ownerByUuid = ownerByUuid(candidateUuid, claimedEntityUuids);
-                if (ownerByUuid != null && !ownerByUuid.equals(npc.npcId())) {
-                    continue;
-                }
-
-                candidates.add(candidateRef);
-                candidateUuids.add(candidateUuid);
-            }
-        });
-
-        if (candidates.isEmpty()) {
-            return new RolePrefixRelinkEvaluationOutcome(RolePrefixRelinkOutcome.NO_MATCH, null, null, 0);
-        }
-
-        if (candidates.size() > 1) {
-            return new RolePrefixRelinkEvaluationOutcome(RolePrefixRelinkOutcome.AMBIGUOUS, null, null, candidates.size());
-        }
-
-        Ref<EntityStore> keepRef = candidates.get(0);
-        if (keepRef == null || !keepRef.isValid()) {
-            return new RolePrefixRelinkEvaluationOutcome(RolePrefixRelinkOutcome.NO_MATCH, null, null, 0);
-        }
-
-        return new RolePrefixRelinkEvaluationOutcome(
-            RolePrefixRelinkOutcome.SUCCESS,
-            keepRef,
-            candidateUuids.get(0),
-            1
-        );
+        return new RolePrefixRelinkEvaluationOutcome(RolePrefixRelinkOutcome.NO_MATCH, null, null, 0);
     }
 
     private UuidResolveOutcome resolveEntityRefByUuid(World world, UUID entityUuid) {
@@ -1036,47 +900,12 @@ public final class RelinkWorkflowService {
             return;
         }
 
-        try {
-            NPCEntity liveNpc = resolvedLiveNpc;
-            if (liveNpc == null) {
-                var npcType = NPCEntity.getComponentType();
-                if (npcType == null) {
-                    return;
-                }
-                liveNpc = entityRef.getStore().getComponent(entityRef, npcType);
-            }
-
-            if (liveNpc == null) {
-                return;
-            }
-
-            String runtimeRoleName = buildRuntimeRoleName(npc.npcId(), npc.roleId());
-            liveNpc.setRoleName(runtimeRoleName);
-        } catch (RuntimeException ex) {
-            logSevere("RUNTIME_ROLE_ASSIGN_FAILED", "Failed to normalize runtime role name after relink; continuing safely: "
-                + spawnContextFormatter.format(npc, trigger, world, null, null)
-                + " source=" + source
-                + " exception=" + ex.getClass().getSimpleName() + ":" + ex.getMessage());
-        }
+        // Runtime role normalization is intentionally disabled.
+        // Engine role names must remain static roles that exist in Server/NPC/Roles.
     }
 
     private String nullToDash(String value) {
         return value == null || value.isBlank() ? "-" : value;
-    }
-
-    private String buildRuntimeRoleName(String npcId, String roleId) {
-        return RUNTIME_ROLE_PREFIX + nullToDash(npcId) + "_" + nullToDash(roleId) + "_Role";
-    }
-
-    private String buildRuntimeRolePrefix(String npcId) {
-        return RUNTIME_ROLE_PREFIX + nullToDash(npcId) + "_";
-    }
-
-    private boolean startsWithIgnoreCase(String value, String prefix) {
-        if (value == null || prefix == null || value.length() < prefix.length()) {
-            return false;
-        }
-        return value.regionMatches(true, 0, prefix, 0, prefix.length());
     }
 
     private void logInfo(String eventKey, String message) {

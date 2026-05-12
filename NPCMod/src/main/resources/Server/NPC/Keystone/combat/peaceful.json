@@ -1,0 +1,7 @@
+{
+  "id": "peaceful",
+  "version": 1,
+  "mode": "peaceful",
+  "aggroRange": 0,
+  "leashRange": 0
+}

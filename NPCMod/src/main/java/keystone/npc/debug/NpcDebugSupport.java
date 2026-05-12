@@ -8,7 +8,6 @@ import java.util.Optional;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.universe.Universe;
 
-import keystone.npc.capabilities.NpcCapability;
 import keystone.npc.definition.EffectiveNpcDefinition;
 import keystone.npc.definition.NpcDebugDefinition;
 import keystone.npc.definition.NpcTemplateResolver;
@@ -19,6 +18,7 @@ import keystone.npc.markers.MarkerType;
 import keystone.npc.markers.RequiredMarkerResolver;
 import keystone.npc.markers.Vec3;
 import keystone.npc.roles.RoleDefinitionRegistry;
+import keystone.npc.skills.NpcSkill;
 
 public final class NpcDebugSupport {
 
@@ -36,8 +36,8 @@ public final class NpcDebugSupport {
         return resolveFlag(resolver, definitionId, DebugFlag.LOG_ROUTINE_CHANGES);
     }
 
-    public static boolean logCapabilityChecksEnabled(NpcTemplateResolver resolver, String definitionId) {
-        return resolveFlag(resolver, definitionId, DebugFlag.LOG_CAPABILITY_CHECKS);
+    public static boolean logSkillChecksEnabled(NpcTemplateResolver resolver, String definitionId) {
+        return resolveFlag(resolver, definitionId, DebugFlag.LOG_SKILL_CHECKS);
     }
 
     public static boolean logMotionChangesEnabled(NpcTemplateResolver resolver, String definitionId) {
@@ -131,14 +131,14 @@ public final class NpcDebugSupport {
         return markerType.name().toLowerCase(Locale.ROOT);
     }
 
-    public static String capabilityValueForStatus(
+    public static String skillValueForStatus(
         NpcTemplateResolver templateResolver,
         NpcRecord npc,
-        NpcCapability capability,
+        NpcSkill skill,
         boolean defaultValue
     ) {
         boolean enabled = templateResolver.resolveByRoleId(npc.roleId())
-            .map(def -> def.capabilities().has(capability))
+            .map(def -> def.skills().has(skill))
             .orElse(defaultValue);
         return enabled ? "true" : "false";
     }
@@ -185,7 +185,7 @@ public final class NpcDebugSupport {
         return switch (flag) {
             case SHOW_MARKERS -> Boolean.TRUE.equals(debug.get().showMarkers());
             case LOG_ROUTINE_CHANGES -> Boolean.TRUE.equals(debug.get().logRoutineChanges());
-            case LOG_CAPABILITY_CHECKS -> Boolean.TRUE.equals(debug.get().logCapabilityChecks());
+            case LOG_SKILL_CHECKS -> Boolean.TRUE.equals(debug.get().logSkillChecks());
             case LOG_MOTION_CHANGES -> Boolean.TRUE.equals(debug.get().logMotionChanges());
         };
     }
@@ -193,7 +193,7 @@ public final class NpcDebugSupport {
     private enum DebugFlag {
         SHOW_MARKERS,
         LOG_ROUTINE_CHANGES,
-        LOG_CAPABILITY_CHECKS,
+        LOG_SKILL_CHECKS,
         LOG_MOTION_CHANGES
     }
 }

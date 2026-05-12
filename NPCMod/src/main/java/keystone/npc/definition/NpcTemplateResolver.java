@@ -17,9 +17,6 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import keystone.npc.actions.ActionProfile;
-import keystone.npc.capabilities.CapabilityResolver;
-import keystone.npc.capabilities.CapabilitySet;
-import keystone.npc.capabilities.NpcCapability;
 import keystone.npc.domain.NpcState;
 import keystone.npc.markers.MarkerType;
 import keystone.npc.movement.InstructionDefinition;
@@ -28,6 +25,9 @@ import keystone.npc.movement.MovementProfile;
 import keystone.npc.navigation.NpcNavigationProfile;
 import keystone.npc.routine.RoutineDefinition;
 import keystone.npc.routine.RoutineEntry;
+import keystone.npc.skills.NpcSkill;
+import keystone.npc.skills.SkillResolver;
+import keystone.npc.skills.SkillSet;
 
 public final class NpcTemplateResolver {
 
@@ -70,7 +70,7 @@ public final class NpcTemplateResolver {
     );
 
     private final NpcDefinitionRegistry definitions;
-    private final CapabilityResolver capabilityResolver;
+    private final SkillResolver skillResolver;
     private final Map<String, EffectiveNpcDefinition> byId = new LinkedHashMap<>();
     private final Map<String, RoutineDefinition> routineByDefinitionId = new LinkedHashMap<>();
     private final Map<String, ActionProfile> actionByDefinitionId = new LinkedHashMap<>();
@@ -79,9 +79,9 @@ public final class NpcTemplateResolver {
     private final Map<String, List<String>> invalidRoleReasonsByRoleId = new LinkedHashMap<>();
     private final Map<String, List<String>> definitionIdsByRoleId = new LinkedHashMap<>();
 
-    public NpcTemplateResolver(NpcDefinitionRegistry definitions, CapabilityResolver capabilityResolver) {
+    public NpcTemplateResolver(NpcDefinitionRegistry definitions, SkillResolver skillResolver) {
         this.definitions = Objects.requireNonNull(definitions, "definitions");
-        this.capabilityResolver = Objects.requireNonNull(capabilityResolver, "capabilityResolver");
+        this.skillResolver = Objects.requireNonNull(skillResolver, "skillResolver");
     }
 
     public synchronized void reload() {
@@ -92,7 +92,7 @@ public final class NpcTemplateResolver {
         navigationByDefinitionId.clear();
         invalidRoleReasonsByRoleId.clear();
         definitionIdsByRoleId.clear();
-        capabilityResolver.clearCache();
+        skillResolver.clearCache();
 
         List<String> definitionIds = definitions.definitionIds();
         for (String id : definitionIds) {
@@ -216,31 +216,37 @@ public final class NpcTemplateResolver {
         }
 
         NpcProfileRefs profiles = merged.profiles();
-        validateProfilePathsExist(profiles, errors);
+        String definitionId = merged.id();
+        validateProfilePathsExist(definitionId, profiles, errors);
         validateDefaultState(merged, errors);
-        validateCapabilityProfileKeys(profiles, errors);
+        validateSkillProfileKeys(definitionId, profiles, errors);
 
         Optional<RoutineDefinition> routine = parseProfile(
+            definitionId,
             profiles != null ? profiles.routine() : null,
             RoutineDefinition.class,
             errors
         );
         Optional<ActionProfile> actionProfile = parseProfile(
+            definitionId,
             profiles != null ? profiles.actions() : null,
             ActionProfile.class,
             errors
         );
         Optional<MovementProfile> movement = parseProfile(
+            definitionId,
             profiles != null ? profiles.movement() : null,
             MovementProfile.class,
             errors
         );
         Optional<NpcNavigationProfile> navigationProfile = parseProfile(
+            definitionId,
             profiles != null ? profiles.navigation() : null,
             NpcNavigationProfile.class,
             errors
         );
-        validateNavigationProfile(navigationProfile, profiles != null ? profiles.navigation() : null, errors);
+        String resolvedNavigationProfilePath = resolveProfilePath(definitionId, profiles != null ? profiles.navigation() : null);
+        validateNavigationProfile(navigationProfile, resolvedNavigationProfilePath, errors);
 
         Set<String> requiredMarkerNames = normalizeRequiredMarkerNames(merged.requiredMarkers());
 
@@ -264,8 +270,13 @@ public final class NpcTemplateResolver {
             return;
         }
 
-        CapabilitySet capabilities = capabilityResolver.resolve(merged.profiles());
-        EffectiveNpcDefinition effective = new EffectiveNpcDefinition(merged, capabilities);
+        // Appearance note:
+        // This resolver validates and stores appearance configuration only.
+        // The actual spawned model is selected by the engine role resolved in
+        // RoleDefinitionRegistry and loaded from Server/NPC/Roles/<RoleName>.json.
+        // No automatic apply-to-live-entity appearance logic is executed here.
+        SkillSet skills = skillResolver.resolve(definitionId, merged.profiles());
+        EffectiveNpcDefinition effective = new EffectiveNpcDefinition(merged, skills);
         byId.put(effective.id(), effective);
         routine.ifPresent(value -> routineByDefinitionId.put(effective.id(), value));
         actionProfile.ifPresent(value -> actionByDefinitionId.put(effective.id(), value));
@@ -273,28 +284,34 @@ public final class NpcTemplateResolver {
         navigationProfile.ifPresent(value -> navigationByDefinitionId.put(effective.id(), value));
     }
 
-    private void validateProfilePathsExist(NpcProfileRefs profiles, List<String> errors) {
+    private void validateProfilePathsExist(String definitionId, NpcProfileRefs profiles, List<String> errors) {
         if (profiles == null) {
             return;
         }
 
-        validateProfilePathExists("routine", profiles.routine(), errors);
-        validateProfilePathExists("capabilities", profiles.capabilities(), errors);
-        validateProfilePathExists("actions", profiles.actions(), errors);
-        validateProfilePathExists("movement", profiles.movement(), errors);
-        validateProfilePathExists("navigation", profiles.navigation(), errors);
-        validateProfilePathExists("combat", profiles.combat(), errors);
-        validateProfilePathExists("spawn", profiles.spawn(), errors);
-        validateProfilePathExists("structure", profiles.structure(), errors);
-        validateProfilePathExists("persistence", profiles.persistence(), errors);
+        validateProfilePathExists(definitionId, "routine", profiles.routine(), errors);
+        String skillsPath = profiles.resolveSkillsPath();
+        if (profiles.usesLegacySkillsFallback()) {
+            validateProfilePathExists(definitionId, "skills (legacy capabilities)", skillsPath, errors);
+        } else {
+            validateProfilePathExists(definitionId, "skills", skillsPath, errors);
+        }
+        validateProfilePathExists(definitionId, "actions", profiles.actions(), errors);
+        validateProfilePathExists(definitionId, "movement", profiles.movement(), errors);
+        validateProfilePathExists(definitionId, "navigation", profiles.navigation(), errors);
+        validateProfilePathExists(definitionId, "combat", profiles.combat(), errors);
+        validateProfilePathExists(definitionId, "spawn", profiles.spawn(), errors);
+        validateProfilePathExists(definitionId, "structure", profiles.structure(), errors);
+        validateProfilePathExists(definitionId, "persistence", profiles.persistence(), errors);
     }
 
-    private void validateProfilePathExists(String profileKey, String relativePath, List<String> errors) {
+    private void validateProfilePathExists(String definitionId, String profileKey, String relativePath, List<String> errors) {
         if (relativePath == null || relativePath.isBlank()) {
             return;
         }
-        if (definitions.readText(relativePath).isEmpty()) {
-            errors.add("profiles." + profileKey + " not found: " + relativePath);
+        String resolvedPath = resolveProfilePath(definitionId, relativePath);
+        if (resolvedPath == null || resolvedPath.isBlank() || definitions.readText(resolvedPath).isEmpty()) {
+            errors.add("profiles." + profileKey + " not found: " + resolvedPath);
         }
     }
 
@@ -350,12 +367,17 @@ public final class NpcTemplateResolver {
         }
     }
 
-    private void validateCapabilityProfileKeys(NpcProfileRefs profiles, List<String> errors) {
-        if (profiles == null || profiles.capabilities() == null || profiles.capabilities().isBlank()) {
+    private void validateSkillProfileKeys(String definitionId, NpcProfileRefs profiles, List<String> errors) {
+        if (profiles == null) {
             return;
         }
 
-        Optional<String> raw = definitions.readText(profiles.capabilities());
+        String resolvedSkillsPath = resolveProfilePath(definitionId, profiles.resolveSkillsPath());
+        if (resolvedSkillsPath == null || resolvedSkillsPath.isBlank()) {
+            return;
+        }
+
+        Optional<String> raw = definitions.readText(resolvedSkillsPath);
         if (raw.isEmpty()) {
             return;
         }
@@ -366,14 +388,14 @@ public final class NpcTemplateResolver {
                 return;
             }
 
-            JsonObject capabilities = root.getAsJsonObject("capabilities");
-            for (Map.Entry<String, JsonElement> capabilityEntry : capabilities.entrySet()) {
-                if (NpcCapability.tryParse(capabilityEntry.getKey()).isEmpty()) {
-                    errors.add("capabilities profile contains unknown capability key: " + capabilityEntry.getKey());
+            JsonObject skillFlags = root.getAsJsonObject("capabilities");
+            for (Map.Entry<String, JsonElement> skillEntry : skillFlags.entrySet()) {
+                if (NpcSkill.tryParse(skillEntry.getKey()).isEmpty()) {
+                    errors.add("skills profile contains unknown skill key: " + skillEntry.getKey());
                 }
             }
         } catch (RuntimeException ex) {
-            errors.add("failed to parse capabilities profile: " + profiles.capabilities());
+            errors.add("failed to parse skills profile: " + resolvedSkillsPath);
         }
     }
 
@@ -613,12 +635,17 @@ public final class NpcTemplateResolver {
         return Optional.of(new MovementProfile("inline:" + definition.id(), definition.version(), controllers, instructions));
     }
 
-    private <T> Optional<T> parseProfile(String relativePath, Class<T> clazz, List<String> errors) {
+    private <T> Optional<T> parseProfile(String definitionId, String relativePath, Class<T> clazz, List<String> errors) {
         if (relativePath == null || relativePath.isBlank()) {
             return Optional.empty();
         }
 
-        Optional<String> raw = definitions.readText(relativePath);
+        String resolvedPath = resolveProfilePath(definitionId, relativePath);
+        if (resolvedPath == null || resolvedPath.isBlank()) {
+            return Optional.empty();
+        }
+
+        Optional<String> raw = definitions.readText(resolvedPath);
         if (raw.isEmpty()) {
             return Optional.empty();
         }
@@ -626,14 +653,21 @@ public final class NpcTemplateResolver {
         try {
             T parsed = GSON.fromJson(raw.get(), clazz);
             if (parsed == null) {
-                errors.add("profile parsed to null: " + relativePath);
+                errors.add("profile parsed to null: " + resolvedPath);
                 return Optional.empty();
             }
             return Optional.of(parsed);
         } catch (RuntimeException ex) {
-            errors.add("failed to parse profile: " + relativePath + " as " + clazz.getSimpleName());
+            errors.add("failed to parse profile: " + resolvedPath + " as " + clazz.getSimpleName());
             return Optional.empty();
         }
+    }
+
+    private String resolveProfilePath(String definitionId, String profilePath) {
+        if (profilePath == null || profilePath.isBlank()) {
+            return null;
+        }
+        return definitions.resolveProfilePath(definitionId, profilePath);
     }
 
     private String nullSafe(String value) {
@@ -734,6 +768,7 @@ public final class NpcTemplateResolver {
             choose(concrete.npcType(), base.npcType()),
             choose(concrete.faction(), base.faction()),
             choose(concrete.role(), base.role()),
+            choose(concrete.hytaleRole(), base.hytaleRole()),
             choose(concrete.appearance(), base.appearance()),
             choose(concrete.stats(), base.stats()),
             choose(concrete.drops(), base.drops()),
@@ -758,7 +793,8 @@ public final class NpcTemplateResolver {
 
         return new NpcProfileRefs(
             choose(concrete.routine(), base.routine()),
-            choose(concrete.capabilities(), base.capabilities()),
+            choose(concrete.skills(), base.skills()),
+            choose(concrete.legacySkills(), base.legacySkills()),
             choose(concrete.actions(), base.actions()),
             choose(concrete.movement(), base.movement()),
             choose(concrete.navigation(), base.navigation()),

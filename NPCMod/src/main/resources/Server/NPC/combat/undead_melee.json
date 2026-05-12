@@ -1,8 +1,0 @@
-{
-	"id": "undead_melee",
-	"version": 1,
-	"mode": "melee",
-	"aggroRange": 16,
-	"leashRange": 28,
-	"behaviorProfile": "guard"
-}

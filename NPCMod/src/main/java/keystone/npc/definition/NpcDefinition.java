@@ -15,6 +15,7 @@ public record NpcDefinition(
     String npcType,
     String faction,
     String role,
+    String hytaleRole,
     NpcAppearanceDefinition appearance,
     NpcStatsDefinition stats,
     NpcDropsDefinition drops,

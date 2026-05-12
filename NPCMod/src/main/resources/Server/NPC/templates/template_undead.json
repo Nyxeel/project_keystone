@@ -1,8 +1,0 @@
-{
-  "id": "template_undead",
-  "version": 1,
-  "type": "template",
-  "npcType": "undead",
-  "faction": "hostile",
-  "defaultState": "IDLE"
-}

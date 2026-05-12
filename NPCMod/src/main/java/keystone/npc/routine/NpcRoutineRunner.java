@@ -29,8 +29,6 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.hypixel.hytale.server.npc.NPCPlugin;
 import com.hypixel.hytale.server.npc.entities.NPCEntity;
 
-import keystone.npc.capabilities.CapabilityChecks;
-import keystone.npc.capabilities.NpcCapability;
 import keystone.npc.debug.NpcDebugSupport;
 import keystone.npc.definition.NpcTemplateResolver;
 import keystone.npc.domain.NpcRecord;
@@ -63,6 +61,8 @@ import keystone.npc.routine.pathfinding.NavigationRuntimeService;
 import keystone.npc.routine.pathfinding.PathfindingSupport;
 import keystone.npc.routine.state.NpcTickPipeline;
 import keystone.npc.routine.state.StateTargetingService;
+import keystone.npc.skills.NpcSkill;
+import keystone.npc.skills.SkillChecks;
 
 /**
  * MVP A: minimaler Routine-Runner.
@@ -117,7 +117,7 @@ public final class NpcRoutineRunner {
 
     private final MarkerRegistry markerRegistry;
     private final RoleDefinitionRegistry roleDefinitions;
-    private final CapabilityChecks capabilityChecks;
+    private final SkillChecks skillChecks;
     private final NpcTemplateResolver templateResolver;
     private final RequiredMarkerResolver requiredMarkerResolver;
     private final MarkerResolver markerResolver;
@@ -169,12 +169,12 @@ public final class NpcRoutineRunner {
     public NpcRoutineRunner(
         MarkerRegistry markerRegistry,
         RoleDefinitionRegistry roleDefinitions,
-        CapabilityChecks capabilityChecks,
+        SkillChecks skillChecks,
         NpcTemplateResolver templateResolver
     ) {
         this.markerRegistry = Objects.requireNonNull(markerRegistry);
         this.roleDefinitions = Objects.requireNonNull(roleDefinitions);
-        this.capabilityChecks = Objects.requireNonNull(capabilityChecks);
+        this.skillChecks = Objects.requireNonNull(skillChecks);
         this.templateResolver = Objects.requireNonNull(templateResolver);
         this.requiredMarkerResolver = new RequiredMarkerResolver(this.templateResolver, this.roleDefinitions);
         this.markerResolver = new MarkerResolver(this.markerRegistry, this::logInfo);
@@ -1436,31 +1436,8 @@ public final class NpcRoutineRunner {
         World world,
         String trigger
     ) {
-        if (npc == null || definition == null) {
-            return;
-        }
-
-        NPCEntity liveNpc = spawnedNpc;
-        if (liveNpc == null && spawnedRef != null && spawnedRef.isValid()) {
-            var npcType = NPCEntity.getComponentType();
-            if (npcType != null) {
-                liveNpc = spawnedRef.getStore().getComponent(spawnedRef, npcType);
-            }
-        }
-
-        if (liveNpc == null) {
-            return;
-        }
-
-        String runtimeRoleName = buildRuntimeRoleName(npc.npcId(), npc.roleId());
-        liveNpc.setRoleName(runtimeRoleName);
-        logInfo("RUNTIME_ROLE_ASSIGNED", "Assigned unique runtime role name for NPC entity: "
-            + spawnContext(npc, trigger, world, definition, NPCPlugin.get().getIndex(definition.npcPluginRoleName()))
-            + " runtimeRoleName=" + runtimeRoleName);
-    }
-
-    private String buildRuntimeRoleName(String npcId, String roleId) {
-        return "KeystoneNPC_" + nullToDash(npcId) + "_" + nullToDash(roleId) + "_Role";
+        // Dynamic runtime role names are disabled.
+        // The spawned engine role must stay the static role configured via NPCPlugin role index.
     }
 
     private boolean passesRespawnForcePrecheck(World world, NpcRecord npc, String trigger) {
@@ -1767,7 +1744,7 @@ public final class NpcRoutineRunner {
         }
 
         if (npc.state() == null || !npc.state().isWalking()) {
-            npc.lastCapabilityDecisionKey(null);
+            npc.lastSkillDecisionKey(null);
         }
         reconcilePersistedMarkerAssignments(npc);
         npcUpdateWorkflowService.updateNpc(npc, world);
@@ -1804,7 +1781,7 @@ public final class NpcRoutineRunner {
         npc.activeRoutineState(null);
         npc.activeRoutineActionId(null);
         npc.activeRoutineSource(null);
-        npc.lastCapabilityDecisionKey(null);
+        npc.lastSkillDecisionKey(null);
     }
 
     private boolean shouldStartRetargetWalkFromCurrentMarker(NpcRecord npc, MarkerType markerType, MarkerRecord previousMarker) {
@@ -2350,23 +2327,23 @@ public final class NpcRoutineRunner {
     }
 
     private boolean canOpenDoorsWithDebug(NpcRecord npc) {
-        boolean canOpen = capabilityChecks.hasOrDefault(npc.roleId(), NpcCapability.OPEN_DOORS, true);
+        boolean canOpen = skillChecks.hasOrDefault(npc.roleId(), NpcSkill.OPEN_DOORS, true);
 
         NpcState state = npc.state();
         if (state == null || !state.isWalking()) {
-            npc.lastCapabilityDecisionKey(null);
+            npc.lastSkillDecisionKey(null);
             return canOpen;
         }
 
-        if (NpcDebugSupport.logCapabilityChecksEnabled(templateResolver, npc.roleId())) {
-            String decisionKey = "door-capability:" + state.name() + ":" + canOpen;
-            if (!decisionKey.equals(npc.lastCapabilityDecisionKey())) {
-                logInfo("DOOR_CAPABILITY_CHECK", "Open-door capability check: npcId=" + npc.npcId()
+        if (NpcDebugSupport.logSkillChecksEnabled(templateResolver, npc.roleId())) {
+            String decisionKey = "door-skill:" + state.name() + ":" + canOpen;
+            if (!decisionKey.equals(npc.lastSkillDecisionKey())) {
+                logInfo("DOOR_SKILL_CHECK", "Open-door skill check: npcId=" + npc.npcId()
                     + " npcName=" + quote(npc.npcName())
                     + " roleId=" + npc.roleId()
                     + " state=" + state.name()
                     + " allowed=" + canOpen);
-                npc.lastCapabilityDecisionKey(decisionKey);
+                npc.lastSkillDecisionKey(decisionKey);
             }
         }
         return canOpen;
