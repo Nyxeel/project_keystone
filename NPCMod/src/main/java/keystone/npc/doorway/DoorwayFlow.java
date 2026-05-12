@@ -1,6 +1,7 @@
 package keystone.npc.doorway;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 import com.hypixel.hytale.protocol.BlockPosition;
@@ -10,11 +11,14 @@ import keystone.npc.domain.NpcRecord;
 import keystone.npc.domain.NpcState;
 import keystone.npc.markers.MarkerRecord;
 import keystone.npc.markers.MarkerType;
+import keystone.npc.markers.RequiredMarkerResolver;
 import keystone.npc.markers.Vec3;
 import keystone.npc.navigation.NavigationTarget;
 import keystone.npc.routine.marker.MarkerResolver;
 
 public final class DoorwayFlow {
+
+    private static final long DOOR_MARKER_SKIP_LOG_COOLDOWN_MS = 10_000L;
 
     @FunctionalInterface
     public interface DoorLogSink {
@@ -29,8 +33,10 @@ public final class DoorwayFlow {
     private final MarkerResolver markerResolver;
     private final DoorwayScanner doorSupport;
     private final DoorPassTracker doorPassTracker;
+    private final RequiredMarkerResolver requiredMarkerResolver;
     private final Map<String, Long> nextDoorActionAtMs;
     private final Map<String, Long> nextDoorCloseActionAtMs;
+    private final Map<String, Long> nextDoorMarkerSkipLogAtMs;
     private final Map<String, PendingDoorAttempt> pendingDoorAttempts;
     private final Map<String, PendingDoorAttempt> pendingDoorCloseAttempts;
     private final double doorTriggerDistanceSq;
@@ -45,8 +51,10 @@ public final class DoorwayFlow {
         MarkerResolver markerResolver,
         DoorwayScanner doorSupport,
         DoorPassTracker doorPassTracker,
+        RequiredMarkerResolver requiredMarkerResolver,
         Map<String, Long> nextDoorActionAtMs,
         Map<String, Long> nextDoorCloseActionAtMs,
+        Map<String, Long> nextDoorMarkerSkipLogAtMs,
         Map<String, PendingDoorAttempt> pendingDoorAttempts,
         Map<String, PendingDoorAttempt> pendingDoorCloseAttempts,
         double doorTriggerDistanceSq,
@@ -60,8 +68,10 @@ public final class DoorwayFlow {
         this.markerResolver = markerResolver;
         this.doorSupport = doorSupport;
         this.doorPassTracker = doorPassTracker;
+        this.requiredMarkerResolver = Objects.requireNonNull(requiredMarkerResolver);
         this.nextDoorActionAtMs = nextDoorActionAtMs;
         this.nextDoorCloseActionAtMs = nextDoorCloseActionAtMs;
+        this.nextDoorMarkerSkipLogAtMs = nextDoorMarkerSkipLogAtMs;
         this.pendingDoorAttempts = pendingDoorAttempts;
         this.pendingDoorCloseAttempts = pendingDoorCloseAttempts;
         this.doorTriggerDistanceSq = doorTriggerDistanceSq;
@@ -75,6 +85,15 @@ public final class DoorwayFlow {
 
     public void maybeHandleDoorNavigation(World world, NpcRecord npc, NavigationTarget navState, Vec3 currentPos) {
         if (npc.state() != NpcState.WALKING_TO_BED && npc.state() != NpcState.WALKING_TO_WORK) {
+            return;
+        }
+
+        if (!isDoorRequiredForRole(npc)) {
+            pendingDoorAttempts.remove(npc.npcId());
+            pendingDoorCloseAttempts.remove(npc.npcId());
+            while (doorPassTracker.peekActiveDoorPass(npc.npcId()) != null) {
+                doorPassTracker.removeTrackedDoorPass(npc.npcId(), null);
+            }
             return;
         }
 
@@ -109,6 +128,7 @@ public final class DoorwayFlow {
 
         BlockPosition doorBlock = doorSupport.resolveApproachDoorBlock(world, currentPos, targetPos, markerDoorBlock);
         if (doorBlock == null) {
+            maybeLogDoorMarkerNotSet(npc, doorMarker.isEmpty());
             return;
         }
 
@@ -368,5 +388,33 @@ public final class DoorwayFlow {
 
     private void logDoorInfo(NpcRecord npc, String eventKey, String message) {
         doorLogSink.log(npc, eventKey, message);
+    }
+
+    private boolean isDoorRequiredForRole(NpcRecord npc) {
+        for (RequiredMarkerResolver.Requirement requirement : requiredMarkerResolver.resolveRequirements(npc.roleId())) {
+            if (requirement.markerType() == MarkerType.DOOR) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void maybeLogDoorMarkerNotSet(NpcRecord npc, boolean doorMarkerMissing) {
+        if (!doorMarkerMissing) {
+            return;
+        }
+
+        long now = System.currentTimeMillis();
+        long nextAllowedAt = nextDoorMarkerSkipLogAtMs.getOrDefault(npc.npcId(), 0L);
+        if (now < nextAllowedAt) {
+            return;
+        }
+
+        nextDoorMarkerSkipLogAtMs.put(npc.npcId(), now + DOOR_MARKER_SKIP_LOG_COOLDOWN_MS);
+        logDoorInfo(
+            npc,
+            "DOOR_MARKER_NOT_SET_ROUTING_SKIPPED",
+            "Door marker not set. Doorway routing skipped for this NPC."
+        );
     }
 }

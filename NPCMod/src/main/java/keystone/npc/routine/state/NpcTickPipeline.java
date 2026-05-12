@@ -50,7 +50,7 @@ public final class NpcTickPipeline {
     }
 
     public void updateNpc(NpcRecord npc, World world) {
-        // Keep legacy RoleDefinition lookup as safety fallback while JSON-first definitions are rolled out.
+        // Runtime role definitions are loaded from JSON and must resolve before targeting/navigation.
         Optional<RoleDefinition> roleDefinition = roleDefinitions.findByRoleId(npc.roleId());
         if (roleDefinition.isEmpty()) {
             if (npc.state() != NpcState.PAUSED_MISSING_MARKER) {

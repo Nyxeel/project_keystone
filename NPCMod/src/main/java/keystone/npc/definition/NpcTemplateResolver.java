@@ -76,6 +76,8 @@ public final class NpcTemplateResolver {
     private final Map<String, ActionProfile> actionByDefinitionId = new LinkedHashMap<>();
     private final Map<String, MovementProfile> movementByDefinitionId = new LinkedHashMap<>();
     private final Map<String, NpcNavigationProfile> navigationByDefinitionId = new LinkedHashMap<>();
+    private final Map<String, List<String>> invalidRoleReasonsByRoleId = new LinkedHashMap<>();
+    private final Map<String, List<String>> definitionIdsByRoleId = new LinkedHashMap<>();
 
     public NpcTemplateResolver(NpcDefinitionRegistry definitions, CapabilityResolver capabilityResolver) {
         this.definitions = Objects.requireNonNull(definitions, "definitions");
@@ -88,6 +90,8 @@ public final class NpcTemplateResolver {
         actionByDefinitionId.clear();
         movementByDefinitionId.clear();
         navigationByDefinitionId.clear();
+        invalidRoleReasonsByRoleId.clear();
+        definitionIdsByRoleId.clear();
         capabilityResolver.clearCache();
 
         List<String> definitionIds = definitions.definitionIds();
@@ -103,8 +107,49 @@ public final class NpcTemplateResolver {
         return Optional.ofNullable(byId.get(NpcDefinition.normalizeId(id)));
     }
 
+    public synchronized Optional<EffectiveNpcDefinition> resolveByRoleId(String roleId) {
+        String normalizedRoleId = normalizeRoleId(roleId);
+        if (normalizedRoleId == null || roleHasValidationIssues(normalizedRoleId)) {
+            return Optional.empty();
+        }
+
+        EffectiveNpcDefinition resolved = null;
+        for (EffectiveNpcDefinition definition : byId.values()) {
+            if (!normalizedRoleId.equals(definition.roleId())) {
+                continue;
+            }
+
+            if (resolved != null) {
+                return Optional.empty();
+            }
+            resolved = definition;
+        }
+
+        return Optional.ofNullable(resolved);
+    }
+
     public synchronized List<String> definitionIds() {
         return List.copyOf(byId.keySet());
+    }
+
+    public synchronized List<String> roleIdsWithValidationIssues() {
+        return List.copyOf(invalidRoleReasonsByRoleId.keySet());
+    }
+
+    public synchronized List<String> roleInvalidReasons(String roleId) {
+        String normalizedRoleId = normalizeRoleId(roleId);
+        if (normalizedRoleId == null) {
+            return List.of();
+        }
+        return invalidRoleReasonsByRoleId.getOrDefault(normalizedRoleId, List.of());
+    }
+
+    public synchronized List<String> definitionIdsForRole(String roleId) {
+        String normalizedRoleId = normalizeRoleId(roleId);
+        if (normalizedRoleId == null) {
+            return List.of();
+        }
+        return definitionIdsByRoleId.getOrDefault(normalizedRoleId, List.of());
     }
 
     public synchronized Optional<RoutineDefinition> resolveRoutine(String definitionId) {
@@ -112,6 +157,12 @@ public final class NpcTemplateResolver {
             return Optional.empty();
         }
         return Optional.ofNullable(routineByDefinitionId.get(NpcDefinition.normalizeId(definitionId)));
+    }
+
+    public synchronized Optional<RoutineDefinition> resolveRoutineByRoleId(String roleId) {
+        return resolveByRoleId(roleId)
+            .map(EffectiveNpcDefinition::id)
+            .flatMap(this::resolveRoutine);
     }
 
     public synchronized Optional<ActionProfile> resolveActionProfile(String definitionId) {
@@ -158,14 +209,32 @@ public final class NpcTemplateResolver {
             }
         }
 
+        String resolvedRoleId = normalizeRoleId(merged.effectiveRoleId());
+        registerRoleDefinition(resolvedRoleId, merged.id());
+        if (resolvedRoleId == null) {
+            errors.add("roleId could not be resolved from definition");
+        }
+
         NpcProfileRefs profiles = merged.profiles();
         validateProfilePathsExist(profiles, errors);
         validateDefaultState(merged, errors);
         validateCapabilityProfileKeys(profiles, errors);
 
-        Optional<RoutineDefinition> routine = parseProfile(profiles != null ? profiles.routine() : null, RoutineDefinition.class, errors);
-        Optional<ActionProfile> actionProfile = parseProfile(profiles != null ? profiles.actions() : null, ActionProfile.class, errors);
-        Optional<MovementProfile> movement = parseProfile(profiles != null ? profiles.movement() : null, MovementProfile.class, errors);
+        Optional<RoutineDefinition> routine = parseProfile(
+            profiles != null ? profiles.routine() : null,
+            RoutineDefinition.class,
+            errors
+        );
+        Optional<ActionProfile> actionProfile = parseProfile(
+            profiles != null ? profiles.actions() : null,
+            ActionProfile.class,
+            errors
+        );
+        Optional<MovementProfile> movement = parseProfile(
+            profiles != null ? profiles.movement() : null,
+            MovementProfile.class,
+            errors
+        );
         Optional<NpcNavigationProfile> navigationProfile = parseProfile(
             profiles != null ? profiles.navigation() : null,
             NpcNavigationProfile.class,
@@ -173,20 +242,25 @@ public final class NpcTemplateResolver {
         );
         validateNavigationProfile(navigationProfile, profiles != null ? profiles.navigation() : null, errors);
 
-        merged = reconcileRequiredMarkersFromRoutine(merged, routine);
+        Set<String> requiredMarkerNames = normalizeRequiredMarkerNames(merged.requiredMarkers());
 
         if (movement.isEmpty()) {
             movement = buildInlineMovementProfile(merged);
         }
 
-        validateMarkerMapping(merged, errors);
-        validateRoutineSchedule(routine, errors);
+        validateMarkerMapping(merged, requiredMarkerNames, errors);
+        validateRoutineSchedule(routine, requiredMarkerNames, errors);
         validateRoutineActions(routine, actionProfile, errors);
 
         if (!errors.isEmpty()) {
+            recordRoleValidationErrors(resolvedRoleId, errors);
             for (String error : errors) {
                 System.err.println("[KeystoneNPC] NPC definition rejected: id=" + concrete.id() + " reason=" + error);
             }
+            return;
+        }
+
+        if (roleHasValidationIssues(resolvedRoleId)) {
             return;
         }
 
@@ -230,37 +304,48 @@ public final class NpcTemplateResolver {
             return;
         }
         try {
-            NpcState.valueOf(defaultState.trim().toUpperCase());
+            NpcState.valueOf(defaultState.trim().toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException ex) {
             errors.add("unknown defaultState: " + defaultState);
         }
     }
 
-    private void validateMarkerMapping(NpcDefinition merged, List<String> errors) {
-        Set<String> required = new HashSet<>();
-        for (String markerName : merged.requiredMarkers()) {
-            if (markerName != null && !markerName.isBlank()) {
-                required.add(markerName.trim().toLowerCase());
-            }
+    private void validateMarkerMapping(NpcDefinition merged, Set<String> requiredMarkers, List<String> errors) {
+        if (requiredMarkers.isEmpty()) {
+            errors.add("requiredMarkers is missing or empty");
+            errors.add("Cannot infer requiredMarkers from routine JSON");
         }
 
-        Map<String, String> markerRoles = merged.markerRoles();
-        for (String requiredMarker : required) {
-            if (!markerRoles.containsKey(requiredMarker)) {
-                errors.add("requiredMarkers entry has no markerRoles mapping: " + requiredMarker);
-            }
-        }
+        Map<String, String> normalizedMarkerRoles = normalizeMarkerRoles(merged.markerRoles(), errors);
 
-        for (Map.Entry<String, String> entry : markerRoles.entrySet()) {
-            String markerTypeRaw = entry.getValue();
-            if (markerTypeRaw == null || markerTypeRaw.isBlank()) {
-                errors.add("markerRoles." + entry.getKey() + " is blank");
+        for (String requiredMarker : requiredMarkers) {
+            MarkerType requiredType = parseMarkerType(requiredMarker);
+            if (requiredType == null) {
+                errors.add("requiredMarkers contains unknown marker type: " + requiredMarker);
                 continue;
             }
-            try {
-                MarkerType.valueOf(markerTypeRaw.trim().toUpperCase());
-            } catch (IllegalArgumentException ex) {
-                errors.add("markerRoles." + entry.getKey() + " has unknown marker type: " + markerTypeRaw);
+
+            String mappedRawValue = normalizedMarkerRoles.get(requiredMarker);
+            if (mappedRawValue == null) {
+                errors.add("required marker '" + requiredMarker + "' has no markerRoles mapping");
+                continue;
+            }
+
+            MarkerType mappedType = parseMarkerType(mappedRawValue);
+            if (mappedType == null) {
+                errors.add("markerRoles." + requiredMarker + " has unknown marker type: " + mappedRawValue);
+                continue;
+            }
+
+            if (mappedType != requiredType) {
+                errors.add("required marker '" + requiredMarker + "' maps to " + mappedType.name()
+                    + " but expected " + requiredType.name());
+            }
+        }
+
+        for (Map.Entry<String, String> entry : normalizedMarkerRoles.entrySet()) {
+            if (!requiredMarkers.contains(entry.getKey())) {
+                errors.add("markerRoles contains '" + entry.getKey() + "', but it is not listed in requiredMarkers");
             }
         }
     }
@@ -292,72 +377,11 @@ public final class NpcTemplateResolver {
         }
     }
 
-    private NpcDefinition reconcileRequiredMarkersFromRoutine(NpcDefinition merged, Optional<RoutineDefinition> routine) {
-        LinkedHashSet<String> scheduledMarkers = new LinkedHashSet<>();
-        if (routine.isPresent()) {
-            for (RoutineEntry entry : routine.get().schedule()) {
-                if (entry == null || entry.targetMarker() == null || entry.targetMarker().isBlank()) {
-                    continue;
-                }
-                String markerName = normalizeMarkerName(entry.targetMarker());
-                if (markerName != null) {
-                    scheduledMarkers.add(markerName);
-                }
-            }
-        }
-
-        LinkedHashSet<String> declaredMarkers = new LinkedHashSet<>();
-        for (String markerName : merged.requiredMarkers()) {
-            String normalized = normalizeMarkerName(markerName);
-            if (normalized != null) {
-                declaredMarkers.add(normalized);
-            }
-        }
-
-        LinkedHashSet<String> reconciledRequiredMarkers = new LinkedHashSet<>(declaredMarkers);
-        if (reconciledRequiredMarkers.isEmpty()) {
-            // Backward compatibility: older definitions may omit requiredMarkers and only declare routine markers.
-            reconciledRequiredMarkers.addAll(scheduledMarkers);
-        }
-
-        LinkedHashMap<String, String> reconciledMarkerRoles = new LinkedHashMap<>(merged.markerRoles());
-        for (String markerName : reconciledRequiredMarkers) {
-            if (reconciledMarkerRoles.containsKey(markerName)) {
-                continue;
-            }
-            try {
-                MarkerType markerType = MarkerType.valueOf(markerName.toUpperCase(Locale.ROOT));
-                reconciledMarkerRoles.put(markerName, markerType.name());
-            } catch (IllegalArgumentException ignored) {
-                // Keep unresolved markers for validation to report clearly.
-            }
-        }
-
-        return new NpcDefinition(
-            merged.id(),
-            merged.version(),
-            merged.type(),
-            merged.template(),
-            merged.displayName(),
-            merged.nameTranslationKey(),
-            merged.npcType(),
-            merged.faction(),
-            merged.role(),
-            merged.appearance(),
-            merged.stats(),
-            merged.drops(),
-            merged.attitude(),
-            merged.profiles(),
-            List.copyOf(reconciledRequiredMarkers),
-            reconciledMarkerRoles,
-            merged.motionControllerList(),
-            merged.instructions(),
-            merged.defaultState(),
-            merged.debug()
-        );
-    }
-
-    private void validateRoutineSchedule(Optional<RoutineDefinition> routine, List<String> errors) {
+    private void validateRoutineSchedule(
+        Optional<RoutineDefinition> routine,
+        Set<String> requiredMarkers,
+        List<String> errors
+    ) {
         if (routine.isEmpty()) {
             return;
         }
@@ -378,6 +402,11 @@ public final class NpcTemplateResolver {
 
             if (entry.targetMarker() == null || entry.targetMarker().isBlank()) {
                 errors.add("routine entry missing targetMarker at index " + index);
+            } else {
+                String normalizedTargetMarker = normalizeMarkerName(entry.targetMarker());
+                if (normalizedTargetMarker == null || !requiredMarkers.contains(normalizedTargetMarker)) {
+                    errors.add("routine targetMarker '" + entry.targetMarker() + "' is not listed in requiredMarkers");
+                }
             }
 
             if (entry.time() == null || entry.time().isBlank()) {
@@ -434,6 +463,63 @@ public final class NpcTemplateResolver {
             return null;
         }
         return markerName.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private Set<String> normalizeRequiredMarkerNames(List<String> requiredMarkers) {
+        LinkedHashSet<String> normalized = new LinkedHashSet<>();
+        if (requiredMarkers == null) {
+            return Set.copyOf(normalized);
+        }
+
+        for (String markerName : requiredMarkers) {
+            String normalizedName = normalizeMarkerName(markerName);
+            if (normalizedName != null) {
+                normalized.add(normalizedName);
+            }
+        }
+
+        return Set.copyOf(normalized);
+    }
+
+    private Map<String, String> normalizeMarkerRoles(Map<String, String> markerRoles, List<String> errors) {
+        LinkedHashMap<String, String> normalized = new LinkedHashMap<>();
+        if (markerRoles == null || markerRoles.isEmpty()) {
+            return normalized;
+        }
+
+        for (Map.Entry<String, String> entry : markerRoles.entrySet()) {
+            String normalizedKey = normalizeMarkerName(entry.getKey());
+            if (normalizedKey == null) {
+                errors.add("markerRoles contains blank marker key");
+                continue;
+            }
+
+            String value = entry.getValue();
+            if (value == null || value.isBlank()) {
+                errors.add("markerRoles." + normalizedKey + " is blank");
+                continue;
+            }
+
+            String normalizedValue = value.trim().toUpperCase(Locale.ROOT);
+            String previous = normalized.putIfAbsent(normalizedKey, normalizedValue);
+            if (previous != null && !previous.equals(normalizedValue)) {
+                errors.add("markerRoles contains conflicting mappings for '" + normalizedKey + "'");
+            }
+        }
+
+        return normalized;
+    }
+
+    private MarkerType parseMarkerType(String markerTypeRaw) {
+        if (markerTypeRaw == null || markerTypeRaw.isBlank()) {
+            return null;
+        }
+
+        try {
+            return MarkerType.valueOf(markerTypeRaw.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
     }
 
     private void validateRoutineActions(Optional<RoutineDefinition> routine, Optional<ActionProfile> actionProfile, List<String> errors) {
@@ -559,6 +645,81 @@ public final class NpcTemplateResolver {
             return Optional.ofNullable(GSON.fromJson(rawJson, NpcDefinition.class));
         } catch (RuntimeException ex) {
             return Optional.empty();
+        }
+    }
+
+    private void recordRoleValidationErrors(String roleId, List<String> errors) {
+        if (roleId == null) {
+            return;
+        }
+
+        for (String error : errors) {
+            addInvalidRoleReason(roleId, error);
+        }
+    }
+
+    private void addInvalidRoleReason(String roleId, String reason) {
+        if (roleId == null || reason == null || reason.isBlank()) {
+            return;
+        }
+
+        LinkedHashSet<String> mergedReasons = new LinkedHashSet<>(invalidRoleReasonsByRoleId.getOrDefault(roleId, List.of()));
+        mergedReasons.add(reason);
+        invalidRoleReasonsByRoleId.put(roleId, List.copyOf(mergedReasons));
+    }
+
+    private boolean roleHasValidationIssues(String roleId) {
+        if (roleId == null) {
+            return false;
+        }
+        return !invalidRoleReasonsByRoleId.getOrDefault(roleId, List.of()).isEmpty();
+    }
+
+    private void registerRoleDefinition(String roleId, String definitionId) {
+        if (roleId == null) {
+            return;
+        }
+
+        LinkedHashSet<String> definitionIds = new LinkedHashSet<>(definitionIdsByRoleId.getOrDefault(roleId, List.of()));
+        if (definitionId != null && !definitionId.isBlank()) {
+            definitionIds.add(NpcDefinition.normalizeId(definitionId));
+        }
+        definitionIdsByRoleId.put(roleId, List.copyOf(definitionIds));
+
+        if (definitionIds.size() > 1) {
+            addInvalidRoleReason(roleId, "duplicate roleId '" + roleId + "' found in multiple NPC role definitions");
+            addInvalidRoleReason(roleId, "RoleDefinition conflict: refusing to merge requiredMarkers");
+            addInvalidRoleReason(roleId, "Spawn blocked for role " + roleId);
+            removeResolvedDefinitionsForRole(roleId);
+        }
+    }
+
+    private void removeResolvedDefinitionsForRole(String roleId) {
+        List<String> matchingDefinitionIds = new ArrayList<>();
+        for (Map.Entry<String, EffectiveNpcDefinition> entry : byId.entrySet()) {
+            if (roleId.equals(entry.getValue().roleId())) {
+                matchingDefinitionIds.add(entry.getKey());
+            }
+        }
+
+        for (String definitionId : matchingDefinitionIds) {
+            byId.remove(definitionId);
+            routineByDefinitionId.remove(definitionId);
+            actionByDefinitionId.remove(definitionId);
+            movementByDefinitionId.remove(definitionId);
+            navigationByDefinitionId.remove(definitionId);
+        }
+    }
+
+    private String normalizeRoleId(String roleId) {
+        if (roleId == null || roleId.isBlank()) {
+            return null;
+        }
+
+        try {
+            return NpcDefinition.normalizeId(roleId);
+        } catch (IllegalArgumentException ex) {
+            return null;
         }
     }
 

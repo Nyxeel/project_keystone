@@ -1,4 +1,15 @@
 
+Hinweis (Dokustand):
+- Diese Datei enthaelt MVP-B-Ideen und aeltere Planungsnotizen.
+- Nicht alles darin ist bereits implementiert.
+- README.md ist die aktuelle Hauptuebersicht.
+
+
+
+
+-debug messages alle uber ne flag aktiuveren und deaktuiven fuer die console logs.
+- logs die merhmals pro sekunde printend unterbinden und auf einmal pro action oder state reduzieren!!
+
 
 Tueren:
 

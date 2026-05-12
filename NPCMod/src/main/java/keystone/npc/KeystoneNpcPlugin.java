@@ -32,7 +32,6 @@ public class KeystoneNpcPlugin extends JavaPlugin {
 
     private static final String DATA_DIRECTORY = "keystone-npc";
     private static final String STATE_FILE = "state.json";
-    private static final String ROLES_FILE = "roles.json";
 
     private final MarkerRegistry markerRegistry = new MarkerRegistry();
     private final RoleDefinitionRegistry roleDefinitions;
@@ -43,7 +42,6 @@ public class KeystoneNpcPlugin extends JavaPlugin {
     private final NpcRoutineRunner scheduler;
     private final Path pluginDataDirectory;
     private boolean initialRespawnQueued;
-    private boolean rolesFilePathLogged;
     private boolean stateSavePathLogged;
 
     private NpcCommandRegistrar commands;
@@ -52,9 +50,9 @@ public class KeystoneNpcPlugin extends JavaPlugin {
         super(init);
 
         this.pluginDataDirectory = resolvePluginDataDirectory();
-        this.roleDefinitions = new RoleDefinitionRegistry(pluginDataDirectory.resolve(ROLES_FILE).toString());
         this.npcDefinitions = new NpcDefinitionRegistry(pluginDataDirectory, "Server/NPC");
         this.templateResolver = new NpcTemplateResolver(npcDefinitions, new CapabilityResolver(npcDefinitions));
+        this.roleDefinitions = new RoleDefinitionRegistry(templateResolver);
         this.capabilityChecks = new CapabilityChecks(templateResolver);
         this.stateStore = new JsonFileStateStore(pluginDataDirectory.resolve(STATE_FILE).toString());
         this.scheduler = new NpcRoutineRunner(markerRegistry, roleDefinitions, capabilityChecks, templateResolver);
@@ -71,13 +69,11 @@ public class KeystoneNpcPlugin extends JavaPlugin {
 
         // 1) Load persisted state
         System.out.println("[KeystoneNPC] Data directory: " + pluginDataDirectory);
-        logRolesFilePathOnce();
-        roleDefinitions.ensureExampleFileExists();
-        roleDefinitions.load();
-        System.out.println("[KeystoneNPC] Loaded role definitions: " + String.join(", ", roleDefinitions.roleIds()));
         npcDefinitions.load();
         templateResolver.reload();
         System.out.println("[KeystoneNPC] Loaded npc definitions: " + String.join(", ", templateResolver.definitionIds()));
+        roleDefinitions.load();
+        System.out.println("[KeystoneNPC] Loaded role definitions: " + String.join(", ", roleDefinitions.roleIds()));
 
         var loaded = stateStore.load();
         markerRegistry.restore(loaded.markers(), loaded.activeMarkerIds());
@@ -158,20 +154,6 @@ public class KeystoneNpcPlugin extends JavaPlugin {
         }
 
         System.out.println("[KeystoneNPC] stopped.");
-    }
-
-    private void logRolesFilePathOnce() {
-        if (rolesFilePathLogged) {
-            return;
-        }
-
-        Path rolesFilePath = pluginDataDirectory.resolve(ROLES_FILE).toAbsolutePath().normalize();
-        Path parent = rolesFilePath.getParent();
-        boolean parentExists = parent != null && Files.exists(parent);
-
-        System.out.println("[KeystoneNPC] Roles file target: " + rolesFilePath
-            + " (parentExists=" + parentExists + ")");
-        rolesFilePathLogged = true;
     }
 
     private void logStateSavePathOnce() {

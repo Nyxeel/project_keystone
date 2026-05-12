@@ -137,7 +137,7 @@ public final class NpcDebugSupport {
         NpcCapability capability,
         boolean defaultValue
     ) {
-        boolean enabled = templateResolver.resolveById(npc.roleId())
+        boolean enabled = templateResolver.resolveByRoleId(npc.roleId())
             .map(def -> def.capabilities().has(capability))
             .orElse(defaultValue);
         return enabled ? "true" : "false";
@@ -174,7 +174,7 @@ public final class NpcDebugSupport {
     }
 
     private static boolean resolveFlag(NpcTemplateResolver resolver, String definitionId, DebugFlag flag) {
-        Optional<NpcDebugDefinition> debug = resolver.resolveById(definitionId)
+        Optional<NpcDebugDefinition> debug = resolver.resolveByRoleId(definitionId)
             .map(EffectiveNpcDefinition::definition)
             .map(def -> def.debug());
 

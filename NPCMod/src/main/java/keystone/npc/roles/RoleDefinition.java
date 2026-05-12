@@ -5,12 +5,11 @@ import java.util.Objects;
 import java.util.Set;
 import keystone.npc.markers.MarkerType;
 
-/** Runtime role configuration used by commands and scheduler. */
+/** Runtime role configuration derived from loaded NPC JSON definitions. */
 public record RoleDefinition(
     String roleId,
     String npcPluginRoleName,
-    Set<MarkerType> requiredMarkers,
-    DailyRoutine schedule
+    Set<MarkerType> requiredMarkers
 ) {
     public RoleDefinition {
         roleId = normalizeRoleId(roleId);
@@ -20,7 +19,6 @@ public record RoleDefinition(
         }
 
         requiredMarkers = Set.copyOf(Objects.requireNonNull(requiredMarkers, "requiredMarkers"));
-        schedule = Objects.requireNonNull(schedule, "schedule");
     }
 
     public static String normalizeRoleId(String roleId) {

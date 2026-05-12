@@ -124,7 +124,7 @@ public final class RespawnRecoveryService {
         for (RequiredMarkerResolver.Requirement requirement : requiredMarkerResolver.resolveRequirements(npc.roleId())) {
             MarkerType markerType = requirement.markerType();
             if (markerType == null) {
-                continue;
+                return "invalid-required-marker-type marker=" + requirement.name().toUpperCase();
             }
 
             String markerId = markerResolver.markerIdForType(npc, markerType);

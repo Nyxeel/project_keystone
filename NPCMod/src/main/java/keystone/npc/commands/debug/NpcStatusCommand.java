@@ -18,6 +18,7 @@ import keystone.npc.debug.NpcDebugSupport;
 import keystone.npc.definition.NpcTemplateResolver;
 import keystone.npc.domain.NpcRecord;
 import keystone.npc.markers.MarkerRegistry;
+import keystone.npc.markers.MarkerType;
 import keystone.npc.markers.RequiredMarkerResolver;
 import keystone.npc.roles.RoleDefinitionRegistry;
 import keystone.npc.routine.NpcRoutineRunner;
@@ -100,65 +101,45 @@ public final class NpcStatusCommand extends CommandBase {
             + ", ATTACK_RANGED=" + NpcDebugSupport.capabilityValueForStatus(templateResolver, npc, NpcCapability.ATTACK_RANGED, false);
         context.sendMessage(Message.raw("capabilities: " + capabilitySummary));
 
-        List<String> markerLines = NpcDebugSupport.buildMarkerSnapshotLines(
+        List<String> invalidRoleReasons = roleDefinitions.invalidRoleReasons(npc.roleId());
+        if (!invalidRoleReasons.isEmpty()) {
+            context.sendMessage(Message.raw("Role " + npc.roleId() + " is invalid:"));
+            for (String reason : invalidRoleReasons) {
+                context.sendMessage(Message.raw("- " + reason));
+            }
+        }
+
+        List<MarkerType> allowedMarkers = resolveAllowedMarkers(npc);
+        List<NpcDebugSupport.RequiredMarkerStatus> requiredStatuses = NpcDebugSupport.resolveRequiredMarkerStatuses(
             npc,
             markerRegistry,
             templateResolver,
             roleDefinitions
         );
-        List<String> missingMarkers = NpcDebugSupport.missingRequiredMarkerNames(
-            npc,
-            markerRegistry,
-            templateResolver,
-            roleDefinitions
-        );
-        List<String> requiredMarkers = requiredMarkerResolver.resolveRequiredMarkerNames(npc.roleId());
-        List<String> unsupportedMarkers = requiredMarkerNames(
-            NpcDebugSupport.resolveRequiredMarkerStatuses(
-                npc,
-                markerRegistry,
-                templateResolver,
-                roleDefinitions
-            ),
-            false
-        );
 
-        context.sendMessage(Message.raw("requiredMarkers: "
-            + (requiredMarkers.isEmpty() ? "none" : String.join(", ", requiredMarkers))));
-        context.sendMessage(Message.raw("unsupportedRequiredMarkers: "
-            + (unsupportedMarkers.isEmpty() ? "none" : String.join(", ", unsupportedMarkers))));
-        context.sendMessage(Message.raw("missingMarkers: "
-            + (missingMarkers.isEmpty() ? "none" : String.join(", ", missingMarkers))));
-        context.sendMessage(Message.raw(""));
-
-        for (String line : markerLines) {
-            context.sendMessage(Message.raw(line));
+        context.sendMessage(Message.raw("Required markers for " + npc.roleId() + ":"));
+        if (allowedMarkers.isEmpty()) {
+            context.sendMessage(Message.raw("- none"));
+        } else {
+            for (MarkerType markerType : allowedMarkers) {
+                boolean present = false;
+                for (NpcDebugSupport.RequiredMarkerStatus status : requiredStatuses) {
+                    if (status.markerType() == markerType) {
+                        present = status.resolvedMarker() != null;
+                        break;
+                    }
+                }
+                context.sendMessage(Message.raw("- " + markerType.name() + ": " + (present ? "OK" : "MISSING")));
+            }
         }
 
-        for (String missing : missingMarkers) {
-            context.sendMessage(Message.raw("[KNPC][Warning] " + npc.npcName()
-                + ": required marker " + missing + " fehlt"));
+        List<String> invalidStoredMarkers = resolveInvalidStoredMarkers(npc, allowedMarkers);
+        if (!invalidStoredMarkers.isEmpty()) {
+            context.sendMessage(Message.raw("Invalid stored markers:"));
+            for (String invalidStoredMarker : invalidStoredMarkers) {
+                context.sendMessage(Message.raw("- " + invalidStoredMarker + ": not valid for role " + npc.roleId()));
+            }
         }
-    }
-
-    private List<String> requiredMarkerNames(List<NpcDebugSupport.RequiredMarkerStatus> statuses, boolean supportedOnly) {
-        List<String> names = new ArrayList<>();
-        for (NpcDebugSupport.RequiredMarkerStatus status : statuses) {
-            if (status == null || status.name() == null || status.name().isBlank()) {
-                continue;
-            }
-
-            if (supportedOnly && !status.supported()) {
-                continue;
-            }
-
-            if (!supportedOnly && status.supported()) {
-                continue;
-            }
-
-            names.add(status.name().toLowerCase(Locale.ROOT));
-        }
-        return names;
     }
 
     private String availableNpcNames(List<NpcRecord> npcs) {
@@ -185,5 +166,40 @@ public final class NpcStatusCommand extends CommandBase {
 
     private String nullToNone(String value) {
         return value == null || value.isBlank() ? "none" : value;
+    }
+
+    private List<MarkerType> resolveAllowedMarkers(NpcRecord npc) {
+        List<MarkerType> allowed = new ArrayList<>();
+        for (RequiredMarkerResolver.Requirement requirement : requiredMarkerResolver.resolveRequirements(npc.roleId())) {
+            MarkerType markerType = requirement.markerType();
+            if (markerType != null && !allowed.contains(markerType)) {
+                allowed.add(markerType);
+            }
+        }
+        return allowed;
+    }
+
+    private List<String> resolveInvalidStoredMarkers(NpcRecord npc, List<MarkerType> allowedMarkers) {
+        List<String> invalid = new ArrayList<>();
+        for (MarkerType markerType : MarkerType.values()) {
+            if (allowedMarkers.contains(markerType)) {
+                continue;
+            }
+
+            String markerId = switch (markerType) {
+                case BED -> npc.bedMarkerId();
+                case DOOR -> npc.doorMarkerId();
+                case CHEST -> npc.chestMarkerId();
+                case FOOD -> npc.foodMarkerId();
+                case WORK -> npc.workMarkerId();
+                case CHILL -> npc.chillMarkerId();
+            };
+
+            if (markerId != null && !markerId.isBlank()) {
+                invalid.add(markerType.name());
+            }
+        }
+
+        return invalid;
     }
 }

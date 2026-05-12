@@ -18,6 +18,6 @@ public final class MarkerClearCommand extends CommandBase {
     @Override
     protected void executeSync(@Nonnull CommandContext context) {
         markerRegistry.clear();
-        context.sendMessage(Message.raw("[knpc] Cleared markers (bed/door/work)."));
+        context.sendMessage(Message.raw("[knpc] Cleared markers (bed/door/chest/food/work/chill)."));
     }
 }

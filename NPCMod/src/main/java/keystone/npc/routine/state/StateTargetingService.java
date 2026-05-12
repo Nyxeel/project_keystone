@@ -126,7 +126,7 @@ public final class StateTargetingService {
                 "marker-missing:" + markerType.name(),
                 "[KNPC][Warning] " + npc.npcName() + " routine target marker '"
                     + markerType.name().toLowerCase(Locale.ROOT)
-                    + "' is required but no position is assigned."
+                    + "' has no assigned position."
             );
             npc.state(NpcState.PAUSED_MISSING_MARKER);
             return false;
@@ -187,77 +187,20 @@ public final class StateTargetingService {
             applyNavigationProfile(npc, templateResolver.resolveNavigationProfile(npc.roleId()));
 
             int minuteOfDay = resolveMinuteOfDay(worldTimeResource);
-            Optional<RoutineDefinition> routine = templateResolver.resolveRoutine(npc.roleId());
-            if (routine.isPresent()) {
-                Optional<RoutineEntry> activeEntry = routineRunner.findActiveEntry(routine.get(), minuteOfDay);
-                if (activeEntry.isPresent()) {
-                    RoutineEntry entry = activeEntry.get();
-                    Optional<MarkerType> routineMarker = resolveRoutineMarkerType(npc.roleId(), entry.targetMarker());
-                    if (routineMarker.isPresent()) {
-                        String previousMarker = npc.activeRoutineMarker();
-                        NpcState previousState = npc.activeRoutineState();
-                        String previousAction = npc.activeRoutineActionId();
-                        String previousSource = npc.activeRoutineSource();
-                        String nextMarker = normalizeMarkerName(entry.targetMarker());
-                        String actionId = normalizeActionId(
-                            npc,
-                            entry.action(),
-                            templateResolver.resolveActionProfile(npc.roleId()),
-                            "json",
-                            minuteOfDay
-                        );
-                        NpcState entryState = resolveEntryState(entry.state(), routineMarker.get());
-                        npc.activeRoutineMarker(nextMarker);
-                        npc.activeRoutineState(entryState);
-                        npc.activeRoutineActionId(actionId);
-                        npc.activeRoutineSource("json");
-                        logRoutineTargetChange(
-                            npc,
-                            previousMarker,
-                            previousState,
-                            previousAction,
-                            previousSource,
-                            nextMarker,
-                            entryState,
-                            actionId,
-                            "json",
-                            minuteOfDay
-                        );
+            Set<MarkerType> allowedMarkers = requiredMarkerTypes(npc, roleDefinition);
+            Optional<RoutineDefinition> routine = templateResolver.resolveRoutineByRoleId(npc.roleId());
+            if (routine.isEmpty()) {
+                warnOnce(
+                    npc,
+                    "routine-missing:" + npc.roleId(),
+                    "[KNPC][Warning] No routine loaded for role " + npc.roleId() + ". NPC stays IDLE."
+                );
+                npc.state(NpcState.IDLE);
+                return null;
+            }
 
-                        Optional<MarkerRecord> resolvedMarker = markerResolver
-                            .resolveRequiredMarkerWithFallback(npc, routineMarker.get());
-                        if (resolvedMarker.isEmpty()) {
-                            warnOnce(
-                                npc,
-                                "routine-marker-missing:" + routineMarker.get().name(),
-                                "[KNPC][Warning] " + npc.npcName() + " routine marker '"
-                                    + routineMarker.get().name().toLowerCase(Locale.ROOT)
-                                    + "' has no assigned position."
-                            );
-                            npc.state(NpcState.PAUSED_MISSING_MARKER);
-                            return null;
-                        }
-
-                        MarkerRecord markerRecord = resolvedMarker.get();
-                        return new DesiredTarget(
-                            entryState,
-                            routineMarker.get(),
-                            markerRecord.markerId(),
-                            markerRecord.position(),
-                            actionId,
-                            "json"
-                        );
-                    }
-
-                    warnOnce(
-                        npc,
-                        "routine-marker-unresolved:" + nullToDash(entry.targetMarker()),
-                        "[KNPC][Warning] " + npc.npcName() + " routine target marker '"
-                            + nullToDash(entry.targetMarker())
-                            + "' is configured but cannot be mapped to a valid marker type."
-                    );
-                }
-
+            Optional<RoutineEntry> activeEntry = routineRunner.findActiveEntry(routine.get(), minuteOfDay);
+            if (activeEntry.isEmpty()) {
                 warnOnce(
                     npc,
                     "routine-no-active-entry",
@@ -266,23 +209,53 @@ public final class StateTargetingService {
                         + formatMinuteOfDay(minuteOfDay)
                         + "."
                 );
+                npc.state(NpcState.IDLE);
+                return null;
             }
 
-            int currentHour = worldTimeResource.getCurrentHour();
-            NpcState legacyTargetState = roleDefinition.schedule().isSleepingHour(currentHour)
-                ? NpcState.SLEEPING
-                : NpcState.WORKING;
-            MarkerType markerType = markerResolver.resolveMarkerTypeForRole(legacyTargetState.markerRole())
-                .orElse(MarkerType.WORK);
+            RoutineEntry entry = activeEntry.get();
+            Optional<MarkerType> routineMarker = resolveRoutineMarkerType(npc.roleId(), entry.targetMarker());
+            if (routineMarker.isEmpty()) {
+                warnOnce(
+                    npc,
+                    "routine-marker-unresolved:" + nullToDash(entry.targetMarker()),
+                    "[KNPC][Warning] " + npc.npcName() + " routine target marker '"
+                        + nullToDash(entry.targetMarker())
+                        + "' is configured but cannot be mapped to a valid marker type."
+                );
+                npc.state(NpcState.PAUSED_MISSING_MARKER);
+                return null;
+            }
+
+            if (!allowedMarkers.contains(routineMarker.get())) {
+                warnOnce(
+                    npc,
+                    "routine-marker-invalid-for-role:" + routineMarker.get().name(),
+                    "[KNPC][Warning] Routine marker " + routineMarker.get().name()
+                        + " is not valid for role " + npc.roleId() + "."
+                        + " Allowed markers: " + formatAllowedMarkers(allowedMarkers)
+                );
+                npc.state(NpcState.PAUSED_MISSING_MARKER);
+                return null;
+            }
+
             String previousMarker = npc.activeRoutineMarker();
             NpcState previousState = npc.activeRoutineState();
             String previousAction = npc.activeRoutineActionId();
             String previousSource = npc.activeRoutineSource();
-            String nextMarker = markerType.name().toLowerCase(Locale.ROOT);
+            String nextMarker = normalizeMarkerName(entry.targetMarker());
+            String actionId = normalizeActionId(
+                npc,
+                entry.action(),
+                templateResolver.resolveActionProfile(npc.roleId()),
+                "json",
+                minuteOfDay
+            );
+            NpcState entryState = resolveEntryState(entry.state(), routineMarker.get());
             npc.activeRoutineMarker(nextMarker);
-            npc.activeRoutineState(legacyTargetState);
-            npc.activeRoutineActionId(null);
-            npc.activeRoutineSource("legacy");
+            npc.activeRoutineState(entryState);
+            npc.activeRoutineActionId(actionId);
+            npc.activeRoutineSource("json");
             logRoutineTargetChange(
                 npc,
                 previousMarker,
@@ -290,19 +263,19 @@ public final class StateTargetingService {
                 previousAction,
                 previousSource,
                 nextMarker,
-                legacyTargetState,
-                null,
-                "legacy",
+                entryState,
+                actionId,
+                "json",
                 minuteOfDay
             );
 
-            Optional<MarkerRecord> resolvedMarker = markerResolver.resolveRequiredMarkerWithFallback(npc, markerType);
+            Optional<MarkerRecord> resolvedMarker = markerResolver.resolveRequiredMarkerWithFallback(npc, routineMarker.get());
             if (resolvedMarker.isEmpty()) {
                 warnOnce(
                     npc,
-                    "legacy-marker-missing:" + markerType.name(),
-                    "[KNPC][Warning] " + npc.npcName() + " legacy marker '"
-                        + markerType.name().toLowerCase(Locale.ROOT)
+                    "routine-marker-missing:" + routineMarker.get().name(),
+                    "[KNPC][Warning] " + npc.npcName() + " routine marker '"
+                        + routineMarker.get().name().toLowerCase(Locale.ROOT)
                         + "' has no assigned position."
                 );
                 npc.state(NpcState.PAUSED_MISSING_MARKER);
@@ -311,12 +284,12 @@ public final class StateTargetingService {
 
             MarkerRecord markerRecord = resolvedMarker.get();
             return new DesiredTarget(
-                legacyTargetState,
-                markerType,
+                entryState,
+                routineMarker.get(),
                 markerRecord.markerId(),
                 markerRecord.position(),
-                null,
-                "legacy"
+                actionId,
+                "json"
             );
         } catch (Exception e) {
             System.err.println("[KNPC][Warning] " + npc.npcName() + " has no valid routine target: time query failed ("
@@ -353,12 +326,7 @@ public final class StateTargetingService {
                 resolved.add(requirement.markerType());
             }
         }
-
-        if (!resolved.isEmpty()) {
-            return resolved;
-        }
-
-        return roleDefinition.requiredMarkers();
+        return resolved;
     }
 
     private void clearDoorTracking(String npcId) {
@@ -381,19 +349,20 @@ public final class StateTargetingService {
     }
 
     private Optional<MarkerType> resolveRoutineMarkerType(String definitionId, String targetMarker) {
+        if (definitionId == null || definitionId.isBlank()) {
+            return Optional.empty();
+        }
+
         String markerName = normalizeMarkerName(targetMarker);
         if (markerName == null) {
             return Optional.empty();
         }
 
-        for (RequiredMarkerResolver.Requirement requirement : requiredMarkerResolver.resolveRequirements(definitionId)) {
-            if (!markerName.equals(requirement.name())) {
-                continue;
-            }
-            return Optional.ofNullable(requirement.markerType());
+        try {
+            return Optional.of(MarkerType.valueOf(markerName.toUpperCase(Locale.ROOT)));
+        } catch (IllegalArgumentException ex) {
+            return Optional.empty();
         }
-
-        return Optional.empty();
     }
 
     private NpcState resolveEntryState(String rawState, MarkerType markerType) {
@@ -590,7 +559,7 @@ public final class StateTargetingService {
     }
 
     private boolean isMotionDebugEnabled(NpcRecord npc) {
-        return templateResolver.resolveById(npc.roleId())
+        return templateResolver.resolveByRoleId(npc.roleId())
             .map(EffectiveNpcDefinition::definition)
             .map(def -> def.debug())
             .map(debug -> debug != null && Boolean.TRUE.equals(debug.logMotionChanges()))
@@ -743,6 +712,18 @@ public final class StateTargetingService {
             return "-";
         }
         return marker.trim().toUpperCase(Locale.ROOT);
+    }
+
+    private String formatAllowedMarkers(Set<MarkerType> allowedMarkers) {
+        if (allowedMarkers == null || allowedMarkers.isEmpty()) {
+            return "none";
+        }
+
+        List<String> values = new java.util.ArrayList<>();
+        for (MarkerType markerType : allowedMarkers) {
+            values.add(markerType.name());
+        }
+        return String.join(", ", values);
     }
 
     private String formatMinuteOfDay(int minuteOfDay) {

@@ -3,6 +3,7 @@ package keystone.npc.commands.marker;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
 
@@ -71,7 +72,7 @@ public final class MarkerSetCommand extends AbstractPlayerCommand {
         MarkerType type = parseMarkerType(rawType);
         if (type == null) {
             context.sendMessage(Message.raw("[knpc] Unknown marker type: '" + rawType
-                + "'. Use: bed|chest|food|work|chill"));
+                + "'. Use: bed|door|chest|food|work|chill"));
             return;
         }
 
@@ -95,9 +96,10 @@ public final class MarkerSetCommand extends AbstractPlayerCommand {
             }
 
             if (!isMarkerAllowedForNpc(targetNpc, type)) {
-                List<String> allowed = requiredMarkerResolver.resolveRequiredMarkerNames(targetNpc.roleId());
-                context.sendMessage(Message.raw("[knpc] Marker '" + markerTypeName + "' ist fuer NPC '"
-                    + targetNpc.npcName() + "' nicht erlaubt. requiredMarkers="
+                List<String> allowed = resolveAllowedMarkerNames(targetNpc);
+                context.sendMessage(Message.raw("[knpc] Marker " + type.name() + " is not valid for role "
+                    + targetNpc.roleId() + "."));
+                context.sendMessage(Message.raw("[knpc] Allowed markers: "
                     + (allowed.isEmpty() ? "none" : String.join(", ", allowed))));
                 return;
             }
@@ -179,12 +181,21 @@ public final class MarkerSetCommand extends AbstractPlayerCommand {
         }
     }
 
+    private List<String> resolveAllowedMarkerNames(NpcRecord npc) {
+        return requiredMarkerResolver.resolveRequirements(npc.roleId()).stream()
+            .map(RequiredMarkerResolver.Requirement::markerType)
+            .filter(Objects::nonNull)
+            .map(MarkerType::name)
+            .collect(Collectors.toList());
+    }
+
     private static MarkerType parseMarkerType(String raw) {
         if (raw == null) {
             return null;
         }
         return switch (raw.toLowerCase(Locale.ROOT)) {
             case "bed" -> MarkerType.BED;
+            case "door" -> MarkerType.DOOR;
             case "chest" -> MarkerType.CHEST;
             case "food" -> MarkerType.FOOD;
             case "work" -> MarkerType.WORK;

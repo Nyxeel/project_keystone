@@ -139,6 +139,7 @@ public final class NpcRoutineRunner {
     private final Map<String, Long> uuidRelinkFirstMissAtMs = new ConcurrentHashMap<>();
     private final Map<String, Long> nextDoorActionAtMs = new ConcurrentHashMap<>();
     private final Map<String, Long> nextDoorCloseActionAtMs = new ConcurrentHashMap<>();
+    private final Map<String, Long> nextDoorMarkerSkipLogAtMs = new ConcurrentHashMap<>();
     private final Map<String, PendingDoorAttempt> pendingDoorAttempts = new ConcurrentHashMap<>();
     private final Map<String, PendingDoorAttempt> pendingDoorCloseAttempts = new ConcurrentHashMap<>();
     private final Map<String, Deque<ActiveDoorPass>> activeDoorPasses = new ConcurrentHashMap<>();
@@ -204,8 +205,10 @@ public final class NpcRoutineRunner {
             this.markerResolver,
             this.doorSupport,
             this.doorPassTracker,
+            this.requiredMarkerResolver,
             this.nextDoorActionAtMs,
             this.nextDoorCloseActionAtMs,
+            this.nextDoorMarkerSkipLogAtMs,
             this.pendingDoorAttempts,
             this.pendingDoorCloseAttempts,
             DOOR_TRIGGER_DISTANCE_SQ,
@@ -257,6 +260,7 @@ public final class NpcRoutineRunner {
         uuidRelinkFirstMissAtMs.clear();
         nextDoorActionAtMs.clear();
         nextDoorCloseActionAtMs.clear();
+        nextDoorMarkerSkipLogAtMs.clear();
         pendingDoorAttempts.clear();
         pendingDoorCloseAttempts.clear();
         activeDoorPasses.clear();
@@ -437,6 +441,15 @@ public final class NpcRoutineRunner {
 
     public boolean assignMarkerToNpc(NpcRecord npc, MarkerType markerType, String markerId) {
         if (npc == null || markerType == null || markerId == null || markerId.isBlank()) {
+            return false;
+        }
+
+        if (!isMarkerAllowedForRole(npc.roleId(), markerType)) {
+            logSevere("MARKER_ASSIGN_BLOCKED_INVALID_FOR_ROLE", "Skipped marker assignment because marker is not valid for role: "
+                + "npcId=" + npc.npcId()
+                + " npcName=" + quote(npc.npcName())
+                + " roleId=" + npc.roleId()
+                + " markerType=" + markerType.name());
             return false;
         }
 
@@ -1039,12 +1052,98 @@ public final class NpcRoutineRunner {
         return spawnNpcEntity(world, npc, trigger);
     }
 
+    private boolean validateSpawnMarkerRequirements(
+        World world,
+        NpcRecord npc,
+        String trigger,
+        RoleDefinition roleDefinition,
+        int roleIndex
+    ) {
+        List<String> invalidRoleReasons = roleDefinitions.invalidRoleReasons(npc.roleId());
+        if (!invalidRoleReasons.isEmpty()) {
+            logSevere("SPAWN_ABORT_INVALID_ROLE", "Role " + npc.roleId() + " is invalid: "
+                + String.join(" | ", invalidRoleReasons)
+                + " | " + spawnContext(npc, trigger, world, roleDefinition, roleIndex));
+            return false;
+        }
+
+        if (templateResolver.resolveByRoleId(npc.roleId()).isEmpty()) {
+            logSevere("SPAWN_ABORT_MISSING_ROLE_JSON", "No role JSON loaded for role " + npc.roleId()
+                + ". Cannot resolve requiredMarkers. "
+                + spawnContext(npc, trigger, world, roleDefinition, roleIndex));
+            return false;
+        }
+
+        if (templateResolver.resolveRoutineByRoleId(npc.roleId()).isEmpty()) {
+            logSevere("SPAWN_ABORT_MISSING_ROUTINE", "No routine loaded for role " + npc.roleId()
+                + ". Spawn blocked. "
+                + spawnContext(npc, trigger, world, roleDefinition, roleIndex));
+            return false;
+        }
+
+        List<String> invalidRequiredMarkers = new ArrayList<>();
+        List<String> missingRequiredMarkers = new ArrayList<>();
+        List<RequiredMarkerResolver.Requirement> requirements = requiredMarkerResolver.resolveRequirements(npc.roleId());
+
+        if (requirements.isEmpty()) {
+            logSevere("SPAWN_ABORT_REQUIRED_MARKERS_UNRESOLVED", "No requiredMarkers resolved for role " + npc.roleId()
+                + ". Spawn blocked. " + spawnContext(npc, trigger, world, roleDefinition, roleIndex));
+            return false;
+        }
+
+        for (RequiredMarkerResolver.Requirement requirement : requirements) {
+            MarkerType markerType = requirement.markerType();
+            if (markerType == null) {
+                invalidRequiredMarkers.add(requirement.name().toUpperCase(Locale.ROOT));
+                continue;
+            }
+
+            if (markerResolver.resolveRequiredMarkerWithFallback(npc, markerType).isEmpty()) {
+                missingRequiredMarkers.add(markerType.name());
+            }
+        }
+
+        if (!invalidRequiredMarkers.isEmpty()) {
+            for (String invalidRequiredMarker : invalidRequiredMarkers) {
+                logSevere("SPAWN_ABORT_INVALID_REQUIRED_MARKER_TYPE", "Unknown marker type in requiredMarkers: "
+                    + invalidRequiredMarker
+                    + " | " + spawnContext(npc, trigger, world, roleDefinition, roleIndex));
+            }
+            return false;
+        }
+
+        if (!missingRequiredMarkers.isEmpty()) {
+            logSevere("SPAWN_ABORT_MISSING_REQUIRED_MARKER", "Cannot spawn because required markers are missing: "
+                + spawnContext(npc, trigger, world, roleDefinition, roleIndex)
+                + " missing=" + String.join(",", missingRequiredMarkers));
+            return false;
+        }
+
+        return true;
+    }
+
+    private boolean isMarkerAllowedForRole(String roleId, MarkerType markerType) {
+        if (roleId == null || roleId.isBlank() || markerType == null) {
+            return false;
+        }
+
+        for (RequiredMarkerResolver.Requirement requirement : requiredMarkerResolver.resolveRequirements(roleId)) {
+            if (markerType == requirement.markerType()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private boolean spawnNpcEntity(World world, NpcRecord npc, String trigger) {
         if (hasLiveEntity(npc)) {
             npc.entityId(1);
             npc.entityStatus(NpcEntityStatus.ACTIVE);
             return true;
         }
+
+        reconcilePersistedMarkerAssignments(npc);
 
         SpawnIdentitySnapshot oldIdentity = captureSpawnIdentitySnapshot(npc);
 
@@ -1065,8 +1164,13 @@ public final class NpcRoutineRunner {
         int roleIndex = NPCPlugin.get().getIndex(definition.npcPluginRoleName());
 
         if (roleIndex < 0) {
-            logSevere("RESPAWN_ROLE_INDEX_MISSING", "Role index not found: "
+            logSevere("RESPAWN_ROLE_INDEX_MISSING", "Cannot spawn role " + npc.roleId() + ". "
+                + "Resolved NPCPlugin role '" + definition.npcPluginRoleName() + "' was not found. "
                 + spawnContext(npc, trigger, world, definition, roleIndex));
+            return false;
+        }
+
+        if (!validateSpawnMarkerRequirements(world, npc, trigger, definition, roleIndex)) {
             return false;
         }
 
@@ -1186,7 +1290,8 @@ public final class NpcRoutineRunner {
 
         int roleIndex = NPCPlugin.get().getIndex(roleDefinition.get().npcPluginRoleName());
         if (roleIndex < 0) {
-            logSevere("RESPAWN_FORCE_PRECHECK_FAILED", "Role index missing while validating forced replacement spawn: "
+            logSevere("RESPAWN_FORCE_PRECHECK_FAILED", "Cannot spawn role " + npc.roleId() + ". "
+                + "Resolved NPCPlugin role '" + roleDefinition.get().npcPluginRoleName() + "' was not found. "
                 + spawnContext(npc, trigger, world, roleDefinition.get(), roleIndex));
             return false;
         }

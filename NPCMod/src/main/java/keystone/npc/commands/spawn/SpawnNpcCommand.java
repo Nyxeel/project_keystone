@@ -12,6 +12,10 @@ import com.hypixel.hytale.server.core.modules.entity.component.TransformComponen
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import com.hypixel.hytale.server.npc.NPCPlugin;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import javax.annotation.Nonnull;
 import keystone.npc.KeystoneNpcPlugin;
@@ -67,43 +71,88 @@ public final class SpawnNpcCommand extends AbstractPlayerCommand {
         @Nonnull World world
     ) {
         String requestedId = RoleDefinition.normalizeRoleId(npcIdArg.get(context));
-        RoleDefinition role = roleDefinitions.findByRoleId(requestedId).orElse(null);
-        if (role == null) {
-            context.sendMessage(Message.raw("[knpc] Unknown role: '" + requestedId + "'. Known roles: "
-                + String.join(", ", roleDefinitions.roleIds())));
+        List<String> invalidRoleReasons = roleDefinitions.invalidRoleReasons(requestedId);
+        if (!invalidRoleReasons.isEmpty()) {
+            context.sendMessage(Message.raw("[knpc] Role " + requestedId + " is invalid:"));
+            for (String reason : invalidRoleReasons) {
+                context.sendMessage(Message.raw("- " + reason));
+            }
             return;
         }
 
-        if (templateResolver.resolveById(role.roleId()).isEmpty()) {
+        RoleDefinition role = roleDefinitions.findByRoleId(requestedId).orElse(null);
+        if (role == null) {
+            context.sendMessage(Message.raw("[knpc] Unknown role: '" + requestedId + "'. Known roles: "
+                + String.join(", ", roleDefinitions.knownRoleIds())));
+            return;
+        }
+
+        if (templateResolver.resolveByRoleId(role.roleId()).isEmpty()) {
             context.sendMessage(Message.raw("[knpc] NPC definition not loadable for role '" + role.roleId() + "'."));
             return;
         }
 
-        var missingMarkers = new java.util.ArrayList<String>();
-        var unsupportedMarkers = new java.util.ArrayList<String>();
-        for (RequiredMarkerResolver.Requirement requirement : requiredMarkerResolver.resolveRequirements(role.roleId())) {
+        if (templateResolver.resolveRoutineByRoleId(role.roleId()).isEmpty()) {
+            context.sendMessage(Message.raw("[knpc] Cannot spawn " + role.roleId() + "."));
+            context.sendMessage(Message.raw("[knpc] No routine loaded for role '" + role.roleId() + "'."));
+            return;
+        }
+
+        int resolvedRoleIndex = NPCPlugin.get().getIndex(role.npcPluginRoleName());
+        if (resolvedRoleIndex < 0) {
+            context.sendMessage(Message.raw("Cannot spawn role " + role.roleId() + "."));
+            context.sendMessage(Message.raw("Resolved NPCPlugin role '" + role.npcPluginRoleName() + "' was not found."));
+            return;
+        }
+
+        List<RequiredMarkerResolver.Requirement> requirements = requiredMarkerResolver.resolveRequirements(role.roleId());
+        if (requirements.isEmpty()) {
+            context.sendMessage(Message.raw("[knpc] Cannot spawn " + role.roleId() + "."));
+            context.sendMessage(Message.raw("[knpc] No role JSON loaded for role '" + role.roleId() + "'. Cannot resolve requiredMarkers."));
+            return;
+        }
+
+        System.out.println("[KeystoneNPC] Checking required markers for role " + role.roleId() + ": "
+            + formatRequiredMarkersForLog(requirements));
+
+        List<String> missingMarkers = new ArrayList<>();
+        List<String> invalidMarkers = new ArrayList<>();
+        for (RequiredMarkerResolver.Requirement requirement : requirements) {
             MarkerType markerType = requirement.markerType();
             if (markerType == null) {
-                unsupportedMarkers.add(requirement.name());
+                invalidMarkers.add(requirement.name().toUpperCase(Locale.ROOT));
                 continue;
             }
 
             if (markerRegistry.getActive(markerType).isEmpty()) {
-                missingMarkers.add(requirement.name());
+                String markerName = markerType.name();
+                missingMarkers.add(markerName);
+                System.err.println("[KeystoneNPC] Missing required marker for role " + role.roleId() + ": " + markerName);
             }
         }
 
-        if (!unsupportedMarkers.isEmpty()) {
-            context.sendMessage(Message.raw("[knpc] Ignoring unsupported requiredMarkers for role '" + role.roleId()
-                + "': " + String.join(", ", unsupportedMarkers)
-                + ". Supported markers: bed|chest|food|work|chill"));
+        if (!invalidMarkers.isEmpty()) {
+            for (String invalidMarker : invalidMarkers) {
+                System.err.println("[KeystoneNPC] Unknown marker type in requiredMarkers: " + invalidMarker);
+            }
+            context.sendMessage(Message.raw("[knpc] Cannot spawn " + role.roleId() + "."));
+            context.sendMessage(Message.raw("[knpc] Invalid required markers:"));
+            for (String invalidMarker : invalidMarkers) {
+                context.sendMessage(Message.raw("- " + invalidMarker));
+            }
+            context.sendMessage(Message.raw("[knpc] Supported markers: BED, DOOR, CHEST, FOOD, WORK, CHILL"));
+            return;
         }
 
         if (!missingMarkers.isEmpty()) {
             String missingJoined = String.join("/", missingMarkers);
             System.err.println("[KeystoneNPC][SPAWN_ABORT_MISSING_REQUIRED_MARKER] roleId=" + role.roleId()
                 + " missing=" + missingJoined);
-            context.sendMessage(Message.raw("[knpc] Missing required marker: " + missingJoined));
+            context.sendMessage(Message.raw("[knpc] Cannot spawn " + role.roleId() + "."));
+            context.sendMessage(Message.raw("[knpc] Missing required markers:"));
+            for (String missingMarker : missingMarkers) {
+                context.sendMessage(Message.raw("- " + missingMarker));
+            }
             return;
         }
 
@@ -163,5 +212,20 @@ public final class SpawnNpcCommand extends AbstractPlayerCommand {
                     + ": required marker " + missing + " fehlt"));
             }
         }
+    }
+
+    private String formatRequiredMarkersForLog(List<RequiredMarkerResolver.Requirement> requirements) {
+        if (requirements == null || requirements.isEmpty()) {
+            return "none";
+        }
+
+        List<String> values = new ArrayList<>(requirements.size());
+        for (RequiredMarkerResolver.Requirement requirement : requirements) {
+            MarkerType markerType = requirement.markerType();
+            values.add(markerType != null
+                ? markerType.name()
+                : requirement.name().toUpperCase(Locale.ROOT));
+        }
+        return String.join(", ", values);
     }
 }

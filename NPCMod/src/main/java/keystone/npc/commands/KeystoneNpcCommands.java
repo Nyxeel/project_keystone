@@ -18,7 +18,7 @@ import keystone.npc.routine.NpcRoutineRunner;
 
 /**
  * MVP A:
- * - /knpc marker set <bed|door|work>
+ * - /knpc marker set <bed|door|chest|food|work|chill>
  * - /knpc marker clear
  * - /knpc spawn <role> <name>
  * - /knpc list
