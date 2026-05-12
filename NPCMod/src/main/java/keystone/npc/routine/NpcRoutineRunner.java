@@ -1,5 +1,6 @@
 package keystone.npc.routine;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
@@ -90,6 +91,7 @@ public final class NpcRoutineRunner {
     private static final long DOOR_CHAIN_TIMEOUT_MS = 500L;
     private static final long RUNTIME_LOG_COOLDOWN_MS = 5_000L;
     private static final int CLEANUP_ORPHAN_MAX_RADIUS_BLOCKS = 256;
+    private static final int CHUNK_SIZE_BLOCKS = 16;
     private static final Set<String> RUNTIME_COOLDOWN_EVENT_KEYS = Set.of(
         "ENTITY_REF_INVALID",
         "MISSING_ENTITY",
@@ -952,6 +954,10 @@ public final class NpcRoutineRunner {
                 continue;
             }
 
+            if (!passesAutoRespawnChunkGate(world, npc, trigger)) {
+                continue;
+            }
+
             if (!spawnRequestsInFlight.add(npc.npcId())) {
                 continue;
             }
@@ -1170,6 +1176,7 @@ public final class NpcRoutineRunner {
 
         Optional<RoleDefinition> roleDefinition = roleDefinitions.findByRoleId(npc.roleId());
         if (roleDefinition.isEmpty()) {
+            restoreSpawnIdentitySnapshot(npc, oldIdentity, world, trigger, "spawn-precheck-unknown-role");
             logSevere("RESPAWN_UNKNOWN_ROLE", "Unknown role while restoring NPC: "
                 + spawnContext(npc, trigger, world, null, null));
             return false;
@@ -1179,6 +1186,7 @@ public final class NpcRoutineRunner {
         int roleIndex = NPCPlugin.get().getIndex(definition.npcPluginRoleName());
 
         if (roleIndex < 0) {
+            restoreSpawnIdentitySnapshot(npc, oldIdentity, world, trigger, "spawn-precheck-role-index-missing");
             logSevere("RESPAWN_ROLE_INDEX_MISSING", "Cannot spawn role " + npc.roleId() + ". "
                 + "Resolved NPCPlugin role '" + definition.npcPluginRoleName() + "' was not found. "
                 + spawnContext(npc, trigger, world, definition, roleIndex));
@@ -1186,6 +1194,7 @@ public final class NpcRoutineRunner {
         }
 
         if (!validateSpawnMarkerRequirements(world, npc, trigger, definition, roleIndex)) {
+            restoreSpawnIdentitySnapshot(npc, oldIdentity, world, trigger, "spawn-precheck-marker-requirements");
             return false;
         }
 
@@ -1243,6 +1252,12 @@ public final class NpcRoutineRunner {
         Ref<EntityStore> entityRef,
         long entityId,
         NpcEntityStatus entityStatus
+    ) {
+    }
+
+    private record AutoRespawnChunkGateTarget(
+        Vec3 position,
+        String source
     ) {
     }
 
@@ -1312,6 +1327,101 @@ public final class NpcRoutineRunner {
         }
 
         return true;
+    }
+
+    private boolean passesAutoRespawnChunkGate(World world, NpcRecord npc, String trigger) {
+        if (world == null || npc == null) {
+            return false;
+        }
+
+        AutoRespawnChunkGateTarget target = resolveAutoRespawnChunkGateTarget(npc);
+        if (target == null || target.position() == null) {
+            npc.entityRef(null);
+            npc.entityId(0);
+            if (npc.entityStatus() != NpcEntityStatus.DISABLED) {
+                npc.entityStatus(NpcEntityStatus.NEEDS_RELINK);
+            }
+            logInfo("AUTO_RESPAWN_SKIPPED", "Auto-respawn blocked: no safe position for chunk-gate precheck: "
+                + spawnContext(npc, trigger, world, null, null)
+                + " gateSource=-");
+            return false;
+        }
+
+        if (!isChunkLoadedForPosition(world, target.position())) {
+            npc.entityRef(null);
+            npc.entityId(0);
+            if (npc.entityStatus() != NpcEntityStatus.DISABLED) {
+                npc.entityStatus(NpcEntityStatus.NEEDS_RELINK);
+            }
+            logInfo("AUTO_RESPAWN_SKIPPED", "Auto-respawn blocked: chunk not loaded or not verifiable: "
+                + spawnContext(npc, trigger, world, null, null)
+                + " gateSource=" + target.source()
+                + " gatePos=" + formatPosition(target.position()));
+            return false;
+        }
+
+        return true;
+    }
+
+    private AutoRespawnChunkGateTarget resolveAutoRespawnChunkGateTarget(NpcRecord npc) {
+        Optional<MarkerRecord> idleMarker = resolveStatePreferredMarker(npc);
+        if (idleMarker.isPresent() && idleMarker.get().position() != null) {
+            return new AutoRespawnChunkGateTarget(idleMarker.get().position(), "idle-marker");
+        }
+
+        Vec3 current = npc.currentPosition();
+        if (current != null) {
+            return new AutoRespawnChunkGateTarget(current, "current-position");
+        }
+
+        return null;
+    }
+
+    private boolean isChunkLoadedForPosition(World world, Vec3 position) {
+        if (world == null || position == null) {
+            return false;
+        }
+
+        int blockX = (int) Math.floor(position.x());
+        int blockY = (int) Math.floor(position.y());
+        int blockZ = (int) Math.floor(position.z());
+        int chunkX = Math.floorDiv(blockX, CHUNK_SIZE_BLOCKS);
+        int chunkZ = Math.floorDiv(blockZ, CHUNK_SIZE_BLOCKS);
+
+        Boolean loaded = invokeBooleanWorldMethod(world, "isChunkLoaded", new Class<?>[] {int.class, int.class}, chunkX, chunkZ);
+        if (loaded != null) {
+            return loaded;
+        }
+
+        loaded = invokeBooleanWorldMethod(world, "isChunkLoaded", new Class<?>[] {long.class, long.class}, (long) chunkX, (long) chunkZ);
+        if (loaded != null) {
+            return loaded;
+        }
+
+        loaded = invokeBooleanWorldMethod(world, "isBlockLoaded", new Class<?>[] {int.class, int.class, int.class}, blockX, blockY, blockZ);
+        if (loaded != null) {
+            return loaded;
+        }
+
+        loaded = invokeBooleanWorldMethod(world, "isPositionLoaded", new Class<?>[] {int.class, int.class, int.class}, blockX, blockY, blockZ);
+        if (loaded != null) {
+            return loaded;
+        }
+
+        return false;
+    }
+
+    private Boolean invokeBooleanWorldMethod(World world, String methodName, Class<?>[] parameterTypes, Object... args) {
+        try {
+            Method method = world.getClass().getMethod(methodName, parameterTypes);
+            Object value = method.invoke(world, args);
+            if (value instanceof Boolean boolValue) {
+                return boolValue;
+            }
+        } catch (ReflectiveOperationException | SecurityException ignored) {
+            // No reliable chunk-loaded API exposed via this method signature.
+        }
+        return null;
     }
 
     private void removeLiveEntity(NpcRecord npc) {
@@ -1709,12 +1819,20 @@ public final class NpcRoutineRunner {
         String candidateUuid,
         String npcId
     ) {
-        if (candidateRef == null && (candidateUuid == null || candidateUuid.isBlank())) {
+        String normalizedCandidateUuid = candidateUuid == null ? null : candidateUuid.trim();
+        if (normalizedCandidateUuid != null && normalizedCandidateUuid.isBlank()) {
+            normalizedCandidateUuid = null;
+        }
+        if (normalizedCandidateUuid != null) {
+            normalizedCandidateUuid = normalizedCandidateUuid.toLowerCase(Locale.ROOT);
+        }
+
+        if (candidateRef == null && normalizedCandidateUuid == null) {
             return false;
         }
 
-        if (candidateUuid != null && !candidateUuid.isBlank()) {
-            String owner = plannedClaimedEntityUuids.get(candidateUuid);
+        if (normalizedCandidateUuid != null) {
+            String owner = plannedClaimedEntityUuids.get(normalizedCandidateUuid);
             if (owner != null && !owner.equals(npcId)) {
                 return false;
             }
@@ -1731,8 +1849,8 @@ public final class NpcRoutineRunner {
             }
         }
 
-        if (candidateUuid != null && !candidateUuid.isBlank()) {
-            plannedClaimedEntityUuids.putIfAbsent(candidateUuid, npcId);
+        if (normalizedCandidateUuid != null) {
+            plannedClaimedEntityUuids.putIfAbsent(normalizedCandidateUuid, npcId);
         }
         if (candidateRef != null && candidateRef.isValid()) {
             plannedClaimedEntityRefs.add(new RelinkWorkflowService.OwnedEntityRefClaim(npcId, candidateRef));

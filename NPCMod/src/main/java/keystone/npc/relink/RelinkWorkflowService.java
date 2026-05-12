@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.lang.reflect.Method;
 import java.util.function.BiConsumer;
 
 import com.hypixel.hytale.component.Ref;
@@ -49,6 +50,13 @@ public final class RelinkWorkflowService {
         RelinkOutcome outcome,
         Ref<EntityStore> candidateRef,
         String candidateUuid
+    ) {
+    }
+
+    private record UuidResolveOutcome(
+        Ref<EntityStore> entityRef,
+        NPCEntity liveNpc,
+        String liveUuid
     ) {
     }
 
@@ -157,8 +165,8 @@ public final class RelinkWorkflowService {
             return RelinkOutcome.PENDING;
         }
 
-        Ref<EntityStore> relinkRef = world.getEntityStore().getRefFromUUID(entityUuid);
-        if (relinkRef == null || !relinkRef.isValid()) {
+        UuidResolveOutcome resolved = resolveEntityRefByUuid(world, entityUuid);
+        if (resolved == null) {
             long now = System.currentTimeMillis();
             long firstMissAt = uuidRelinkFirstMissAtMs.computeIfAbsent(npc.npcId(), key -> now);
             int misses = uuidRelinkMissCounts.getOrDefault(npc.npcId(), 0) + 1;
@@ -200,6 +208,10 @@ public final class RelinkWorkflowService {
             return RelinkOutcome.PENDING;
         }
 
+        Ref<EntityStore> relinkRef = resolved.entityRef();
+        NPCEntity liveNpc = resolved.liveNpc();
+        String liveUuid = resolved.liveUuid();
+
         String claimedByRef = ownerByRef(relinkRef, claimedEntityRefs);
         if (claimedByRef != null && !claimedByRef.equals(npc.npcId())) {
             npc.entityStatus(NpcEntityStatus.MISSING_ENTITY);
@@ -210,19 +222,14 @@ public final class RelinkWorkflowService {
             return RelinkOutcome.PENDING;
         }
 
-        var npcType = NPCEntity.getComponentType();
-        if (npcType == null) {
-            return RelinkOutcome.PENDING;
-        }
-
-        NPCEntity liveNpc = relinkRef.getStore().getComponent(relinkRef, npcType);
-        if (liveNpc == null) {
+        String claimedByLiveUuid = ownerByUuid(liveUuid, claimedEntityUuids);
+        if (claimedByLiveUuid != null && !claimedByLiveUuid.equals(npc.npcId())) {
             npc.entityStatus(NpcEntityStatus.MISSING_ENTITY);
-            logSevere("RELINK_GIVEUP_MARKED_MISSING", "Persisted UUID resolved to non-NPC entity; marked missing: "
+            logSevere("RELINK_UUID_CLAIMED_BY_OTHER", "Resolved live entity UUID belongs to another NPC record; marked missing: "
                 + spawnContextFormatter.format(npc, trigger, world, null, null)
-                + " entityUuid=" + rawUuid);
-            uuidRelinkMissCounts.remove(npc.npcId());
-            uuidRelinkFirstMissAtMs.remove(npc.npcId());
+                + " persistedEntityUuid=" + rawUuid
+                + " liveEntityUuid=" + liveUuid
+                + " ownerNpcId=" + claimedByLiveUuid);
             return RelinkOutcome.PENDING;
         }
 
@@ -300,23 +307,22 @@ public final class RelinkWorkflowService {
             return new RelinkEvaluationOutcome(RelinkOutcome.PENDING, null, null);
         }
 
-        Ref<EntityStore> relinkRef = world.getEntityStore().getRefFromUUID(entityUuid);
-        if (relinkRef == null || !relinkRef.isValid()) {
+        UuidResolveOutcome resolved = resolveEntityRefByUuid(world, entityUuid);
+        if (resolved == null) {
             return new RelinkEvaluationOutcome(RelinkOutcome.PENDING, null, null);
         }
+
+        Ref<EntityStore> relinkRef = resolved.entityRef();
+        NPCEntity liveNpc = resolved.liveNpc();
+        String liveUuid = resolved.liveUuid();
 
         String claimedByRef = ownerByRef(relinkRef, claimedEntityRefs);
         if (claimedByRef != null && !claimedByRef.equals(npc.npcId())) {
             return new RelinkEvaluationOutcome(RelinkOutcome.PENDING, null, null);
         }
 
-        var npcType = NPCEntity.getComponentType();
-        if (npcType == null) {
-            return new RelinkEvaluationOutcome(RelinkOutcome.PENDING, null, null);
-        }
-
-        NPCEntity liveNpc = relinkRef.getStore().getComponent(relinkRef, npcType);
-        if (liveNpc == null) {
+        String claimedByLiveUuid = ownerByUuid(liveUuid, claimedEntityUuids);
+        if (claimedByLiveUuid != null && !claimedByLiveUuid.equals(npc.npcId())) {
             return new RelinkEvaluationOutcome(RelinkOutcome.PENDING, null, null);
         }
 
@@ -331,7 +337,71 @@ public final class RelinkWorkflowService {
             return new RelinkEvaluationOutcome(RelinkOutcome.PENDING, null, null);
         }
 
-        return new RelinkEvaluationOutcome(RelinkOutcome.SUCCESS, relinkRef, rawUuid);
+        return new RelinkEvaluationOutcome(RelinkOutcome.SUCCESS, relinkRef, liveUuid);
+    }
+
+    private UuidResolveOutcome resolveEntityRefByUuid(World world, UUID entityUuid) {
+        if (world == null || entityUuid == null) {
+            return null;
+        }
+
+        Ref<EntityStore> relinkRef = resolveEntityRefViaWorldApi(world, entityUuid);
+        if ((relinkRef == null || !relinkRef.isValid()) && world.getEntityStore() != null) {
+            relinkRef = world.getEntityStore().getRefFromUUID(entityUuid);
+        }
+
+        if (relinkRef == null || !relinkRef.isValid()) {
+            return null;
+        }
+
+        var npcType = NPCEntity.getComponentType();
+        if (npcType == null) {
+            return null;
+        }
+
+        NPCEntity liveNpc = relinkRef.getStore().getComponent(relinkRef, npcType);
+        if (liveNpc == null) {
+            return null;
+        }
+
+        String liveUuid = readEntityUuid(relinkRef);
+        if (liveUuid == null || liveUuid.isBlank()) {
+            return null;
+        }
+
+        if (!liveUuid.equalsIgnoreCase(entityUuid.toString())) {
+            return null;
+        }
+
+        return new UuidResolveOutcome(relinkRef, liveNpc, liveUuid);
+    }
+
+    private Ref<EntityStore> resolveEntityRefViaWorldApi(World world, UUID entityUuid) {
+        Ref<EntityStore> refByUuid = invokeWorldGetEntityRef(world, entityUuid, UUID.class);
+        if (refByUuid != null && refByUuid.isValid()) {
+            return refByUuid;
+        }
+
+        Ref<EntityStore> refByString = invokeWorldGetEntityRef(world, entityUuid.toString(), String.class);
+        if (refByString != null && refByString.isValid()) {
+            return refByString;
+        }
+
+        return null;
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> Ref<EntityStore> invokeWorldGetEntityRef(World world, T arg, Class<T> argType) {
+        try {
+            Method method = world.getClass().getMethod("getEntityRef", argType);
+            Object result = method.invoke(world, arg);
+            if (result instanceof Ref<?> genericRef) {
+                return (Ref<EntityStore>) genericRef;
+            }
+        } catch (ReflectiveOperationException | SecurityException ignored) {
+            // API variant not available on this runtime; caller will use fallback.
+        }
+        return null;
     }
 
     public AnchorRelinkOutcome tryAnchorRelinkEntityRef(
