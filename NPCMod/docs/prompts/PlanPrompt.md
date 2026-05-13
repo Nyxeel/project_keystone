@@ -1,81 +1,39 @@
-# Sicheres Copilot-/Agent-Arbeitsset — Master-Prompt
-
-Kopiere diesen Prompt vollständig in deinen AI-Agenten / Copilot Chat.
-
----
+# Sicheres Copilot-/Agent-Arbeitsset — Step-, Review- und Fix-Generator
 
 Du bekommst gleich eine technische Auswertung/Analyse zu meinem Projekt.
 
-Du bist mein **strenger Logic-Fix-Controller** für die Hytale-Mod „NPCMod / KeystoneNPC“.
+Du bist mein strenger Logic-Fix-Controller für die Hytale-Mod „NPCMod / KeystoneNPC“.
 
-WICHTIG KEINE REGELN UM DSA REPO ZU AENDERN, kein GIT DIFF DIT STASH GIT
-RESTORE und weiteere
+WICHTIG:
+Keine Regeln oder Befehle verwenden, die das Repository verwalten oder verändern:
 
-Deine Aufgabe:
-Erstelle daraus ein sicheres Copilot-/Agent-Arbeitsset mit:
+- kein git diff
+- kein git stash
+- kein git restore
+- kein git reset
+- kein Commit
+- kein Branch-Wechsel
+- keine Repository-Verwaltungsbefehle
+
+DEINE AUFGABE:
+Erstelle aus der Auswertung ein sicheres Copilot-/Agent-Arbeitsset mit:
 
 1. einem Gesamtprompt für PLAN Mode
 2. einer Step-by-Step-Agent-To-do-Liste
 3. einem Review-Prompt nach jedem Agent-Step
 4. einem Fix-/Debug-Prompt für den Fall, dass ein Step fehlschlägt
 5. einer Fortschritts-Checkliste, damit spätere Steps nicht vergessen werden
+6. einer Kreisarbeits-Prüfung
+7. einer Marker-v2-Einordnung
+8. einer Widerspruchs- und Versionsdrift-Prüfung
+9. einem Backlog für nicht sofort zu fixende Punkte
 
-Ziel:
+ZIEL:
 Fixes effizient und sicher durchführen, ohne neue Logikfehler zu erzeugen und ohne uns im Kreis zu drehen.
 
-Wichtig:
+WICHTIG:
 Die Auswertung ist die fachliche Grundlage.
 Du sollst sie nicht blind verkürzen, sondern strukturiert in sichere Arbeitsphasen zerlegen.
-
-────────────────────────────
-QUELLEN-PRIORITÄT
-────────────────────────────
-
-Wenn mehrere Informationen widersprüchlich wirken, gilt diese Reihenfolge:
-
-1. aktueller Codezustand im Repository
-2. neueste Patchreports
-3. aktuelle Safety-Dokumente
-4. NPCMod-Lagebericht
-5. ältere Auswertungen / ältere TODOs / alte Prompts
-
-Wenn ältere Auswertungen einem neueren Patchreport oder dem aktuellen Code widersprechen:
-
-- nicht blind übernehmen
-- Widerspruch melden
-- keine Umsetzung planen, die bereits erledigte Fixes erneut anfängt
-- Step als „NOOP / bereits erledigt“ markieren, wenn der Fehler im aktuellen Code nicht mehr existiert
-
-────────────────────────────
-ANTI-KREIS-REGEL
-────────────────────────────
-
-Vor jedem geplanten Fix-Step muss geprüft werden:
-
-- Ist der beschriebene Fehler im aktuellen Code wirklich noch vorhanden?
-- Wurde er laut neuestem Patchreport bereits gefixt?
-- Gibt es eine echte Regression oder nur alte Doku / alte Auswertung?
-- Ist der Step noch notwendig?
-
-Wenn der Fehler nicht mehr vorhanden ist:
-
-- keine Datei ändern
-- Step als „NOOP / bereits erledigt“ markieren
-- kurz begründen, warum keine Änderung nötig ist
-- trotzdem einen kurzen Review-Hinweis ausgeben
-
-Ziel:
-Nicht im Kreis fixen.
-Nicht alte erledigte Fehler erneut öffnen.
-Nicht durch alte Reports neue Verwirrung erzeugen.
-
-Wenn ein Fix einen neuen Fehler erzeugt, wird dieser NICHT sofort als neuer großer Step verfolgt.
-Stattdessen:
-
-1. Prüfen, ob der neue Fehler direkte Nebenwirkung des aktuellen Steps ist.
-2. Wenn ja: im selben Step fixen.
-3. Wenn nein: in Backlog aufnehmen.
-4. Aktuellen Step erst abschließen, bevor ein neuer Themenbereich beginnt.
 
 ────────────────────────────
 ARBEITSPRINZIP
@@ -87,6 +45,13 @@ ARBEITSPRINZIP
 - In diesem Durchlauf keine Patchreports speichern.
 - In diesem Durchlauf keine Safety-Dateien aktualisieren.
 - AGENT Mode darf immer nur einen klar abgegrenzten Step umsetzen.
+- Agent-Steps sind Umsetzungssteps.
+- Jeder normale Agent-Step muss eine konkrete, abgegrenzte Dateiänderung oder Dokuänderung zum Ziel haben.
+- Reine Analyse-, Prüf- oder Review-Arbeit darf nicht als Agent-Step geplant werden, wenn sie bereits im PLAN Mode erledigt wurde.
+- Checks vor der Änderung bleiben Pflicht, dürfen den Step aber nicht zu einem reinen Prüfstep machen.
+- Wenn der Pre-Check zeigt, dass der Fehler nicht mehr existiert, ist der Step NOOP / bereits erledigt und es dürfen keine Ersatzänderungen erfunden werden.
+- Review-Steps ändern weiterhin keine Dateien.
+- Fix-Steps ändern nur die Dateien, die zur Behebung der Review-FAIL-Punkte nötig sind.
 - Nach jedem Agent-Step muss ein Review-Step folgen.
 - Wenn Review Probleme findet, muss zuerst ein Fix-Step kommen.
 - Wenn Review FAIL ist, kommt nur ein Fix für genau diesen Step.
@@ -94,108 +59,25 @@ ARBEITSPRINZIP
 - Jeder Agent-Step muss den Gesamtkontext kurz wiederholen, damit Copilot das Gesamtziel nicht verliert.
 - Jeder Agent-Step muss klar sagen, was NICHT geändert werden darf.
 - Jeder Agent-Step muss vor Änderung prüfen, ob der Fehler im aktuellen Code wirklich noch existiert.
-
 - Markdown-only Steps brauchen kein Maven-Compile, aber eine Doku-Konsistenzprüfung.
 - Keine großen Refactors, außer die Auswertung verlangt es ausdrücklich.
 - Keine angrenzenden Features nebenbei implementieren.
 - Bestehende Safety-/Rollback-/Dedupe-Mechanismen dürfen nicht versehentlich abgeschwächt werden.
 - Neue Features dürfen nicht in Safety-Fixes hineingemischt werden.
 
-────────────────────────────
-ABSOLUTE NO-GO-REGELN
-────────────────────────────
+Fremdänderungen außerhalb des aktuellen Step-Scopes:
 
-- Keine großen Alles-auf-einmal-Patches.
-- Keine neuen Features während Safety-Fixes.
-- Keine angrenzenden Systeme nebenbei ändern.
-- Keine Door-/Navigation-/Animation-Änderungen, außer der Step betrifft genau das.
-- Keine JSON-Roles ändern, außer der Step verlangt es ausdrücklich.
-- Kein `setRoleName("KeystoneNPC_...")`.
-- Kein Role-Prefix-Fallback.
-- Kein blindes Relinken per gleicher Role.
-- Kein Auto-Respawn bei `AMBIGUOUS`.
-- Keine Dedupe-Löschung nur wegen gleicher Role.
-- Kein Runtime-Fallback darf still als persistente Wahrheit gespeichert werden.
-- Keine `state.json` überschreiben, wenn Load unsicher, kaputt oder partial ist.
-- Kein Save-Failure darf als Erfolg gelten.
-- Keine Records löschen, wenn Entity-Removal unsicher ist.
-- Keine Safety-Dateien außerhalb des finalen Doku-Steps ändern, außer der User fordert es ausdrücklich als eigenen Step.
-- Keine Regelkonflikte still entscheiden.
-
-────────────────────────────
-PRIORITÄT NACH NPCMOD-LAGEBERICHT
-────────────────────────────
-
-Priorisiere Fixes nach den kritischen Blöcken aus dem NPCMod-Lagebericht.
-
-P1 zuerst:
-
-- Block 4: NPC-Lebenszyklus
-- Block 3: Persistence / state.json
-- Block 7: Marker-System
-- Block 8: Commands
-- Block 5: Scheduler / Tick
-
-P2 später:
-
-- Block 6: Navigation / Doorway
-- Block 2: Loader / JSON-Hierarchie, falls nicht akut kaputt
-- Engine-API-Cleanup
-- Design-Verbesserungen ohne akuten Safety-Fehler
-
-Marker-v2 darf nur als spätere Phase eingeordnet werden.
-
-Marker-v2 darf erst starten, wenn alle nötigen Phase-0-Safety-Steps PASS sind.
-
-Marker-v2 darf nicht nebenbei in Phase 0 implementiert werden.
-
-────────────────────────────
-PFLICHT-REIHENFOLGE AUS NPCMOD-LAGEBERICHT
-────────────────────────────
-
-Wenn die Auswertung keine neueren, eindeutig wichtigeren Fehler zeigt, müssen die ersten Steps aus dem NPCMod-Lagebericht übernommen werden:
-
-1. NpcRespawnMissingCommand Save-Failure prüfen
-2. Marker worldId/type/id Gate härten
-3. SpawnNpcCommand Rollback auf detailed RemoveResult umstellen
-4. Safety-Doku Sync / Versionsdrift bereinigen
-5. Marker-v2 nur PLAN Mode
-
-Diese Reihenfolge darf nur geändert werden, wenn der aktuelle Code oder ein neuerer Patchreport klar zeigt, dass ein Step bereits erledigt oder nicht mehr relevant ist.
-
-Wenn ein Step bereits erledigt ist:
-
-- Step als „NOOP / bereits erledigt“ markieren
-- kurz begründen
-- keinen Ersatz-Fix erfinden
-- trotzdem Review-Hinweis ausgeben
-
-────────────────────────────
-LOGIKFEHLER, AUF DIE IMMER GEPRÜFT WERDEN MUSS
-────────────────────────────
-
-Prüfe bei Planung, Umsetzung und Review besonders auf:
-
-- Runtime-Zustand wird als Persistence-Wahrheit gespeichert
-- entityRef wird dauerhaft gespeichert oder als dauerhafte Wahrheit behandelt
-- Save-Failure wird als Erfolg gemeldet
-- Load-Failure oder Partial-Load überschreibt state.json
-- Marker read-only Pfade mutieren Marker
-- Reconcile löscht oder ersetzt MarkerAssignments in Restore/Tick/Diagnose
-- Commands löschen, spawnen oder relinken bei Unsicherheit
-- Auto-Respawn läuft ohne Policy-, Chunk- oder Position-Gate
-- Relink bindet falsche Entity
-- AMBIGUOUS wird ignoriert
-- MISSING_ENTITY wird ungewollt zu NEEDS_RELINK
-- RoleName wird für Keystone-Identität missbraucht
-- dynamisches setRoleName("KeystoneNPC_...") wird wieder eingeführt
-- Marker aus falscher worldId werden NPCs zugewiesen
-- MarkerType passt nicht zur Role / Definition
-- Save-/Rollback-Ergebnis wird nicht geprüft
-- /remove oder /clear löschen Record, aber Live-Entity bleibt ungeklärt
-- /remove oder /clear entfernen Entity, aber Record bleibt unsicher erhalten
-- Tick/Scheduler übernimmt Recovery-, Save- oder Lifecycle-Logik zu stark
-- Fix erzeugt neue Nebenwirkungen in angrenzenden Systemen
+- Fremdänderungen außerhalb des aktuellen Step-Scopes sind kein Abbruchgrund.
+- Während ein Agent-Step läuft, können vom Nutzer parallel Änderungen an anderen Dateien vorgenommen werden.
+- Solche nutzerseitigen Fremdänderungen sind vom Agenten vollständig zu ignorieren, solange sie nicht den aktuellen Step-Scope betreffen.
+- Der Agent darf wegen fremder Änderungen außerhalb des Step-Scopes nicht stoppen.
+- Der Agent darf fremde Änderungen außerhalb des Step-Scopes nicht zurücksetzen.
+- Der Agent darf fremde Änderungen außerhalb des Step-Scopes nicht „aufräumen“.
+- Der Agent darf keine Ersatzfixes an fremden Änderungen außerhalb des Step-Scopes durchführen.
+- Der Agent bearbeitet ausschließlich die für den aktuellen Step erlaubten Dateien/Bereiche.
+- Wenn eine fremde Änderung außerhalb des Scopes sichtbar wird, wird sie nicht bewertet und nicht in den Step einbezogen.
+- Fremdänderungen außerhalb des Scopes dürfen nicht reviewed, nicht korrigiert und nicht in den Abschlussbericht aufgenommen werden, außer sie blockieren unmittelbar den aktuellen Step.
+- Nur wenn eine fremde Änderung direkt eine erlaubte Datei oder den konkreten Fix-Zielbereich des aktuellen Steps betrifft, darf der Agent sie als Scope-Risiko melden und den Step sicher begrenzen.
 
 ────────────────────────────
 PFLICHT VOR JEDER ÄNDERUNG
@@ -257,22 +139,31 @@ ARBEITSABLAUF PRO AGENT-STEP
 Jeder Agent-Step muss intern nach diesem Ablauf arbeiten:
 
 1. STEP-SCOPE PRÜFEN
+
    - Welcher Step wird umgesetzt?
    - Welche Dateien sind erlaubt?
    - Welche Dateien sind verboten?
    - Welche Safety-Dateien sind relevant?
    - Gibt es Widersprüche zwischen Code, Patchreports, AGENTS.md, Safety-Dateien und Lagebericht?
+   - Gibt es sichtbare Fremdänderungen außerhalb des Step-Scopes?
+   - Falls Fremdänderungen außerhalb des Step-Scopes existieren: ignorieren, nicht bewerten, nicht zurücksetzen.
+   - Falls eine Fremdänderung direkt eine erlaubte Datei oder den konkreten Fix-Zielbereich betrifft: als Scope-Risiko melden und Step sicher begrenzen.
    - Falls Scope oder Regelkonflikt unklar ist: stoppen und melden.
 
 2. FIX-ZIEL PRÜFEN
+
    - Welcher konkrete Fehler soll behoben werden?
    - Ist der Fehler im aktuellen Code wirklich noch vorhanden?
+   - Welche Dateiänderung oder Dokuänderung ist für diesen Step vorgesehen?
+   - Ist diese Änderung wirklich notwendig, oder ist der Step NOOP / bereits erledigt?
    - Ist der Statusfluss danach korrekt?
    - Gibt es einen neuen Zwischenzustand, der später Probleme verursacht?
    - Falls unsicher: PARTIAL, nicht PASS.
 
 3. REGRESSION-CHECK
+
    Prüfe immer diese Grundinvarianten:
+
    - state.json wird bei Load-Fehler nicht leer überschrieben.
    - Save-Fehler werden sichtbar.
    - Dirty wird nur nach echtem Save gelöscht.
@@ -289,7 +180,9 @@ Jeder Agent-Step muss intern nach diesem Ablauf arbeiten:
    - Chunk-Gate prüft dieselbe Position, die Spawn nutzt.
 
 4. NEBENWIRKUNGS-SUCHE
+
    Frage immer:
+
    - Hat der Fix eine neue Blockade erzeugt?
    - Hat der Fix Saves global deaktiviert?
    - Hat der Fix Recovery unmöglich gemacht?
@@ -297,22 +190,27 @@ Jeder Agent-Step muss intern nach diesem Ablauf arbeiten:
    - Hat der Fix alte Daten still verworfen?
    - Hat der Fix Commands Erfolg melden lassen, obwohl etwas unsicher ist?
    - Hat der Fix Marker/NPC/Entity-Identity auseinanderlaufen lassen?
+   - Hat der Fix Fremdänderungen außerhalb des Scopes bewertet, verändert oder versehentlich einbezogen?
 
 5. TEST-GATE
+
    Pflicht bei Java-/Ressourcen-Änderungen:
 
-   ```bash
    mvn -q -DskipTests test-compile
-   ```
 
    Wenn Compile nicht grün ist:
    Ergebnis ist FAIL.
 
+   Markdown-only Steps brauchen keinen Maven-Compile, aber eine Doku-Konsistenzprüfung.
+
 6. ENTSCHEIDUNG
+
    Ergebnis darf nur sein:
+
    - PASS: Step vollständig korrekt, nächster Step erlaubt.
    - FAIL: Fix-Step nötig, nächster Step verboten.
    - PARTIAL: weitere Prüfung/Test nötig, nächster Step verboten.
+   - NOOP / bereits erledigt: Fehler existiert nicht mehr, keine Dateiänderung nötig, kein Ersatz-Fix erlaubt.
 
 ────────────────────────────
 BACKLOG-REGEL
@@ -339,17 +237,18 @@ Ein Step gilt erst als abgeschlossen, wenn:
 
 - Scope eingehalten
 - Fix-Ziel erfüllt
+- erwartete Dateiänderung oder Dokuänderung umgesetzt, außer der Step wurde sicher als NOOP / bereits erledigt erkannt
 - Regression-Check bestanden
 - keine direkte neue Nebenwirkung offen
-
+- Fremdänderungen außerhalb des Step-Scopes ignoriert und nicht bewertet wurden
+- Compile grün bei Java-/Ressourcen-Änderungen
 - Doku-Konsistenzprüfung bestanden, falls Markdown-only-Step
 - Review PASS
 
 ────────────────────────────
-SAFETY-DOKU, PATCHREPORT UND WIDERSPRUCHS-CHECK
+SAFETY-DOKU, PATCHREPORT UND FINALER STEP
 ────────────────────────────
 
-Wichtig:
 In diesem aktuellen Durchlauf wird nur ein Arbeitsset erzeugt.
 
 Das bedeutet:
@@ -371,6 +270,7 @@ Dieser finale Step darf erst nach PASS aller vorherigen Code-/Doku-Steps laufen.
 Der finale Agent-Step muss prüfen:
 
 1. Gibt es Widersprüche zwischen:
+
    - aktuellem Code
    - neuesten Patchreports
    - AGENTS.md
@@ -380,6 +280,7 @@ Der finale Agent-Step muss prüfen:
    - älteren Auswertungen / alten TODOs / alten Prompts
 
 2. Wenn ein Widerspruch gefunden wird:
+
    - keine Codeänderung durchführen
    - keine Safety-Datei still überschreiben
    - keine Regel heimlich bevorzugen
@@ -390,21 +291,27 @@ Ausgabe bei Konflikt:
 REGELKONFLIKT GEFUNDEN
 
 Quelle A:
+
 - <Regel / Aussage>
 
 Quelle B:
+
 - <widersprechende Regel / Aussage>
 
 Problem:
+
 - <warum widerspricht sich das?>
 
 Risiko:
+
 - <was kann dadurch kaputtgehen?>
 
 Sichere Empfehlung:
+
 - <welche Aussage wirkt aktueller / sicherer?>
 
 Entscheidung nötig:
+
 - Nutzer muss entscheiden ODER der Konflikt muss als eigener Agent-Step geplant werden.
 
 Bis der Konflikt geklärt ist, gilt safe-by-default:
@@ -417,9 +324,11 @@ Bis der Konflikt geklärt ist, gilt safe-by-default:
 - keine Architekturänderung verstecken
 
 3. Wenn kein Widerspruch gefunden wird:
+
    - Safety-Dateien prüfen
    - nur bei echten Regeländerungen aktualisieren
-   - wenn keine Safety-Regel geändert wurde, klar dokumentieren: „Keine Safety-Datei musste geändert werden.“
+   - wenn keine Safety-Regel geändert wurde, klar dokumentieren:
+     „Keine Safety-Datei musste geändert werden.“
 
 Zu prüfender Safety-Ordner:
 
@@ -449,6 +358,9 @@ Wichtig:
 - Er muss als finaler Agent-Step eingeplant werden.
 - Er darf erst nach PASS aller vorherigen Steps laufen.
 - Wenn ein ungeklärter Regelkonflikt existiert, darf der finale Step keinen stillen Patchreport schreiben, der den Konflikt versteckt.
+- Wenn Safety-Regeln geändert wurden, müssen Safety-Dateien im selben Patch aktualisiert werden.
+- Wenn keine Safety-Regeln geändert wurden, muss der Patchreport das klar sagen.
+- Markdown-only Step braucht keinen Maven-Compile, aber Doku-Konsistenzprüfung.
 
 ────────────────────────────
 AUSGABEFORMAT
@@ -477,6 +389,7 @@ Der Prompt muss enthalten:
 - klare Anweisung: „Noch keine Safety-Dateien aktualisieren.“
 - klare Anweisung: „Noch keinen Patchreport schreiben.“
 - klare Einordnung, wann Marker-v2 frühestens starten darf
+- klare Einordnung, dass spätere Agent-Steps echte Umsetzungssteps sein müssen
 
 ────────────────────────────
 B) Agent Step Liste
@@ -494,16 +407,26 @@ Prompt:
 - Ziel dieses Steps
 - Block/Priorität, falls aus der Auswertung ableitbar
 - erlaubte Dateien/Bereiche, falls bekannt
+- erwartete konkrete Dateiänderung:
+  - Welche Datei(en) sollen geändert werden?
+  - Welche Art Änderung soll passieren?
+  - Warum ist diese Änderung notwendig?
 - konkrete Aufgaben
 - Pflichtprüfung vor Änderung:
   - existiert der Fehler noch?
   - wurde er schon gefixt?
   - ist der Step noch nötig?
   - gibt es Widersprüche zwischen Code, Patchreports, AGENTS.md, Safety-Dateien und Lagebericht?
+- Umgang mit Fremdänderungen:
+  - Fremdänderungen außerhalb des Step-Scopes ignorieren.
+  - Nicht stoppen, nicht zurücksetzen, nicht bewerten.
+  - Nur melden, wenn sie direkt erlaubte Dateien oder den konkreten Fix-Zielbereich betreffen.
 - klare Grenzen: was nicht geändert werden darf
 - Safety-Regeln
 - Compile-/Test-Befehl oder Doku-Konsistenzprüfung
 - gewünschter Abschlussbericht
+- Hinweis:
+  - Der Step darf nicht nur aus erneutem Prüfen bestehen, außer er endet ausdrücklich als NOOP / bereits erledigt / REGELKONFLIKT.
 
 Ausgabe-Reihenfolge:
 
@@ -535,6 +458,8 @@ Der Review-Prompt soll prüfen:
 - ob der Step wirklich nur seinen Scope geändert hat
 - welche Dateien tatsächlich geändert wurden
 - ob diese Dateien zum Step-Scope gehören
+- ob die erwartete Dateiänderung oder Dokuänderung tatsächlich umgesetzt wurde
+- ob der Step unzulässig nur erneut geprüft hat, obwohl eine Umsetzung geplant war
 - ob der tatsächliche Diff Nebenwirkungen erzeugt
 - ob neue lokale Logikfehler entstanden sind
 - ob wichtige Safety-Regeln verletzt wurden
@@ -542,7 +467,8 @@ Der Review-Prompt soll prüfen:
 - ob Save-/Load-/Rollback-Fehler korrekt behandelt werden
 - ob Marker read-only Pfade weiterhin read-only sind
 - ob Commands keine falschen Erfolgsmeldungen ausgeben
-
+- ob Fremdänderungen außerhalb des Step-Scopes ignoriert wurden
+- ob Fremdänderungen außerhalb des Step-Scopes fälschlich reviewed, korrigiert oder in den Abschlussbericht aufgenommen wurden
 - ob der nächste Step sicher gestartet werden kann
 
 Zusätzliche Review-Pflicht:
@@ -574,12 +500,14 @@ Jeder Review muss zusätzlich diese Grundinvarianten prüfen:
 
 Wichtig:
 
-Review darf nichts Neues implementieren.
-Review darf keine neuen Features vorschlagen, die sofort umgesetzt werden sollen.
-Review muss bei FAIL klar sagen, welcher enge Fix nötig ist.
-Review muss bei FAIL direkt einen engen Fix-Prompt ausgeben.
-Review muss bei PASS klar sagen, ob der nächste Step erlaubt ist.
-Review muss eine Entscheidung ausgeben: PASS, FAIL oder PARTIAL.
+- Review darf nichts Neues implementieren.
+- Review darf keine neuen Features vorschlagen, die sofort umgesetzt werden sollen.
+- Review darf Fremdänderungen außerhalb des Step-Scopes nicht bewerten, außer sie blockieren unmittelbar den aktuellen Step.
+- Review muss bei FAIL klar sagen, welcher enge Fix nötig ist.
+- Review muss bei FAIL direkt einen engen Fix-Prompt ausgeben.
+- Review muss bei PASS klar sagen, ob der nächste Step erlaubt ist.
+- Review muss eine Entscheidung ausgeben: PASS, FAIL oder PARTIAL.
+- NOOP / bereits erledigt ist nur erlaubt, wenn der Pre-Check sauber zeigt, dass der Fehler nicht mehr existiert und keine Ersatzänderung nötig ist.
 
 ────────────────────────────
 C.1) Pflicht-Ergebnisformat für jeden Review
@@ -590,15 +518,19 @@ Jeder Review muss exakt dieses Format nutzen:
 # Review — [Step Name]
 
 ## Urteil
-PASS / FAIL / PARTIAL
+PASS / FAIL / PARTIAL / NOOP
 
 ## Scope-Check
 - Erlaubte Dateien:
 - Tatsächlich geänderte Dateien:
 - Verbotene Änderungen: ja/nein
+- Fremdänderungen außerhalb des Scopes ignoriert: ja/nein
 
 ## Fix-Ziel
 - Ziel erfüllt: ja/nein
+- Erwartete Datei-/Dokuänderung umgesetzt: ja/nein
+- Nur geprüft statt umgesetzt: ja/nein
+- NOOP berechtigt: ja/nein
 - Begründung:
 
 ## Regression-Check
@@ -617,9 +549,13 @@ PASS / FAIL / PARTIAL
 - Patchreport-Konflikt: ja/nein
 - Versionsdrift statt echtem Konflikt: ja/nein
 
+## Fremdänderungs-Check
+- Fremdänderungen außerhalb des Scopes sichtbar: ja/nein
+- Fälschlich bewertet/korrigiert/einbezogen: ja/nein
+- Blockieren Fremdänderungen den aktuellen Step: ja/nein
+
 ## Neue Nebenwirkungen
 - keine / Liste
-
 
 ## Entscheidung
 - Fix-Step nötig: ja/nein
@@ -645,6 +581,8 @@ Die Vorlage muss sagen:
 - keine Regelkonflikte still entscheiden
 - direkte Nebenwirkungen des aktuellen Steps im selben Step fixen
 - neue unabhängige Fehler nur ins Backlog aufnehmen
+- Fremdänderungen außerhalb des aktuellen Step-Scopes ignorieren
+- fremde Änderungen außerhalb des Step-Scopes nicht zurücksetzen, nicht bewerten und nicht korrigieren
 - Compile/Test erneut ausführen
 - kurz berichten, was behoben wurde
 - klar sagen, ob danach erneut Review nötig ist
@@ -732,7 +670,7 @@ Wenn ein echter Konflikt existiert:
 I) Backlog
 ────────────────────────────
 
-Erstelle am Ende ein kleines Backlog für neue gefundene, aber nicht sofort zu fixende Probleme.
+Erstelle einen Backlog für Dinge, die nicht sofort umgesetzt werden dürfen.
 
 Format:
 
@@ -741,14 +679,36 @@ Format:
 | P1/P2/P3 | ... | ... | ... | ... |
 
 Wichtig:
-Backlog-Punkte dürfen nicht nebenbei umgesetzt werden.
+
+- Backlog-Punkte dürfen nicht nebenbei umgesetzt werden.
+- Backlog-Punkte dürfen keinen aktuellen Step vergrößern.
+- Backlog-Punkte dürfen erst in einem eigenen späteren Step umgesetzt werden.
 
 ────────────────────────────
-HIER IST DIE AUSWERTUNG / ANALYSE
+J) Abschlussprüfung des erzeugten Arbeitssets
 ────────────────────────────
 
+Prüfe am Ende dein eigenes erzeugtes Arbeitsset:
 
-<<AUSWERTUNG EINFÜGEN>>
+1. Enthält jeder Agent-Step eine konkrete erwartete Dateiänderung oder Dokuänderung?
+2. Gibt es unzulässige reine Prüfsteps?
+3. Gibt es Steps, die mehrere Systeme mischen?
+4. Gibt es Steps, die Marker-v2 zu früh implementieren?
+5. Gibt es Steps, die Safety-Doku zu früh ändern?
+6. Gibt es Review-Prompts nach jedem Agent-Step?
+7. Gibt es Fix-Prompts für jeden FAIL-Fall?
+8. Ist der finale Safety-Doku-/Patchreport-Step wirklich der letzte Step?
+9. Sind Fremdänderungen außerhalb des Step-Scopes klar als zu ignorieren definiert?
+10. Ist NOOP / bereits erledigt sauber geregelt?
+
+Wenn ein Problem gefunden wird:
+Arbeitsset korrigieren, bevor du es ausgibst.
+
+────────────────────────────
+EINGABE
+────────────────────────────
+
+Hier ist die Auswertung / Analyse / Grundlage:
 
 
 
@@ -756,11 +716,7 @@ HIER IST DIE AUSWERTUNG / ANALYSE
 
 
 
-
-
-
-
-
+<<AUSWERTUNG / ANALYSE / LAGEBERICHT / PATCHREPORTS / PLAN EINFÜGEN>>
 
 
 
@@ -774,11 +730,11 @@ ABSCHLUSSANWEISUNG
 
 Bitte jetzt nicht implementieren.
 
-Bitte nur die PLAN- und AGENT-Prompts aus dieser Auswertung erzeugen.
+Bitte nur das sichere Copilot-/Agent-Arbeitsset erzeugen.
 
 Keine Dateien ändern.
+Keine Tests ausführen, die Dateien verändern.
 Keine Safety-Dateien aktualisieren.
 Keinen Patchreport schreiben.
-Keine Tests ausführen, die Dateien verändern würden.
 
-Safety-Doku-Update, Widerspruchs-Check und Patchreport-Erstellung müssen nur als finaler Agent-Step im erzeugten Arbeitsset eingeplant werden.
+Safety-Doku-Update und Patchreport-Erstellung nur als späteren finalen Agent-Step einplanen, nicht jetzt ausführen.

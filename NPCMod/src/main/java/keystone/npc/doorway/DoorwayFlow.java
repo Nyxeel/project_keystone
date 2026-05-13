@@ -116,7 +116,7 @@ public final class DoorwayFlow {
             }
         }
 
-        Optional<MarkerRecord> doorMarker = markerResolver.resolveMarkerInNpcWorld(npc, MarkerType.DOOR, npc.doorMarkerId());
+        Optional<MarkerRecord> doorMarker = markerResolver.resolveRequiredMarkerReadOnly(npc, MarkerType.DOOR);
         BlockPosition markerDoorBlock = null;
         if (doorMarker.isPresent()) {
             Vec3 doorPos = doorMarker.get().position();

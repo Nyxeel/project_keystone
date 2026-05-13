@@ -1,5 +1,7 @@
 package keystone.npc.routine.marker;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -19,23 +21,7 @@ public final class MarkerResolver {
     }
 
     public String markerIdForType(NpcRecord npc, MarkerType markerType) {
-        String markerIdFromAssignments = markerIdFromAssignments(npc, markerType);
-        if (markerIdFromAssignments != null) {
-            return markerIdFromAssignments;
-        }
-
-        return legacyMarkerIdForType(npc, markerType);
-    }
-
-    private String legacyMarkerIdForType(NpcRecord npc, MarkerType markerType) {
-        return switch (markerType) {
-            case BED -> npc.bedMarkerId();
-            case DOOR -> npc.doorMarkerId();
-            case CHEST -> npc.chestMarkerId();
-            case FOOD -> npc.foodMarkerId();
-            case WORK -> npc.workMarkerId();
-            case CHILL -> npc.chillMarkerId();
-        };
+        return markerIdFromAssignments(npc, markerType);
     }
 
     private String markerIdFromAssignments(NpcRecord npc, MarkerType markerType) {
@@ -73,14 +59,19 @@ public final class MarkerResolver {
     }
 
     public void setMarkerIdForType(NpcRecord npc, MarkerType markerType, String markerId) {
-        switch (markerType) {
-            case BED -> npc.bedMarkerId(markerId);
-            case DOOR -> npc.doorMarkerId(markerId);
-            case CHEST -> npc.chestMarkerId(markerId);
-            case FOOD -> npc.foodMarkerId(markerId);
-            case WORK -> npc.workMarkerId(markerId);
-            case CHILL -> npc.chillMarkerId(markerId);
+        if (npc == null || markerType == null) {
+            return;
         }
+
+        Map<String, MarkerAssignment> assignments = new LinkedHashMap<>(npc.markerAssignments());
+        String logicalKey = logicalKeyForType(markerType);
+        if (markerId == null || markerId.isBlank()) {
+            assignments.remove(logicalKey);
+        } else {
+            assignments.put(logicalKey, new MarkerAssignment(markerId.trim(), markerType));
+        }
+
+        npc.markerAssignments(assignments);
     }
 
     public Optional<MarkerRecord> resolveMarkerInNpcWorld(NpcRecord npc, MarkerType markerType, String markerId) {

@@ -23,12 +23,6 @@ record PersistedNpc(
     PersistedVec3 currentPosition,
     String homeInstanceId,
     String workInstanceId,
-    String bedMarkerId,
-    String doorMarkerId,
-    String chestMarkerId,
-    String foodMarkerId,
-    String workMarkerId,
-    String chillMarkerId,
     Map<String, PersistedMarkerAssignment> markerAssignments,
     String entityUuid,
     PersistedNavigation navigation

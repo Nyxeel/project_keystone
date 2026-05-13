@@ -18,8 +18,7 @@ import keystone.npc.roles.RoleDefinition;
  * Minimum-Felder laut Spec:
  * npcId, npcName, role, state, worldId, currentPosition,
  * homeInstanceId, workInstanceId,
- * bedMarkerId, doorMarkerId, workMarkerId,
- * markerAssignments (Marker-v2-ready, legacy fields remain supported)
+ * markerAssignments (Marker-v2)
  */
 public final class NpcRecord {
 
@@ -35,12 +34,6 @@ public final class NpcRecord {
     private String homeInstanceId;
     private String workInstanceId;
 
-    private String bedMarkerId;
-    private String doorMarkerId;
-    private String chestMarkerId;
-    private String foodMarkerId;
-    private String workMarkerId;
-    private String chillMarkerId;
     private Map<String, MarkerAssignment> markerAssignments;
 
     private long entityId = 0;  // Serializable: non-zero means entity was already spawned
@@ -110,24 +103,6 @@ public final class NpcRecord {
 
     public String workInstanceId() { return workInstanceId; }
     public void workInstanceId(String v) { this.workInstanceId = v; }
-
-    public String bedMarkerId() { return bedMarkerId; }
-    public void bedMarkerId(String v) { this.bedMarkerId = v; }
-
-    public String doorMarkerId() { return doorMarkerId; }
-    public void doorMarkerId(String v) { this.doorMarkerId = v; }
-
-    public String workMarkerId() { return workMarkerId; }
-    public void workMarkerId(String v) { this.workMarkerId = v; }
-
-    public String chestMarkerId() { return chestMarkerId; }
-    public void chestMarkerId(String v) { this.chestMarkerId = v; }
-
-    public String foodMarkerId() { return foodMarkerId; }
-    public void foodMarkerId(String v) { this.foodMarkerId = v; }
-
-    public String chillMarkerId() { return chillMarkerId; }
-    public void chillMarkerId(String v) { this.chillMarkerId = v; }
 
     public Map<String, MarkerAssignment> markerAssignments() {
         return markerAssignments == null ? Map.of() : Map.copyOf(markerAssignments);

@@ -1,9 +1,9 @@
 # NPCMod / KeystoneNPC — Finaler Lagebericht, Baustellenkarte und Fix-Reihenfolge
 
-**Datum:** 2026-05-13 07:36 CEST  
-**Projekt:** Hytale-Mod `NPCMod / KeystoneNPC`  
-**Ziel:** Überblick behalten, logische Fehler erkennen, Widersprüche melden, Fix-Reihenfolge festlegen, Marker-v2 einordnen  
-**Status dieses Berichts:** Architektur-/Safety-Lagebericht auf Basis der hochgeladenen Reports, der Mindmap und eines statischen Code-Checks im ZIP  
+**Datum:** 2026-05-13 07:36 CEST
+**Projekt:** Hytale-Mod `NPCMod / KeystoneNPC`
+**Ziel:** Überblick behalten, logische Fehler erkennen, Widersprüche melden, Fix-Reihenfolge festlegen, Marker-v2 einordnen
+**Status dieses Berichts:** Architektur-/Safety-Lagebericht auf Basis der hochgeladenen Reports, der Mindmap und eines statischen Code-Checks im ZIP
 
 ---
 
@@ -20,7 +20,7 @@ Du drehst dich **nicht komplett im Kreis**. Es gab echte Fortschritte:
 
 Aber: Du bist an einem Punkt, wo weitere große „Safety-Runden“ ohne enges Ziel schnell wieder Kreisarbeit werden.
 
-Der nächste sinnvolle Schritt ist deshalb **nicht**: noch ein großer Alles-Review.  
+Der nächste sinnvolle Schritt ist deshalb **nicht**: noch ein großer Alles-Review.
 Der nächste sinnvolle Schritt ist:
 
 ```text
@@ -42,7 +42,7 @@ P2: NpcRoutineRunner ist weiterhin zu groß.
 P2/P3: Navigation/Doorway/Engine-Bewegung später getrennt prüfen.
 ```
 
-Marker-v2 solltest du **noch nicht sofort implementieren**.  
+Marker-v2 solltest du **noch nicht sofort implementieren**.
 Du kannst aber **jetzt mit dem Marker-v2-Plan anfangen**, sobald die kleinen P1-Fixpunkte oben geschlossen sind.
 
 ---
@@ -114,8 +114,8 @@ Einfach gesagt:
 
 ## Block 4 — NPC-Lebenszyklus
 
-**Priorität:** P0/P1  
-**Status:** stark verbessert, aber weiterhin zentraler Hotspot  
+**Priorität:** P0/P1
+**Status:** stark verbessert, aber weiterhin zentraler Hotspot
 **Risiko:** Ghost-NPCs, Duplicates, verlorene Records, falsche Relinks
 
 Der Lebenszyklus ist der wichtigste Block. Hier passieren:
@@ -189,8 +189,8 @@ Entity-Removal unsicher
 
 ### Empfehlung
 
-**Kurzfristig:** nicht sofort Lifecycle groß refactoren.  
-**Zuerst:** Save-/Rollback-Failchecks schließen.  
+**Kurzfristig:** nicht sofort Lifecycle groß refactoren.
+**Zuerst:** Save-/Rollback-Failchecks schließen.
 **Danach:** `NpcRoutineRunner` schrittweise aufteilen.
 
 Zielstruktur später:
@@ -210,8 +210,8 @@ Aber nicht alles in einem Patch.
 
 ## Block 7 — Marker-System
 
-**Priorität:** P1  
-**Status:** Safety wurde deutlich verbessert, Marker-v2 noch nicht gebaut  
+**Priorität:** P1
+**Status:** Safety wurde deutlich verbessert, Marker-v2 noch nicht gebaut
 **Risiko:** falsche Marker in `state.json`, Marker-Leichen, falsche NPC-Ziele
 
 Dieser Block ist für Marker-v2 natürlich der wichtigste.
@@ -307,8 +307,8 @@ Marker-v2 **implementieren** erst danach.
 
 ## Block 3 — Persistenz / state.json
 
-**Priorität:** P1  
-**Status:** stark verbessert, aber weiter kritisch  
+**Priorität:** P1
+**Status:** stark verbessert, aber weiter kritisch
 **Risiko:** kaputte Daten bleiben nach Restart dauerhaft falsch
 
 ### Was schon besser ist
@@ -393,8 +393,8 @@ Aber nur mit Backup, atomarer Migration und Fail-Schutz.
 
 ## Block 8 — Command-System
 
-**Priorität:** P1  
-**Status:** besser, aber noch nicht fertig  
+**Priorität:** P1
+**Status:** besser, aber noch nicht fertig
 **Risiko:** Admin-Command erzeugt Runtime/state.json-Drift
 
 Commands sind gefährlich, weil sie direkte Eingriffe machen:
@@ -480,8 +480,8 @@ Nicht sofort erzwingen.
 
 ## Block 5 — Routine / Scheduler / Tick
 
-**Priorität:** P1/P2  
-**Status:** Safety verbessert, Architektur noch eng gekoppelt  
+**Priorität:** P1/P2
+**Status:** Safety verbessert, Architektur noch eng gekoppelt
 **Risiko:** Tick triggert zu viele Systeme zu oft
 
 ### Gute aktuelle Regel
@@ -542,8 +542,8 @@ Sinnvolle Reihenfolge:
 
 ## Block 6 — Navigation / Pathfinding / Doorway
 
-**Priorität:** P2/P3  
-**Status:** wichtig, aber nicht jetzt zuerst  
+**Priorität:** P2/P3
+**Status:** wichtig, aber nicht jetzt zuerst
 **Risiko:** sichtbares Fehlverhalten, aber weniger gefährlich als state.json/commands
 
 ### Problemfelder
@@ -582,8 +582,8 @@ Persistence speichert keine Door-/Navigation-Runtime
 
 ## Block 2 — Loader & JSON-Hierarchie
 
-**Priorität:** P2  
-**Status:** relativ stabil  
+**Priorität:** P2
+**Status:** relativ stabil
 **Risiko:** falsche Definitionen erzeugen falsche Spawns
 
 ### Was gut ist
@@ -623,8 +623,8 @@ NPC-Instanz speichert konkrete Marker.
 
 ## Block 1 — Plugin / Einstieg
 
-**Priorität:** P2  
-**Status:** nicht größter Brand  
+**Priorität:** P2
+**Status:** nicht größter Brand
 **Risiko:** falsche Start-Reihenfolge
 
 Wichtig bleibt:
@@ -646,8 +646,8 @@ Aktuell sehe ich diesen Block nicht als nächsten Fix-Hotspot.
 
 ## Block 9 — Safety / Kontrollregeln
 
-**Priorität:** dauerhaft P1  
-**Status:** gut, aber Versionsdrift beachten  
+**Priorität:** dauerhaft P1
+**Status:** gut, aber Versionsdrift beachten
 **Risiko:** alte Regeln widersprechen neuen Patches
 
 ### Wichtigster Befund
@@ -680,8 +680,8 @@ getNextAvailable(...) bleibt deprecated und darf nicht in read-only Pfade.
 
 ## Block 10 — Hytale API / Engine
 
-**Priorität:** P2/P3  
-**Status:** Research wichtig, aber nicht nächster Daten-Safety-Fix  
+**Priorität:** P2/P3
+**Status:** Research wichtig, aber nicht nächster Daten-Safety-Fix
 **Risiko:** eigene Logik baut gegen Engine
 
 Wichtige No-Gos:
@@ -702,7 +702,7 @@ Hytale-API-Research später gezielt machen:
 1. EntityRef / UUID lookup prüfen
 2. Chunk loaded API sauber prüfen
 3. Pathfinder / Instruction / MotionController prüfen
-4. DoorInteraction / InteractionChain prüfen
+4. DoorInteraction / InteractionChain prüfenphase 3
 ```
 
 Aber nicht in den nächsten Marker-v2-Fix mischen.
@@ -715,13 +715,13 @@ Aber nicht in den nächsten Marker-v2-Fix mischen.
 
 ### P1 — `NpcRespawnMissingCommand` ignoriert Save-Ergebnis
 
-**Problem:**  
+**Problem:**
 `saveStateSafely()` wird aufgerufen, aber Ergebnis wird nicht geprüft.
 
-**Gefahr:**  
+**Gefahr:**
 Runtime ändert sich, `state.json` speichert nicht, Command meldet trotzdem Erfolg.
 
-**Fix:**  
+**Fix:**
 Wenn Save fehlschlägt:
 
 ```text
@@ -734,13 +734,13 @@ optional: Rollback, falls sicher möglich
 
 ### P1 — Marker-Zuweisung prüft worldId nicht hart genug
 
-**Problem:**  
+**Problem:**
 Marker wird in Spieler-Welt gesetzt, Ziel-NPC kann theoretisch in anderer Welt sein.
 
-**Gefahr:**  
+**Gefahr:**
 NPC bekommt Marker aus falscher Welt.
 
-**Fix:**  
+**Fix:**
 `assignMarkerToNpc(...)` muss prüfen:
 
 ```text
@@ -753,29 +753,29 @@ marker.worldId == npc.worldId
 
 ### P1 — `SpawnNpcCommand` nutzt boolean Rollback
 
-**Problem:**  
+**Problem:**
 Nach Save-Failure wird `scheduler.removeNpc(...)` mit boolean-Rückgabe genutzt.
 
-**Gefahr:**  
+**Gefahr:**
 Command kann nicht sauber melden, ob Entity-Removal blockiert, Record nicht gelöscht oder Rollback unvollständig war.
 
-**Fix:**  
+**Fix:**
 `SpawnNpcCommand` soll detailed RemoveResult nutzen.
 
 ---
 
 ### P1/P2 — Live-NPC Remove ist sicher, aber blockierend
 
-**Problem:**  
+**Problem:**
 `removeLiveEntity(...)` blockiert aktuell, wenn live Entity removal nicht sicher bestätigt werden kann.
 
-**Gut:**  
+**Gut:**
 Das verhindert Orphans.
 
-**Schlecht:**  
+**Schlecht:**
 Admin kann sichtbare Live-NPCs eventuell nicht praktisch löschen.
 
-**Fix später:**  
+**Fix später:**
 Entweder:
 
 ```text
@@ -792,29 +792,29 @@ B) expliziter Admin-Force-Pfad mit sehr klarer Warnung und Recovery-Mechanik
 
 ### P2 — Server-/Save-Trennung fehlt wahrscheinlich
 
-**Problem:**  
+**Problem:**
 `worldId` reicht nicht immer, wenn mehrere Server/Saves denselben Datenordner teilen.
 
-**Gefahr:**  
+**Gefahr:**
 Falsche NPCs/Marker aus anderem Save werden geladen.
 
-**Fix später:**  
+**Fix später:**
 Nicht sofort migrieren. Erst Diagnose/Warnung, später saubere Namespace-Struktur.
 
 ---
 
 ### P2 — Role-Prefix-Code ist deaktiviert, aber noch sichtbar
 
-**Problem:**  
+**Problem:**
 Methoden wie `tryRolePrefixRelinkEntityRef(...)` existieren noch als Stub / No-Match-Pfad.
 
-**Gut:**  
+**Gut:**
 Sie geben aktuell `NO_MATCH` zurück und setzen kein dynamisches roleName.
 
-**Risiko:**  
+**Risiko:**
 Späterer Agent könnte sie fälschlich reaktivieren.
 
-**Fix:**  
+**Fix:**
 Später entfernen oder noch deutlicher als verboten/deprecated markieren.
 
 ---
@@ -941,8 +941,8 @@ Diese Phase ist Pflicht, bevor Marker-v2 wirklich implementiert wird.
 
 ### Step 0.1 — `NpcRespawnMissingCommand` Save-Failure prüfen
 
-**Block:** 8 + 3 + 4  
-**Priorität:** P1  
+**Block:** 8 + 3 + 4
+**Priorität:** P1
 **Scope:** sehr klein
 
 Ziel:
@@ -975,8 +975,8 @@ Wenn ja: FAIL.
 
 ### Step 0.2 — Marker-Zuweisung mit worldId/type/id-Gate härten
 
-**Block:** 7 + 3 + 8  
-**Priorität:** P1  
+**Block:** 7 + 3 + 8
+**Priorität:** P1
 **Scope:** klein
 
 Ziel:
@@ -1011,8 +1011,8 @@ Wenn ja: FAIL.
 
 ### Step 0.3 — `SpawnNpcCommand` Save-Failure-Rollback detaillieren
 
-**Block:** 4 + 8  
-**Priorität:** P1  
+**Block:** 4 + 8
+**Priorität:** P1
 **Scope:** klein
 
 Ziel:
@@ -1046,8 +1046,8 @@ Wenn ja: FAIL.
 
 ### Step 0.4 — Safety-Doku Versionsdrift bereinigen
 
-**Block:** 9  
-**Priorität:** P1/P2  
+**Block:** 9
+**Priorität:** P1/P2
 **Scope:** Markdown-only
 
 Ziel:
@@ -1081,8 +1081,8 @@ Wenn ja: FAIL.
 
 ## Phase 1 — Marker-v2 Plan Mode
 
-**Start:** nach Phase 0  
-**Priorität:** P1/P2  
+**Start:** nach Phase 0
+**Priorität:** P1/P2
 **Ziel:** Marker-v2 planen, noch nicht bauen
 
 Jetzt darfst du Marker-v2 aktiv einplanen.

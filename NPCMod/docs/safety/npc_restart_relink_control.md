@@ -154,12 +154,8 @@ Persistiert werden sollen:
 - `currentPosition`
 - `entityUuid`
 - Marker-Zuweisungen:
-  - `bedMarkerId`
-  - `workMarkerId`
-  - `foodMarkerId`
-  - `chestMarkerId`
-  - `doorMarkerId`
-  - spätere Marker über `markerAssignments`
+  - nur `markerAssignments`
+  - Legacy-Markerfelder sind entfernt
 
 Nicht persistiert werden dürfen:
 
@@ -320,7 +316,8 @@ lastActionNoRestartLog(null)
 Door-/Pending-Runtime-State clearen
 ```
 
-Alte Felder aus früheren `state.json`-Dateien dürfen weiterhin lesbar sein, aber sie dürfen keine aktive Route reaktivieren.
+Alte Legacy-Markerfelder aus früheren `state.json`-Dateien sind nicht mehr kompatibel.
+Sie werden als unsupported Legacy-Payload erkannt, geloggt und führen zu einem Load-Abbruch (Failure).
 
 ### Was geschützt wird
 
@@ -358,7 +355,7 @@ Spätere Änderungen dürfen nicht wieder aktivieren:
 - [ ] Wird alte Navigation beim Load ignoriert?
 - [ ] Wird keine alte Route resumed?
 - [ ] Bleiben `npcId`, `entityUuid`, `roleId`, Marker und State erhalten?
-- [ ] Bleibt `state.json` kompatibel?
+- [ ] Wird Legacy-`state.json` mit alten Markerfeldern als unsupported blockiert (ohne Auto-Migration)?
 
 ---
 
@@ -858,7 +855,7 @@ Spätere Änderungen dürfen nicht:
 - [ ] Bleibt Shutdown-Save?
 - [ ] Wird `entityRef` nicht gespeichert?
 - [ ] Wird Runtime-Navigation nicht gespeichert?
-- [ ] Bleibt `state.json` kompatibel?
+- [ ] Bleibt Save bei partial/failure blockiert (kein stilles Überschreiben)?
 
 ---
 
@@ -1040,7 +1037,7 @@ In diesen Kontexten ist verboten:
 
 - MarkerAssignments automatisch löschen
 - MarkerAssignments automatisch ersetzen
-- `bedMarkerId`/`doorMarkerId`/`chestMarkerId`/`foodMarkerId`/`workMarkerId`/`chillMarkerId` automatisch auf `null` setzen
+- Legacy-Markerfelder aus alter `state.json` automatisch in `markerAssignments` übernehmen
 - `stateDirty` nur wegen Reconcile setzen
 - `saveStateSafely()` nur wegen Reconcile auslösen
 - kaputte/inkonsistente MarkerAssignments still bereinigen und in `state.json` zurückschreiben
@@ -1052,20 +1049,15 @@ Mutierendes Reconcile ist nur in expliziten Kontexten erlaubt:
 - Spawn
 - Admin-Kontext
 
-Explizite Legacy->markerAssignments-Migration ist nur in einem dedizierten Admin-Command erlaubt:
+Legacy-Migration ist deaktiviert.
 
-- `/knpc marker migrate --dry-run`
-- `/knpc marker migrate --apply`
+Pflichtverhalten bei alter Legacy-`state.json`:
 
-Pflicht-Gates fuer diesen Migrationspfad:
-
-- Backup vor Apply
-- Apply nur nach Dry-run
-- Block bei `stateLoadFailed`
-- Block bei `stateLoadPartial`
-- `saveStateSafely()` muss erfolgreich sein
-- bei Save-Failure: keine Erfolgsmeldung und Rollback/Drift-Warnung
-- keine Legacy-Feldloeschung im ersten Migrationsstep
+- Legacy-Markerfelder erkennen und klar als unsupported loggen
+- Load blockieren (Failure), kein stilles Weiterladen
+- keine automatische Übernahme in `markerAssignments`
+- kein Reparatur-Save
+- kein stilles Umschreiben der Datei
 
 Verboten bleibt:
 
@@ -1073,7 +1065,8 @@ Verboten bleibt:
 - Migration beim Restore
 - Migration bei Diagnose/Validation
 - Migration im Tick
-- automatische Legacy-Loeschung
+- Migration per Admin-Command
+- automatische Legacy-Reparatur
 
 Symbol-Audit (Markdown-only, ohne Compile):
 
@@ -1332,10 +1325,10 @@ Prüfen:
 
 - [ ] `entityRef` wird nicht gespeichert?
 - [ ] Runtime-Navigation wird nicht als aktive Route gespeichert?
-- [ ] Alte `state.json` bleibt kompatibel?
+- [ ] Legacy-`state.json` mit alten Markerfeldern wird als unsupported blockiert (Load-Failure, keine Migration)?
 - [ ] `npcId`, `entityUuid`, `roleId`, Marker und State bleiben erhalten?
 - [ ] Beim Load werden Runtime-Felder gecleart?
-- [ ] Persistenzmodell bleibt migrationssicher?
+- [ ] Marker-Wahrheit bleibt ausschließlich `markerAssignments`?
 
 ---
 
@@ -1715,6 +1708,9 @@ Step 9: Load/Save-Failure blockiert destruktive Overwrites, Dirty-Reset nur nach
 Step 10: PENDING stoppt Fallbacks; respawnAfterRestart und Position-Safety sind harte Gates
 Step 11: Marker-Fallback read-only vs mutierend getrennt; Remove/Clear-Orphan und ACTIVE-Bind gehärtet
 Step 12: Reconcile-/Cleanup-Regeln für MarkerAssignments in read-only Pfaden finalisiert
+Step 13: Phase-0 Regression-Checks 0.1/0.2/0.3 als PASS/NOOP bestätigt
+Step 14: Marker-v2-Phasenregeln validiert (role+markerName-Staging, kein lastByType als Role-Staging-Wahrheit, Reassign nur nach npcName-Eindeutigkeit)
+Step 15: Legacy-Markerfelder als unsupported gesetzt (kein Load-Migrate, kein Admin-Migrate, keine Altwelt-Unterstützung)
 ```
 
 Wichtigster finaler Architekturentscheid:
@@ -1755,7 +1751,7 @@ Vor Abschluss eines Patches muss beantwortet werden:
 [ ] Reconcile setzt in read-only Pfaden weder stateDirty noch Save-Trigger?
 [ ] entityRef nicht persistiert?
 [ ] Runtime-Navigation nicht persistiert?
-[ ] state.json kompatibel?
+[ ] Legacy-state mit alten Markerfeldern wird als unsupported blockiert (Load-Failure), ohne Migration und ohne Auto-Save?
 [ ] Keine neue Log-Flut?
 [ ] Falls Safety-Regel geändert: Diese Datei aktualisiert?
 ```

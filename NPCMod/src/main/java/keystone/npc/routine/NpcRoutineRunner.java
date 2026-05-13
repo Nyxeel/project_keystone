@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -561,7 +562,7 @@ public final class NpcRoutineRunner {
         String previousMarkerId = markerResolver.markerIdForType(npc, markerType);
         MarkerRecord previousMarker = markerResolver.resolveMarkerInNpcWorld(npc, markerType, previousMarkerId).orElse(null);
 
-        markerResolver.setMarkerIdForType(npc, markerType, markerId);
+        setMarkerAssignmentForType(npc, markerType, markerId);
         markDirty();
 
         if (!shouldStartRetargetWalkFromCurrentMarker(npc, markerType, previousMarker)) {
@@ -584,6 +585,30 @@ public final class NpcRoutineRunner {
                 + " newMarkerId=" + markerId);
         }
         return started;
+    }
+
+    private void setMarkerAssignmentForType(NpcRecord npc, MarkerType markerType, String markerId) {
+        if (npc == null || markerType == null) {
+            return;
+        }
+
+        Map<String, MarkerAssignment> assignments = new LinkedHashMap<>(npc.markerAssignments());
+        String logicalKey = switch (markerType) {
+            case BED -> "bed";
+            case DOOR -> "door";
+            case CHEST -> "chest";
+            case FOOD -> "food";
+            case WORK -> "work";
+            case CHILL -> "chill";
+        };
+
+        if (markerId == null || markerId.isBlank()) {
+            assignments.remove(logicalKey);
+        } else {
+            assignments.put(logicalKey, new MarkerAssignment(markerId, markerType));
+        }
+
+        npc.markerAssignments(assignments);
     }
 
     public record RemoveNpcRollbackSnapshot(
@@ -877,22 +902,12 @@ public final class NpcRoutineRunner {
 
     private Set<String> collectOwnedMarkerIds(NpcRecord npc) {
         Set<String> ownedMarkerIds = new HashSet<>();
-        addMarkerIdIfPresent(ownedMarkerIds, npc.bedMarkerId());
-        addMarkerIdIfPresent(ownedMarkerIds, npc.doorMarkerId());
-        addMarkerIdIfPresent(ownedMarkerIds, npc.chestMarkerId());
-        addMarkerIdIfPresent(ownedMarkerIds, npc.foodMarkerId());
-        addMarkerIdIfPresent(ownedMarkerIds, npc.workMarkerId());
-        addMarkerIdIfPresent(ownedMarkerIds, npc.chillMarkerId());
         addMarkerAssignmentsIfPresent(ownedMarkerIds, npc.markerAssignments());
         return ownedMarkerIds;
     }
 
     private boolean shouldCleanupOwnedMarkersOnRecordDelete(NpcRecord npc) {
-        if (npc == null || npc.entityStatus() == null) {
-            return false;
-        }
-
-        return npc.entityStatus() == NpcEntityStatus.ACTIVE;
+        return npc != null;
     }
 
     private String blockedRemoveMessage(EntityRemovalOutcome outcome) {
@@ -902,6 +917,10 @@ public final class NpcRoutineRunner {
 
         return switch (outcome) {
             case BLOCKED_ENTITY_UNCONFIRMED -> "blocked-entity-unconfirmed";
+            case BLOCKED_STATUS_NEEDS_RELINK -> "blocked-status-needs-relink";
+            case BLOCKED_STATUS_MISSING_ENTITY -> "blocked-status-missing-entity";
+            case BLOCKED_CHUNK_UNLOADED -> "blocked-chunk-unloaded";
+            case BLOCKED_AMBIGUOUS_ENTITY_STATE -> "blocked-ambiguous-entity-state";
             case REMOVAL_FAILED_REF_INVALID -> "blocked-entity-ref-invalid";
             case REMOVAL_FAILED_WORLD_MISSING -> "blocked-world-missing";
             case REMOVAL_FAILED_QUEUE_EXCEPTION -> "blocked-entity-removal-queue-exception";
@@ -935,12 +954,6 @@ public final class NpcRoutineRunner {
                 continue;
             }
 
-            addMarkerIdIfPresent(markerIds, npc.bedMarkerId());
-            addMarkerIdIfPresent(markerIds, npc.doorMarkerId());
-            addMarkerIdIfPresent(markerIds, npc.chestMarkerId());
-            addMarkerIdIfPresent(markerIds, npc.foodMarkerId());
-            addMarkerIdIfPresent(markerIds, npc.workMarkerId());
-            addMarkerIdIfPresent(markerIds, npc.chillMarkerId());
             addMarkerAssignmentsIfPresent(markerIds, npc.markerAssignments());
             addMarkerIdIfPresent(markerIds, npc.navigationState().getTargetMarkerId());
         }
@@ -2305,6 +2318,10 @@ public final class NpcRoutineRunner {
 
     private enum EntityRemovalOutcome {
         NO_IDENTITY,
+        BLOCKED_STATUS_NEEDS_RELINK,
+        BLOCKED_STATUS_MISSING_ENTITY,
+        BLOCKED_CHUNK_UNLOADED,
+        BLOCKED_AMBIGUOUS_ENTITY_STATE,
         BLOCKED_ENTITY_UNCONFIRMED,
         REMOVAL_FAILED_REF_INVALID,
         REMOVAL_FAILED_WORLD_MISSING,
@@ -2317,18 +2334,57 @@ public final class NpcRoutineRunner {
 
     private EntityRemovalOutcome removeLiveEntity(NpcRecord npc) {
         Ref<EntityStore> liveRef = npc.entityRef();
+        NpcEntityStatus status = npc.entityStatus();
 
         boolean hasPersistedIdentity = (npc.entityUuid() != null && !npc.entityUuid().isBlank()) || npc.entityId() != 0;
         boolean hasLiveRef = liveRef != null && liveRef.isValid();
+
+        if (status == NpcEntityStatus.NEEDS_RELINK) {
+            logSevere("REMOVE_LIVE_ENTITY_BLOCKED_NEEDS_RELINK", "Blocked NPC removal because entityStatus is NEEDS_RELINK: "
+                + "npcId=" + npc.npcId()
+                + " npcName=" + quote(npc.npcName()));
+            return EntityRemovalOutcome.BLOCKED_STATUS_NEEDS_RELINK;
+        }
+
+        if (status == NpcEntityStatus.MISSING_ENTITY) {
+            logSevere("REMOVE_LIVE_ENTITY_BLOCKED_MISSING_ENTITY", "Blocked NPC removal because entityStatus is MISSING_ENTITY (safe-by-default): "
+                + "npcId=" + npc.npcId()
+                + " npcName=" + quote(npc.npcName()));
+            return EntityRemovalOutcome.BLOCKED_STATUS_MISSING_ENTITY;
+        }
+
+        if (status == null) {
+            logSevere("REMOVE_LIVE_ENTITY_BLOCKED_AMBIGUOUS", "Blocked NPC removal because entityStatus is null (ambiguous state): "
+                + "npcId=" + npc.npcId()
+                + " npcName=" + quote(npc.npcName()));
+            return EntityRemovalOutcome.BLOCKED_AMBIGUOUS_ENTITY_STATE;
+        }
+
+        if (status != NpcEntityStatus.ACTIVE && status != NpcEntityStatus.DISABLED) {
+            logSevere("REMOVE_LIVE_ENTITY_BLOCKED_AMBIGUOUS", "Blocked NPC removal because entityStatus is unsupported for safe deletion: "
+                + "npcId=" + npc.npcId()
+                + " npcName=" + quote(npc.npcName())
+                + " entityStatus=" + status.name());
+            return EntityRemovalOutcome.BLOCKED_AMBIGUOUS_ENTITY_STATE;
+        }
 
         if (!hasPersistedIdentity && !hasLiveRef) {
             return EntityRemovalOutcome.NO_IDENTITY;
         }
 
+        if (status == NpcEntityStatus.DISABLED) {
+            logSevere("REMOVE_LIVE_ENTITY_BLOCKED_AMBIGUOUS", "Blocked NPC removal for DISABLED record with unresolved entity identity state: "
+                + "npcId=" + npc.npcId()
+                + " npcName=" + quote(npc.npcName())
+                + " hasPersistedIdentity=" + hasPersistedIdentity
+                + " hasLiveRef=" + hasLiveRef);
+            return EntityRemovalOutcome.BLOCKED_AMBIGUOUS_ENTITY_STATE;
+        }
+
         if (!hasLiveRef) {
             System.err.println("[KeystoneNPC] Cannot safely remove entity for NPC '" + npc.npcName()
                 + "' (" + npc.npcId() + "): live entity ref invalid while identity still present");
-            return EntityRemovalOutcome.REMOVAL_FAILED_REF_INVALID;
+            return EntityRemovalOutcome.BLOCKED_AMBIGUOUS_ENTITY_STATE;
         }
 
         World world = Universe.get().getWorld(npc.worldId().value());
@@ -2338,8 +2394,31 @@ public final class NpcRoutineRunner {
             return EntityRemovalOutcome.REMOVAL_FAILED_WORLD_MISSING;
         }
 
-        // Safety-first: do not start live entity removal when record deletion would still be blocked.
-        logSevere("REMOVE_LIVE_ENTITY_BLOCKED_UNCONFIRMED", "Live entity removal was not started because queue-only removal is unconfirmed and record deletion would stay blocked: "
+        Vec3 livePosition = readPosition(liveRef);
+        if (livePosition == null || !isChunkLoadedForPosition(world, livePosition)) {
+            logSevere("REMOVE_LIVE_ENTITY_BLOCKED_CHUNK_UNLOADED", "Blocked NPC removal because live entity chunk is not loaded/verified: "
+                + "npcId=" + npc.npcId()
+                + " npcName=" + quote(npc.npcName())
+                + " world=" + quote(world.getName())
+                + " position=" + (livePosition == null ? "-" : quote(livePosition.toString())));
+            return EntityRemovalOutcome.BLOCKED_CHUNK_UNLOADED;
+        }
+
+        try {
+            liveRef.getStore().removeEntity(liveRef, RemoveReason.REMOVE);
+        } catch (RuntimeException ex) {
+            logSevere("REMOVE_LIVE_ENTITY_QUEUE_FAILED", "Failed to queue live entity removal for NPC: "
+                + "npcId=" + npc.npcId()
+                + " npcName=" + quote(npc.npcName())
+                + " reason=" + ex.getClass().getSimpleName() + ":" + ex.getMessage());
+            return EntityRemovalOutcome.REMOVAL_FAILED_QUEUE_EXCEPTION;
+        }
+
+        if (!liveRef.isValid()) {
+            return EntityRemovalOutcome.NO_IDENTITY;
+        }
+
+        logSevere("REMOVE_LIVE_ENTITY_BLOCKED_UNCONFIRMED", "Blocked NPC record deletion because live entity removal is not safely confirmed yet: "
             + "npcId=" + npc.npcId()
             + " npcName=" + quote(npc.npcName()));
         return EntityRemovalOutcome.BLOCKED_ENTITY_UNCONFIRMED;
@@ -3043,12 +3122,16 @@ public final class NpcRoutineRunner {
             + " pos=" + formatPosition(pos)
             + " trigger=" + quote(trigger)
             + " failures=" + failures
-            + " markers={bed=" + nullToDash(npc.bedMarkerId())
-            + ",door=" + nullToDash(npc.doorMarkerId())
-                + ",chest=" + nullToDash(npc.chestMarkerId())
-                + ",food=" + nullToDash(npc.foodMarkerId())
-                + ",work=" + nullToDash(npc.workMarkerId())
-                + ",chill=" + nullToDash(npc.chillMarkerId()) + "}";
+            + " markers=" + markerSummary(npc);
+    }
+
+    private String markerSummary(NpcRecord npc) {
+        return "{bed=" + nullToDash(markerResolver.markerIdForType(npc, MarkerType.BED))
+            + ",door=" + nullToDash(markerResolver.markerIdForType(npc, MarkerType.DOOR))
+            + ",chest=" + nullToDash(markerResolver.markerIdForType(npc, MarkerType.CHEST))
+            + ",food=" + nullToDash(markerResolver.markerIdForType(npc, MarkerType.FOOD))
+            + ",work=" + nullToDash(markerResolver.markerIdForType(npc, MarkerType.WORK))
+            + ",chill=" + nullToDash(markerResolver.markerIdForType(npc, MarkerType.CHILL)) + "}";
     }
 
     private String nullToDash(String value) {

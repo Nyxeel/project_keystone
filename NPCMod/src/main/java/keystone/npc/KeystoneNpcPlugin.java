@@ -5,7 +5,6 @@ import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 
 import javax.annotation.Nonnull;
 
@@ -17,6 +16,7 @@ import com.hypixel.hytale.server.npc.AllNPCsLoadedEvent;
 import keystone.npc.commands.NpcCommandRegistrar;
 import keystone.npc.definition.NpcDefinitionRegistry;
 import keystone.npc.definition.NpcTemplateResolver;
+import keystone.npc.markers.ActiveSpawnMarkerStore;
 import keystone.npc.markers.MarkerRegistry;
 import keystone.npc.persistence.JsonFileStateStore;
 import keystone.npc.roles.RoleDefinitionRegistry;
@@ -34,6 +34,7 @@ public class KeystoneNpcPlugin extends JavaPlugin {
     private static final String STATE_FILE = "state.json";
 
     private final MarkerRegistry markerRegistry = new MarkerRegistry();
+    private final ActiveSpawnMarkerStore activeSpawnMarkerStore = new ActiveSpawnMarkerStore();
     private final RoleDefinitionRegistry roleDefinitions;
     private final NpcDefinitionRegistry npcDefinitions;
     private final NpcTemplateResolver templateResolver;
@@ -125,24 +126,6 @@ public class KeystoneNpcPlugin extends JavaPlugin {
         return stateLoadPartial;
     }
 
-    public Path createStateBackupForMigration() {
-        Path stateFilePath = pluginDataDirectory.resolve(STATE_FILE).toAbsolutePath().normalize();
-        if (!Files.exists(stateFilePath) || !Files.isRegularFile(stateFilePath)) {
-            System.err.println("[KeystoneNPC][MIGRATION_BACKUP_FAILED] State file missing: " + stateFilePath);
-            return null;
-        }
-
-        Path backupPath = stateFilePath.getParent().resolve("state.migration." + System.currentTimeMillis() + ".bak.json");
-        try {
-            Files.copy(stateFilePath, backupPath, StandardCopyOption.COPY_ATTRIBUTES);
-            return backupPath;
-        } catch (Exception ex) {
-            System.err.println("[KeystoneNPC][MIGRATION_BACKUP_FAILED] Could not create backup: "
-                + backupPath + " " + ex.getClass().getSimpleName() + ": " + ex.getMessage());
-            return null;
-        }
-    }
-
     public boolean saveStateSafely() {
         if (stateLoadFailed) {
             System.err.println("[KeystoneNPC][PLUGIN_SAVE_BLOCKED_AFTER_LOAD_FAILURE] Save blocked because state load failed earlier; refusing to overwrite potentially recoverable state.json.");
@@ -166,6 +149,10 @@ public class KeystoneNpcPlugin extends JavaPlugin {
                 + e.getClass().getSimpleName() + ": " + e.getMessage());
             return false;
         }
+    }
+
+    public ActiveSpawnMarkerStore activeSpawnMarkerStore() {
+        return activeSpawnMarkerStore;
     }
 
     /** Called after setup(), when the server is ready and the plugin should start running. */

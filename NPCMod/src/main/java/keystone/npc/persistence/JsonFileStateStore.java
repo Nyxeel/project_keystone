@@ -17,7 +17,11 @@ import java.util.Objects;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
+import com.google.gson.JsonParser;
 
 import keystone.npc.domain.MarkerAssignment;
 import keystone.npc.domain.NpcEntityStatus;
@@ -113,6 +117,11 @@ public final class JsonFileStateStore implements StateStore {
             }
 
             ParseFlags parseFlags = new ParseFlags();
+            if (detectLegacyPersistedMarkerFields(raw)) {
+                System.err.println("[KeystoneNPC][STATE_LOAD_UNSUPPORTED_LEGACY_MARKERS] State load aborted: legacy marker fields are unsupported in this build.");
+                System.err.println("[KeystoneNPC][STATE_LOAD_UNSUPPORTED_LEGACY_MARKERS] No migration is performed. Old worlds are not supported.");
+                return LoadResult.failure();
+            }
 
             List<MarkerRecord> markers = new ArrayList<>();
             if (persisted.markers() != null) {
@@ -274,16 +283,81 @@ public final class JsonFileStateStore implements StateStore {
                 position == null ? null : new PersistedVec3(position.x(), position.y(), position.z()),
                 npc.homeInstanceId(),
                 npc.workInstanceId(),
-                npc.bedMarkerId(),
-                npc.doorMarkerId(),
-                npc.chestMarkerId(),
-                npc.foodMarkerId(),
-                npc.workMarkerId(),
-                npc.chillMarkerId(),
                 markerAssignments,
                 npc.entityUuid(),
                 navigation
         );
+    }
+
+    private boolean detectLegacyPersistedMarkerFields(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return false;
+        }
+
+        try {
+            JsonElement rootElement = JsonParser.parseString(raw);
+            if (!rootElement.isJsonObject()) {
+                return false;
+            }
+
+            JsonObject root = rootElement.getAsJsonObject();
+            JsonElement npcsElement = root.get("npcs");
+            if (npcsElement == null || !npcsElement.isJsonArray()) {
+                return false;
+            }
+
+            JsonArray npcs = npcsElement.getAsJsonArray();
+            for (int i = 0; i < npcs.size(); i++) {
+                JsonElement npcElement = npcs.get(i);
+                if (npcElement == null || !npcElement.isJsonObject()) {
+                    continue;
+                }
+
+                JsonObject npcObject = npcElement.getAsJsonObject();
+                List<String> legacyFields = findLegacyMarkerFields(npcObject);
+                if (legacyFields.isEmpty()) {
+                    continue;
+                }
+
+                System.err.println("[KeystoneNPC][STATE_LOAD_LEGACY_MARKER_FIELDS] Found unsupported legacy marker fields in npc entry index="
+                    + i + ": " + String.join(",", legacyFields)
+                    + ". Legacy marker fields are unsupported; load is blocked and no migration is performed.");
+                return true;
+            }
+        } catch (RuntimeException ex) {
+            System.err.println("[KeystoneNPC][STATE_LOAD_LEGACY_MARKER_SCAN_SKIPPED] Could not inspect state payload for legacy marker fields: "
+                + ex.getClass().getSimpleName() + ": " + ex.getMessage());
+        }
+
+        return false;
+    }
+
+    private List<String> findLegacyMarkerFields(JsonObject npcObject) {
+        List<String> fields = new ArrayList<>();
+        if (npcObject == null) {
+            return fields;
+        }
+
+        if (npcObject.has("bedMarkerId")) {
+            fields.add("bedMarkerId");
+        }
+        if (npcObject.has("workMarkerId")) {
+            fields.add("workMarkerId");
+        }
+        if (npcObject.has("doorMarkerId")) {
+            fields.add("doorMarkerId");
+        }
+        if (npcObject.has("foodMarkerId")) {
+            fields.add("foodMarkerId");
+        }
+        if (npcObject.has("chestMarkerId")) {
+            fields.add("chestMarkerId");
+        }
+        if (npcObject.has("chillMarkerId")) {
+            fields.add("chillMarkerId");
+        }
+
+        return fields;
     }
 
     private NpcState normalizePersistedState(NpcState state) {
@@ -438,12 +512,6 @@ public final class JsonFileStateStore implements StateStore {
 
         record.homeInstanceId(npc.homeInstanceId());
         record.workInstanceId(npc.workInstanceId());
-        record.bedMarkerId(npc.bedMarkerId());
-        record.doorMarkerId(npc.doorMarkerId());
-        record.chestMarkerId(npc.chestMarkerId());
-        record.foodMarkerId(npc.foodMarkerId());
-        record.workMarkerId(npc.workMarkerId());
-        record.chillMarkerId(npc.chillMarkerId());
         record.markerAssignments(toRuntimeMarkerAssignments(npc.markerAssignments(), parseFlags, npc.npcId()));
 
         restorePersistedNavigation(record, npc.navigation());

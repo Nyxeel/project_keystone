@@ -1,6 +1,9 @@
+# NPCMod / KeystoneNPC — Inhaltlicher Auswertungs- und Logic-Check-Prompt
+
 Du bekommst gleich eine technische Grundlage zu meinem Projekt NPCMod / KeystoneNPC.
 
 Diese Grundlage kann sein:
+
 - ein Lagebericht
 - Patchreports
 - eine Phase wie „Phase 0“
@@ -9,27 +12,33 @@ Diese Grundlage kann sein:
 - Safety-Dokumente
 - Code-Audit-Ergebnisse
 - eine geplante Feature-Phase wie Marker-v2
+- ein bestehender Plan
 
 DEINE AUFGABE:
-Erstelle daraus sichere AI-/Coder-Anweisungen für PLAN Mode, Agent Steps, Reviews und Fix-Prompts.
+Erstelle daraus eine sichere technische Auswertung.
 
 WICHTIG:
 Du sollst NICHT implementieren.
 Du sollst NICHT selbst Dateien ändern.
 Du sollst NICHT blind alte Reports übernehmen.
+
 Du sollst logisch prüfen:
+
 - Was ist wirklich noch offen?
 - Was wurde laut Patchreports schon erledigt?
 - Wo gibt es Widersprüche?
 - Wo droht Kreisarbeit?
 - Wo könnte ein Fix neue Logic Errors erzeugen?
 - Welche Reihenfolge ist sicher?
+- Welche Punkte sind echte offene Fixes?
+- Welche Punkte sind nur Doku-Drift?
+- Welche Punkte müssen NOOP / bereits erledigt sein?
 
 ────────────────────────────
 1. QUELLEN-PRIORITÄT
 ────────────────────────────
 
-Wenn Quellen widersprüchlich sind, gilt diese Reihenfolge:
+Wenn mehrere Informationen widersprüchlich wirken, gilt diese Reihenfolge:
 
 1. aktueller Codezustand im Repository
 2. neueste Patchreports
@@ -54,7 +63,7 @@ Wenn aktueller Code nicht geprüft werden kann:
 2. ANTI-KREIS-REGEL
 ────────────────────────────
 
-Vor jedem geplanten Fix-Step muss geprüft werden:
+Vor jedem empfohlenen Fix-Step muss geprüft werden:
 
 1. Ist der Fehler im aktuellen Code wirklich noch vorhanden?
 2. Wurde er laut neuestem Patchreport bereits gefixt?
@@ -64,14 +73,25 @@ Vor jedem geplanten Fix-Step muss geprüft werden:
 
 Wenn nein:
 
-- keine Umsetzung planen
+- keine Umsetzung empfehlen
 - als „NOOP / bereits erledigt / nur Doku-Drift“ markieren
 - kurz begründen
 
 Ziel:
-Nicht im Kreis fixen.
-Nicht alte Fehler wieder öffnen.
-Nicht große Safety-Runden ohne konkreten offenen Fehler erzeugen.
+
+- Nicht im Kreis fixen.
+- Nicht alte Fehler wieder öffnen.
+- Nicht große Safety-Runden ohne konkreten offenen Fehler erzeugen.
+- Nicht durch alte Reports neue Verwirrung erzeugen.
+
+Wenn ein Fix einen neuen Fehler erzeugt, wird dieser NICHT sofort als neuer großer Step verfolgt.
+
+Stattdessen:
+
+1. Prüfen, ob der neue Fehler direkte Nebenwirkung des aktuellen Steps ist.
+2. Wenn ja: im selben Step fixen.
+3. Wenn nein: in Backlog aufnehmen.
+4. Aktuellen Step erst abschließen, bevor ein neuer Themenbereich beginnt.
 
 ────────────────────────────
 3. SAFETY-GRUNDREGELN
@@ -89,10 +109,20 @@ Diese Regeln gelten immer:
 - Kein Auto-Respawn ohne Policy-, Chunk- und Position-Gate.
 - Kein Marker-Ersatz in read-only Pfaden.
 - Kein dynamisches setRoleName("KeystoneNPC_...").
-- Keine Runtime-Daten als persistente Wahrheit speichern.
+- Kein Role-Prefix-Fallback.
+- Kein blindes Relinken per gleicher Role.
+- Kein Auto-Respawn bei AMBIGUOUS.
+- Keine Dedupe-Löschung nur wegen gleicher Role.
+- Kein Runtime-Fallback darf still als persistente Wahrheit gespeichert werden.
+- Keine state.json überschreiben, wenn Load unsicher, kaputt oder partial ist.
+- Keine Records löschen, wenn Entity-Removal unsicher ist.
 - Keine großen Refactors in Safety-Fixes.
 - Keine angrenzenden Features nebenbei.
 - Kein Marker-v2 nebenbei in Phase 0.
+- Keine Door-/Navigation-/Animation-Änderungen, außer der Step betrifft genau das.
+- Keine JSON-Roles ändern, außer der Step verlangt es ausdrücklich.
+- Keine Safety-Dateien außerhalb des finalen Doku-Steps ändern, außer der User fordert es ausdrücklich als eigenen Step.
+- Keine Regelkonflikte still entscheiden.
 
 Pflichtquellen bei späterer Umsetzung:
 
@@ -114,9 +144,10 @@ Wenn AGENTS.md und safety/*.md widersprechen:
 4. LOGIC-ERROR-CHECK
 ────────────────────────────
 
-Prüfe jeden geplanten Step auf diese Fehlerarten:
+Prüfe jeden Punkt auf diese Fehlerarten:
 
 Persistence / state.json:
+
 - Wird entityRef gespeichert?
 - Wird Runtime-Navigation gespeichert?
 - Wird Door-/Action-Runtime gespeichert?
@@ -126,14 +157,20 @@ Persistence / state.json:
 - Wird currentPosition ohne worldId als sichere Wahrheit benutzt?
 
 Lifecycle / Relink / Respawn:
+
 - Kann ein zweiter NPC für denselben Record entstehen?
 - Wird MISSING_ENTITY ungewollt zu NEEDS_RELINK?
 - Wird AMBIGUOUS ignoriert?
 - Wird Anchor-Fallback zu früh genutzt?
 - Wird Auto-Respawn vor Relink oder Chunk-Gate gestartet?
 - Wird ACTIVE ohne UUID-/Ownership-Prüfung gesetzt?
+- Wird eine UUID-lose Entity ACTIVE?
+- Bleibt DISABLED wirklich DISABLED?
+- Blockiert respawnAfterRestart false/missing Auto-Respawn?
+- Prüft Chunk-Gate dieselbe Position, die Spawn nutzt?
 
 Marker:
+
 - Mutiert ein read-only Resolve?
 - Wird ein Marker beim Restart automatisch ersetzt?
 - Wird ein Marker aus falscher worldId zugewiesen?
@@ -141,20 +178,26 @@ Marker:
 - Werden Marker bei MISSING_ENTITY/NEEDS_RELINK gelöscht?
 - Werden Marker bei echtem Delete nicht gelöscht?
 - Wird getNextAvailable(...) wieder als Restore-/Tick-Fallback genutzt?
+- Löscht oder ersetzt Reconcile MarkerAssignments in Restore/Tick/Diagnose?
 
 Commands:
+
 - Meldet ein Command Erfolg trotz Save-Failure?
 - Meldet ein Command Erfolg trotz Rollback-Failure?
 - Löscht /remove oder /clear Record, obwohl Entity-Removal unsicher ist?
 - Verändert Dry-run Welt oder State?
 - Fehlt --force bei gefährlichen Aktionen?
+- Entfernt /remove oder /clear Entity, aber Record bleibt unsicher erhalten?
+- Löscht /remove oder /clear Record, aber Live-Entity bleibt ungeklärt?
 
 Engine / Hytale:
+
 - Wird roleName für Keystone-Identität missbraucht?
 - Wird eigene Fake-Pathfinding-Logik als Hauptsystem gebaut?
 - Wird lineare Transform-Bewegung als Hauptnavigation genutzt?
 - Wird Door-State direkt gehackt, obwohl InteractionChain möglich wäre?
 - Wird Hytale-API-Verhalten geraten statt geprüft?
+- Tick/Scheduler übernimmt Recovery-, Save- oder Lifecycle-Logik zu stark?
 
 ────────────────────────────
 5. PHASEN-LOGIK
@@ -202,191 +245,59 @@ Nicht mit state.json-/Marker-Fixes mischen.
 6. PRIORITÄT
 ────────────────────────────
 
-Priorisiere nach Risiko:
+Priorisiere nach Risiko und nach kritischen Blöcken aus dem NPCMod-Lagebericht.
 
 P1 zuerst:
+
+- Block 4: NPC-Lebenszyklus
+- Block 3: Persistence / state.json
+- Block 7: Marker-System
+- Block 8: Commands
+- Block 5: Scheduler / Tick
 - Save-Failure / Rollback-Failure
-- state.json / Persistence
 - Marker worldId/type/id
 - Commands mit falscher Erfolgsmeldung
 - Relink / Respawn / Lifecycle
 - Safety-Doku-Widersprüche, wenn sie Agenten falsch steuern könnten
 
 P2 später:
+
+- Block 6: Navigation / Doorway
+- Block 2: Loader / JSON-Hierarchie, falls nicht akut kaputt
 - ServerId / SaveId Namespace
 - NpcRoutineRunner aufteilen
 - Role-Prefix-Stubs entfernen/deutlicher markieren
 - Marker-v2 technische Vorbereitung
+- Engine-API-Cleanup
+- Design-Verbesserungen ohne akuten Safety-Fehler
 
 P3 später:
+
 - Navigation schöner machen
 - Doorway verbessern
 - Animation / Appearance / Combat / Drops / Faction
 - große Engine-API-Optimierung
 
 ────────────────────────────
-7. AUSGABEFORMAT
+7. PFLICHT-REIHENFOLGE AUS NPCMOD-LAGEBERICHT
 ────────────────────────────
 
-Gib das Ergebnis genau so aus:
+Wenn die Auswertung keine neueren, eindeutig wichtigeren Fehler zeigt, müssen die ersten Steps aus dem NPCMod-Lagebericht übernommen werden:
 
-A) Kurzurteil
+1. NpcRespawnMissingCommand Save-Failure prüfen
+2. Marker worldId/type/id Gate härten
+3. SpawnNpcCommand Rollback auf detailed RemoveResult umstellen
+4. Safety-Doku Sync / Versionsdrift bereinigen
+5. Marker-v2 nur PLAN Mode
 
-- Ist die Grundlage geeignet?
-- Gibt es Widersprüche?
-- Gibt es Kreisarbeitsgefahr?
-- Was ist wirklich der nächste sinnvolle Schritt?
+Diese Reihenfolge darf nur geändert werden, wenn der aktuelle Code oder ein neuerer Patchreport klar zeigt, dass ein Step bereits erledigt oder nicht mehr relevant ist.
 
-B) Widerspruchs- und Logic-Error-Analyse
+Wenn ein Step bereits erledigt ist:
 
-Für jeden gefundenen Punkt:
-
-- Problem
-- Quelle / Hinweis
-- Risiko
-- Status:
-  - offen
-  - erledigt
-  - unklar
-  - nur Doku-Drift
-  - Codeprüfung nötig
-- Empfehlung
-
-C) Offene Punkte nach Priorität
-
-Tabelle:
-
-| Priorität | Block | Thema | Status | Warum wichtig | Nächster Schritt |
-|---|---|---|---|---|---|
-
-D) Phasenplan
-
-Für jede Phase:
-
-- Ziel
-- Startbedingung
-- Nicht ändern
-- Ende-Bedingung
-- Review-Gate
-
-E) Agent-Step-Liste
-
-Für jeden Step:
-
-# Agent Step X — Name
-
-Enthalten muss sein:
-
-- Modus
-- kurzer Gesamtkontext
-- Block / Priorität
-- Ziel
-- erlaubte Dateien / Bereiche
-- Pflichtprüfung vor Änderung:
-  - existiert der Fehler noch?
-  - wurde er schon gefixt?
-  - ist der Step noch nötig?
-- konkrete Aufgaben
-- was NICHT geändert werden darf
-- Safety-Regeln
-- Compile-/Test-Gate
-- erwarteter Abschlussbericht
-
-F) Review-Prompt je Step
-
-Für jeden Step:
-
-# Review Step X — Name
-
-Der Review muss prüfen:
-
-- Wurde nur der Scope geändert?
-- Welche Dateien wurden geändert?
-- Passen die Dateien zum Step?
-- Gibt es neue Logic Errors?
-- Gibt es neue Nebenwirkungen?
-- Wurden Safety-Dateien beachtet?
-- Wurde Compile/Test ausgeführt?
-- Ist der nächste Step erlaubt?
-
-Review darf NICHT implementieren.
-
-G) Fix-Prompt je Step bei FAIL
-
-Für jeden Step:
-
-# Fix Prompt Step X — Name
-
-Der Fix-Prompt muss sagen:
-
-- Nur die Review-Fails dieses Steps beheben.
-- Keinen nächsten Step anfangen.
-- Keine neuen Features.
-- Keine angrenzenden Refactors.
-
-
-- Danach wieder Review.
-
-H) Fortschritts-Checkliste
-
-Beispiel:
-
-[ ] Plan geprüft
-[ ] Step 0.1 umgesetzt
-[ ] Step 0.1 reviewed
-[ ] Step 0.1 final PASS
-[ ] Step 0.2 umgesetzt
-[ ] Step 0.2 reviewed
-[ ] Step 0.2 final PASS
-...
-
-I) Marker-v2-Einordnung
-
-Beantworte klar:
-
-- Darf Marker-v2 jetzt starten?
-- Darf Marker-v2 nur geplant werden?
-- Welche Phase-0-Steps müssen vorher PASS sein?
-- Welche Legacy-Felder bleiben vorerst?
-- Welche Fallbacks dürfen nicht zurückkommen?
-- Was ist das Startsignal für Marker-v2 Implementierung?
-
-J) Abschluss-Doku-Step
-
-Plane als letzten Step immer:
-
-Final Step — Safety-Doku und Patchreport
-
-Dieser Step darf erst nach PASS aller vorherigen Steps laufen.
-
-Aufgaben:
-
-1. Prüfen, ob Safety-Dateien aktualisiert werden müssen:
-
-/home/pj/projects/hytale/project_keystone/NPCMod/docs/safety
-
-Besonders:
-
-/home/pj/projects/hytale/project_keystone/NPCMod/docs/safety/npc_restart_relink_control.md
-/home/pj/projects/hytale/project_keystone/NPCMod/docs/safety/json_hierarchy.md
-
-2. Patchreport erstellen im Format:
-
-YYYY-MM-DD_HH-MM_Thema-Patch.md
-
-Beispiel:
-
-2026-05-13_04-50_Marker-State-Reconcile-Safety-Patch.md
-
-3. Patchreport speichern unter:
-
-/home/pj/projects/hytale/project_keystone/NPCMod/docs/patch_reports
-
-Wichtig:
-
-- Wenn Safety-Regeln geändert wurden, müssen Safety-Dateien im selben Patch aktualisiert werden.
-- Wenn keine Safety-Regeln geändert wurden, muss der Patchreport das klar sagen.
-- Markdown-only Step braucht keinen Maven-Compile, aber Doku-Konsistenzprüfung.
+- Step als „NOOP / bereits erledigt“ markieren
+- kurz begründen
+- keinen Ersatz-Fix erfinden
+- trotzdem Review-Hinweis ausgeben
 
 ────────────────────────────
 8. SPEZIALREGEL FÜR PATCHREPORTS
@@ -434,6 +345,7 @@ Wenn die Grundlage Phase 0 ist:
 Phase 0 darf nur Safety-Fixes enthalten.
 
 Erlaubt:
+
 - Save-Failure prüfen
 - Rollback-Ergebnis prüfen
 - Marker worldId/type/id prüfen
@@ -441,6 +353,7 @@ Erlaubt:
 - Safety-Doku-Versionen angleichen
 
 Nicht erlaubt:
+
 - Marker-v2 implementieren
 - neue markerAssignments-Hauptarchitektur bauen
 - NpcRoutineRunner groß refactoren
@@ -484,9 +397,98 @@ Marker-v2 Grundregeln:
 - Migration nur explizit, mit Dry-run, Backup und Save-Failcheck.
 - Legacy-Felder bleiben zuerst kompatibel.
 - Keine harte Löschung alter Felder im ersten Marker-v2-Step.
+- Marker-v2 darf nur als spätere Phase eingeordnet werden.
+- Marker-v2 darf nicht nebenbei in Phase 0 implementiert werden.
 
 ────────────────────────────
-12. EINGABE
+12. AUSGABEFORMAT
+────────────────────────────
+
+Gib das Ergebnis genau so aus:
+
+A) Kurzurteil
+
+- Ist die Grundlage geeignet?
+- Gibt es Widersprüche?
+- Gibt es Kreisarbeitsgefahr?
+- Was ist wirklich der nächste sinnvolle Schritt?
+
+B) Widerspruchs- und Logic-Error-Analyse
+
+Für jeden gefundenen Punkt:
+
+- Problem
+- Quelle / Hinweis
+- Risiko
+- Status:
+  - offen
+  - erledigt
+  - unklar
+  - nur Doku-Drift
+  - Codeprüfung nötig
+- Empfehlung
+
+C) Offene Punkte nach Priorität
+
+Tabelle:
+
+| Priorität | Block | Thema | Status | Warum wichtig | Nächster Schritt |
+|---|---|---|---|---|
+
+D) Phasenplan
+
+Für jede Phase:
+
+- Ziel
+- Startbedingung
+- Nicht ändern
+- Ende-Bedingung
+- Review-Gate
+
+E) Kreisarbeits-Prüfung
+
+1. Dreht sich der Plan im Kreis?
+2. Welche Steps sind echte offene Fixes?
+3. Welche Steps sind nur Doku-/Review-/Absicherungsarbeit?
+4. Welche alten Punkte wirken bereits erledigt?
+5. Welche Punkte dürfen nicht erneut gefixt werden, außer der aktuelle Code zeigt eine Regression?
+
+F) Marker-v2-Einordnung
+
+Beantworte klar:
+
+- Darf Marker-v2 jetzt starten?
+- Darf Marker-v2 nur geplant werden?
+- Welche Phase-0-Steps müssen vorher PASS sein?
+- Welche Legacy-Felder bleiben vorerst?
+- Welche Fallbacks dürfen nicht zurückkommen?
+- Was ist das Startsignal für Marker-v2 Implementierung?
+
+G) Widerspruchs- und Versionsdrift-Prüfung
+
+1. Gibt es echte Regelkonflikte?
+2. Gibt es nur Versionsdrift zwischen alter Doku und neuem Code/Patchreport?
+3. Welche Quelle wirkt aktueller?
+4. Welche Punkte dürfen nicht umgesetzt werden, bevor der Konflikt geklärt ist?
+5. Welche Punkte gehören in den finalen Safety-Doku-Sync-Step?
+
+Wenn ein echter Konflikt existiert:
+
+- nicht einfach auflösen
+- REGELKONFLIKT GEFUNDEN ausgeben
+- keine Umsetzung planen, die den Konflikt versteckt
+
+H) Backlog
+
+| Risiko | Name | Betroffene Datei(en) | Warum nicht jetzt fixen? | Späterer Step |
+|---|---|---|---|---|
+| P1/P2/P3 | ... | ... | ... | ... |
+
+Wichtig:
+Backlog-Punkte dürfen nicht nebenbei umgesetzt werden.
+
+────────────────────────────
+13. EINGABE
 ────────────────────────────
 
 Hier ist die Grundlage:
@@ -494,16 +496,16 @@ Hier ist die Grundlage:
 <<AUSWERTUNG / PATCHREPORTS / PLAN / PHASE EINFÜGEN>>
 
 ────────────────────────────
-13. ABSCHLUSSANWEISUNG
+14. ABSCHLUSSANWEISUNG
 ────────────────────────────
 
 Bitte jetzt nicht implementieren.
 
-Bitte nur sichere AI-/Coder-Anweisungen, Agent Steps, Review-Prompts, Fix-Prompts und Checklisten erzeugen.
+Bitte nur sicher auswerten, logisch prüfen, Widersprüche markieren, Kreisarbeit verhindern und eine klare Phasen-/Prioritäts-Einschätzung erzeugen.
 
 Keine Dateien ändern.
 Keine Tests ausführen, die Dateien verändern.
 Keine Safety-Dateien aktualisieren.
 Keinen Patchreport schreiben.
 
-Safety-Doku-Update und Patchreport-Erstellung nur als finalen Agent-Step einplanen.
+Safety-Doku-Update und Patchreport-Erstellung nur als späteren finalen Agent-Step empfehlen, nicht jetzt ausführen.

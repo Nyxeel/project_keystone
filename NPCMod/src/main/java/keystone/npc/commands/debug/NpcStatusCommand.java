@@ -1,9 +1,12 @@
 package keystone.npc.commands.debug;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import javax.annotation.Nonnull;
 
@@ -15,6 +18,7 @@ import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
 
 import keystone.npc.debug.NpcDebugSupport;
 import keystone.npc.definition.NpcTemplateResolver;
+import keystone.npc.domain.MarkerAssignment;
 import keystone.npc.domain.NpcRecord;
 import keystone.npc.markers.MarkerRegistry;
 import keystone.npc.markers.MarkerType;
@@ -140,6 +144,8 @@ public final class NpcStatusCommand extends CommandBase {
                 context.sendMessage(Message.raw("- " + invalidStoredMarker + ": not valid for role " + npc.roleId()));
             }
         }
+
+        context.sendMessage(Message.raw("Marker source hint: markerAssignments-only (legacy fields are not active marker reads)."));
     }
 
     private String availableNpcNames(List<NpcRecord> npcs) {
@@ -181,25 +187,23 @@ public final class NpcStatusCommand extends CommandBase {
 
     private List<String> resolveInvalidStoredMarkers(NpcRecord npc, List<MarkerType> allowedMarkers) {
         List<String> invalid = new ArrayList<>();
-        for (MarkerType markerType : MarkerType.values()) {
+        Set<String> unique = new LinkedHashSet<>();
+
+        for (Map.Entry<String, MarkerAssignment> entry : npc.markerAssignments().entrySet()) {
+            if (entry == null || entry.getValue() == null || entry.getValue().markerType() == null) {
+                continue;
+            }
+
+            MarkerType markerType = entry.getValue().markerType();
             if (allowedMarkers.contains(markerType)) {
                 continue;
             }
 
-            String markerId = switch (markerType) {
-                case BED -> npc.bedMarkerId();
-                case DOOR -> npc.doorMarkerId();
-                case CHEST -> npc.chestMarkerId();
-                case FOOD -> npc.foodMarkerId();
-                case WORK -> npc.workMarkerId();
-                case CHILL -> npc.chillMarkerId();
-            };
-
-            if (markerId != null && !markerId.isBlank()) {
-                invalid.add(markerType.name());
-            }
+            String key = entry.getKey() == null || entry.getKey().isBlank() ? "-" : entry.getKey();
+            unique.add(markerType.name() + " (" + key + ")");
         }
 
+        invalid.addAll(unique);
         return invalid;
     }
 }

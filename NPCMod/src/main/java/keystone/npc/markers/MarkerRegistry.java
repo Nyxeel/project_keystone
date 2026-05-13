@@ -26,6 +26,20 @@ public final class MarkerRegistry {
     private final EnumMap<MarkerType, String> lastByType = new EnumMap<>(MarkerType.class);
 
     public synchronized void upsert(MarkerRecord marker) {
+        upsertInternal(marker, true);
+    }
+
+    /**
+     * Insert or update a marker record without changing active marker selection.
+     *
+     * Use this when marker records must exist for persistence/validation,
+     * but should not become the active marker by type.
+     */
+    public synchronized void upsertRecordOnly(MarkerRecord marker) {
+        upsertInternal(marker, false);
+    }
+
+    private void upsertInternal(MarkerRecord marker, boolean updateLastByType) {
         MarkerRecord previous = byId.put(marker.markerId(), marker);
         if (previous != null && previous.type() != marker.type()) {
             orderedIdsByType.computeIfAbsent(previous.type(), key -> new LinkedHashSet<>()).remove(marker.markerId());
@@ -35,7 +49,9 @@ public final class MarkerRegistry {
         // Reinsert to keep "latest set" order deterministic for fallback ring traversal.
         orderedIds.remove(marker.markerId());
         orderedIds.add(marker.markerId());
-        lastByType.put(marker.type(), marker.markerId());
+        if (updateLastByType) {
+            lastByType.put(marker.type(), marker.markerId());
+        }
     }
 
     /** MVP A helper: set active marker for a type (creates a new record). */

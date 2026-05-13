@@ -227,7 +227,7 @@ state.json speichert konkrete Instanzdaten
 
 ### 3.2 Absichtlich noch nicht umgesetzt
 
-- Marker-v2 ist noch nicht umgesetzt.
+- Marker-v2 ist nicht vollstaendig umgesetzt; Sicherheits-Basics wurden phasenweise nach Plan eingebaut.
 - Appearance-Apply-Logik ist noch nicht umgesetzt.
 - CombatProfile steuert noch kein vollständiges Kampfverhalten.
 - SpawnProfile steuert noch kein vollständiges Spawn-System.
@@ -713,7 +713,7 @@ Gesamte Struktur prüfen.
 - `spawns/` und `persistence/` unter Keystone.
 - Validierung aktiv.
 - README vorhanden.
-- Marker-v2 nicht eingebaut.
+- Marker-v2-Endausbau nicht vollständig eingebaut; Guardrails/Phasenregeln sind aktiv.
 
 ### Was geschützt wird
 
@@ -909,13 +909,10 @@ Erlaubt / erforderlich:
 
 ```text
 Read-only Kontexte dürfen markerAssignments nur lesen/diagnostizieren.
-Read-only Kontexte dürfen Legacy-Markerfelder niemals mutieren.
+Legacy-Markerfelder sind entfernt und dürfen nicht als kompatible Persistenzquelle behandelt werden.
 Mutierende Marker-Zuweisung/Reconcile ist nur in explizitem Spawn/Admin/Repair/Cleanup-Kontext erlaubt (harte Allowlist).
 Kaputte markerAssignments dürfen nicht still in state.json zurückgeschrieben werden.
-Legacy->markerAssignments Migration ist nur explizit per /knpc marker migrate --dry-run|--apply erlaubt.
-Migration ist im Load/Restore/Diagnose/Tick verboten.
-Migration muss Backup+Dry-run+LoadFailure/PartialLoad-Block+Save-Ergebnisprüfung erzwingen.
-Keine Legacy-Feldloeschung im ersten Migrationsstep.
+Legacy-state mit alten Markerfeldern ist unsupported: klar loggen, Load blockieren (Failure), keine Migration, keine Auto-Reparatur, kein stilles Umschreiben.
 ```
 
 Methodenstatus (Marker-Audit):
@@ -1340,6 +1337,10 @@ Step 8: Legacy-Pfade als Zielzustand entfernt
 Step 9: Keystone README validiert
 Step 10: Finaler Gesamtcheck validiert
 Step 11: Capability → Skill interner Naming-Refactor validiert
+Step 12: Phase-0 Regression-Checks 0.1/0.2/0.3 als PASS/NOOP bestätigt
+Step 13: Marker-v2 Guardrails validiert (role+markerName-Staging, kein lastByType als Role-Staging-Wahrheit)
+Step 14: Reassign-Voraussetzung validiert (npcName-Eindeutigkeit vor Reassign per npcName)
+Step 15: Legacy-Markerfelder als unsupported bestätigt (keine Load-/Admin-Migration)
 ```
 
 ### Feature-Status
@@ -1349,8 +1350,8 @@ JSON-Hierarchie: validiert
 Role-Trennung: validiert
 Group-Loader: validiert
 Skill-Naming: validiert
-Legacy-Fallback: bewusst erhalten
-Marker-v2: später geplant
+Legacy-Fallback: nur für JSON-Loader/skills-capabilities, nicht für Legacy-Markerfelder
+Marker-v2: phasenweise umgesetzt nach Plan-Steps; weitere Ausbaustufen separat
 Appearance-Apply: später geplant
 Combat/Spawn Runtime-Anbindung: später geplant
 Persistence Runtime-Anbindung: teilweise aktiv (respawnAfterRestart-Gate), sonst später geplant
@@ -1377,6 +1378,9 @@ Persistence Runtime-Anbindung: teilweise aktiv (respawnAfterRestart-Gate), sonst
 [ ] Duplicate id/role/hytaleRole wird blockiert?
 [ ] requiredMarkers/markerRoles bleiben strikt?
 [ ] Marker-v2 nicht versehentlich halb eingebaut?
+[ ] Role-Staging bleibt role+markerName-basiert (nicht lastByType-basiert)?
+[ ] Reassign per npcName bleibt an npcName-Eindeutigkeit gekoppelt?
+[ ] Legacy-Markerfelder bleiben unsupported (kein Load-Migrate, kein Admin-Migrate)?
 [ ] Read-only Reconcile überschreibt markerAssignments/state.json nicht still?
 [ ] Marker-Mutation bleibt auf Spawn/Admin/Repair/Cleanup begrenzt?
 [ ] resolveRequiredMarkerWithFallbackAssigning/resolveRequiredMarkerWithFallback bleiben entfernt?

@@ -11,6 +11,7 @@ import com.hypixel.hytale.server.core.universe.Universe;
 import keystone.npc.definition.EffectiveNpcDefinition;
 import keystone.npc.definition.NpcDebugDefinition;
 import keystone.npc.definition.NpcTemplateResolver;
+import keystone.npc.domain.MarkerAssignment;
 import keystone.npc.domain.NpcRecord;
 import keystone.npc.markers.MarkerRecord;
 import keystone.npc.markers.MarkerRegistry;
@@ -145,32 +146,32 @@ public final class NpcDebugSupport {
 
     private static Optional<MarkerRecord> resolveMarker(NpcRecord npc, MarkerRegistry markerRegistry, MarkerType markerType) {
         String markerId = markerIdForType(npc, markerType);
-        if (markerId != null && !markerId.isBlank()) {
-            Optional<MarkerRecord> direct = markerRegistry.getById(markerId)
-                .filter(marker -> marker.type() == markerType)
-                .filter(marker -> marker.worldId().equals(npc.worldId()));
-            if (direct.isPresent()) {
-                return direct;
-            }
-        }
-
-        List<MarkerRecord> candidates = markerRegistry.getCandidates(markerType, npc.worldId());
-        if (candidates.isEmpty()) {
+        if (markerId == null || markerId.isBlank()) {
             return Optional.empty();
         }
 
-        return Optional.of(candidates.get(0));
+        return markerRegistry.getById(markerId)
+            .filter(marker -> marker.type() == markerType)
+            .filter(marker -> marker.worldId().equals(npc.worldId()));
     }
 
     private static String markerIdForType(NpcRecord npc, MarkerType markerType) {
-        return switch (markerType) {
-            case BED -> npc.bedMarkerId();
-            case DOOR -> npc.doorMarkerId();
-            case CHEST -> npc.chestMarkerId();
-            case FOOD -> npc.foodMarkerId();
-            case WORK -> npc.workMarkerId();
-            case CHILL -> npc.chillMarkerId();
-        };
+        if (npc == null || markerType == null) {
+            return null;
+        }
+
+        String logicalKey = markerNameForType(markerType);
+        MarkerAssignment assignment = npc.markerAssignments().get(logicalKey);
+        if (assignment == null || assignment.markerType() != markerType) {
+            return null;
+        }
+
+        String markerId = assignment.markerId();
+        if (markerId == null || markerId.isBlank()) {
+            return null;
+        }
+
+        return markerId.trim();
     }
 
     private static boolean resolveFlag(NpcTemplateResolver resolver, String definitionId, DebugFlag flag) {

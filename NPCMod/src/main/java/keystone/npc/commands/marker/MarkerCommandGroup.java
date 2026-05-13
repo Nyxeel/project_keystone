@@ -19,7 +19,7 @@ public final class MarkerCommandGroup extends AbstractCommandCollection {
     ) {
         super("marker", "keystone.commands.knpc.marker");
         this.addSubCommand(new MarkerSetCommand(plugin, markerRegistry, scheduler, templateResolver, roleDefinitions));
-        this.addSubCommand(new MarkerMigrateCommand(plugin, scheduler));
+        this.addSubCommand(new MarkerReassignCommand(plugin, markerRegistry, scheduler, templateResolver, roleDefinitions));
         this.addSubCommand(new MarkerClearCommand(plugin, markerRegistry, scheduler));
     }
 }
