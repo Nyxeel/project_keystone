@@ -35,7 +35,7 @@ Wenn das sichtbare NPC-Model geaendert werden soll, geschieht das ueber:
 Server/NPC/Roles/<RoleName>.json
 
 ## 11) skills/
-Ersetzt neue capabilities-Pfade.
+Ersetzt neue skill-Pfade.
 
 ## 12) Profilbereiche
 - movement/
@@ -48,4 +48,6 @@ Ersetzt neue capabilities-Pfade.
 
 ## 13) Marker-Grundregel
 `requiredMarkers` und `markerRoles` muessen zusammenpassen.
+
+
 Marker-v2 kommt separat spaeter.

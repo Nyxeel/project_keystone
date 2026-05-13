@@ -1,12 +1,15 @@
 package keystone.npc.commands.admin;
 
+import java.util.Objects;
+
+import javax.annotation.Nonnull;
+
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
-import java.util.Objects;
-import javax.annotation.Nonnull;
+
 import keystone.npc.KeystoneNpcPlugin;
 import keystone.npc.routine.NpcRoutineRunner;
 
@@ -33,7 +36,11 @@ public final class NpcRemoveCommand extends CommandBase {
             return;
         }
 
-        plugin.saveState();
+        if (!plugin.saveStateSafely()) {
+            context.sendMessage(Message.raw("[knpc] Removed NPC #" + index + ", but state save failed. Runtime changes may not be persisted."));
+            return;
+        }
+
         context.sendMessage(Message.raw("[knpc] Removed NPC #" + index + " and saved state."));
     }
 }

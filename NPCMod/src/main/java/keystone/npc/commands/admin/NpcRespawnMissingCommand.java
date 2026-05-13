@@ -63,8 +63,9 @@ public final class NpcRespawnMissingCommand extends AbstractPlayerCommand {
         if (dryRun) {
             context.sendMessage(Message.raw("[knpc] Dry run complete:"));
             context.sendMessage(Message.raw("[knpc] - would relink: " + result.wouldRelink()));
-            context.sendMessage(Message.raw("[knpc] - would spawn with --force: " + result.wouldSpawn()));
-            context.sendMessage(Message.raw("[knpc] - ambiguous: " + result.ambiguous()));
+            context.sendMessage(Message.raw("[knpc] - pending relink (blocked this cycle): " + result.pending()));
+            context.sendMessage(Message.raw("[knpc] - ambiguous (unsafe, blocked): " + result.ambiguous()));
+            context.sendMessage(Message.raw("[knpc] - would spawn with --force (only after no pending/ambiguous): " + result.wouldSpawn()));
             context.sendMessage(Message.raw("[knpc] - skipped/not missing: " + result.skippedNotMissing()));
             context.sendMessage(Message.raw("[knpc] - force required: " + result.forceRequired()));
             return;
@@ -73,6 +74,7 @@ public final class NpcRespawnMissingCommand extends AbstractPlayerCommand {
         if (force) {
             context.sendMessage(Message.raw("[knpc] Respawn complete (force):"
                 + " relinked=" + result.relinked()
+                + " pendingBlocked=" + result.pending()
                 + " spawned=" + result.respawned()
                 + " ambiguousSkipped=" + result.ambiguous()
                 + " failed=" + result.failed()));
@@ -81,6 +83,7 @@ public final class NpcRespawnMissingCommand extends AbstractPlayerCommand {
 
         context.sendMessage(Message.raw("[knpc] Respawn complete (safe):"
             + " relinked=" + result.relinked()
+            + " pendingBlocked=" + result.pending()
             + " forceRequired=" + result.forceRequired()
             + " ambiguous=" + result.ambiguous()
             + " spawned=0"));

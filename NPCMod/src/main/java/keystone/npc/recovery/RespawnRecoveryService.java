@@ -128,7 +128,7 @@ public final class RespawnRecoveryService {
             }
 
             String markerId = markerResolver.markerIdForType(npc, markerType);
-            Optional<MarkerRecord> marker = markerResolver.resolveRequiredMarkerWithFallback(npc, markerType);
+            Optional<MarkerRecord> marker = markerResolver.resolveRequiredMarkerReadOnly(npc, markerType);
             if (marker.isEmpty()) {
                 String normalizedMarkerId = markerId == null || markerId.isBlank() ? "-" : markerId;
                 System.err.println("[KNPC][Warning] restore marker missing for npcId=" + npc.npcId()

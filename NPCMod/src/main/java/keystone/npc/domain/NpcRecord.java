@@ -27,6 +27,7 @@ public final class NpcRecord {
 
     private final WorldId worldId;
     private Vec3 currentPosition;
+    private boolean currentPositionKnown;
 
     private String homeInstanceId;
     private String workInstanceId;
@@ -77,6 +78,7 @@ public final class NpcRecord {
         this.worldId = Objects.requireNonNull(worldId);
         this.state = NpcState.IDLE;
         this.currentPosition = new Vec3(0, 0, 0);
+        this.currentPositionKnown = false;
         this.entityStatus = NpcEntityStatus.NEEDS_RELINK;
     }
 
@@ -92,7 +94,12 @@ public final class NpcRecord {
     public WorldId worldId() { return worldId; }
 
     public Vec3 currentPosition() { return currentPosition; }
-    public void currentPosition(Vec3 pos) { this.currentPosition = Objects.requireNonNull(pos); }
+    public void currentPosition(Vec3 pos) {
+        this.currentPosition = Objects.requireNonNull(pos);
+        this.currentPositionKnown = true;
+    }
+    public boolean hasKnownCurrentPosition() { return currentPositionKnown; }
+    public void clearCurrentPosition() { this.currentPositionKnown = false; }
 
     public String homeInstanceId() { return homeInstanceId; }
     public void homeInstanceId(String v) { this.homeInstanceId = v; }

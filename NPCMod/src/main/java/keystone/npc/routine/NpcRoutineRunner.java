@@ -31,8 +31,8 @@ import com.hypixel.hytale.server.npc.entities.NPCEntity;
 
 import keystone.npc.debug.NpcDebugSupport;
 import keystone.npc.definition.NpcTemplateResolver;
-import keystone.npc.domain.NpcRecord;
 import keystone.npc.domain.NpcEntityStatus;
+import keystone.npc.domain.NpcRecord;
 import keystone.npc.domain.NpcState;
 import keystone.npc.domain.TargetRole;
 import keystone.npc.doorway.ActiveDoorPass;
@@ -48,8 +48,8 @@ import keystone.npc.markers.RequiredMarkerResolver;
 import keystone.npc.markers.Vec3;
 import keystone.npc.navigation.EngineNavigationController;
 import keystone.npc.navigation.NavigationTarget;
-import keystone.npc.recovery.RespawnRecoveryService;
 import keystone.npc.recovery.RespawnPolicyConfig;
+import keystone.npc.recovery.RespawnRecoveryService;
 import keystone.npc.relink.RelinkSupport;
 import keystone.npc.relink.RelinkWorkflowService;
 import keystone.npc.roles.RoleDefinition;
@@ -98,6 +98,7 @@ public final class NpcRoutineRunner {
         "ENTITY_REF_INVALID",
         "MISSING_ENTITY",
         "NEEDS_RELINK",
+        "RELINK_ATTEMPT",
         "RELINK_RETRY",
         "RELINK_PENDING",
         "AUTO_RESPAWN_SKIPPED",
@@ -158,6 +159,7 @@ public final class NpcRoutineRunner {
     private final Map<String, PendingDoorAttempt> pendingDoorAttempts = new ConcurrentHashMap<>();
     private final Map<String, PendingDoorAttempt> pendingDoorCloseAttempts = new ConcurrentHashMap<>();
     private final Map<String, Deque<ActiveDoorPass>> activeDoorPasses = new ConcurrentHashMap<>();
+    private final Set<String> restoredNpcIds = ConcurrentHashMap.newKeySet();
     private final Map<String, Long> runtimeLogCooldownByNpcEvent = new ConcurrentHashMap<>();
     private final DoorPassTracker doorPassTracker = new DoorPassTracker(activeDoorPasses);
     private final DoorwayFlow doorWorkflowService;
@@ -283,6 +285,7 @@ public final class NpcRoutineRunner {
         pendingDoorAttempts.clear();
         pendingDoorCloseAttempts.clear();
         activeDoorPasses.clear();
+        restoredNpcIds.clear();
         runtimeLogCooldownByNpcEvent.clear();
         stateDirty = false;
         nextDirtySaveAtMs = 0L;
@@ -293,7 +296,7 @@ public final class NpcRoutineRunner {
         int restoredMissingEntity = 0;
         int keptInvalid = 0;
         for (var npc : loaded) {
-            reconcilePersistedMarkerAssignments(npc);
+            diagnosePersistedMarkerAssignmentsReadOnly(npc, "restore");
 
             String staleReason = staleReasonForRestore(npc);
             if (staleReason != null) {
@@ -311,20 +314,22 @@ public final class NpcRoutineRunner {
             // Entity references are runtime-only and always invalid after restart.
             npc.entityRef(null);
             npc.entityId(0);
-            if (npc.entityStatus() != NpcEntityStatus.DISABLED) {
-                if (npc.entityUuid() == null || npc.entityUuid().isBlank()) {
-                    npc.entityStatus(NpcEntityStatus.MISSING_ENTITY);
-                    restoredMissingEntity++;
-                    logInfo("RESTORE_RECORD_MISSING_ENTITY", "Restored NPC record as MISSING_ENTITY: "
-                        + spawnContext(npc, "restore", null, null, null));
-                } else {
-                    npc.entityStatus(NpcEntityStatus.NEEDS_RELINK);
-                    restoredNeedsRelink++;
-                    logInfo("RESTORE_RECORD_NEEDS_RELINK", "Restored NPC record as NEEDS_RELINK: "
-                        + spawnContext(npc, "restore", null, null, null));
-                }
-            } else {
+            if (npc.entityStatus() == NpcEntityStatus.DISABLED) {
                 restoredDisabled++;
+            } else if (npc.entityStatus() == NpcEntityStatus.MISSING_ENTITY) {
+                restoredMissingEntity++;
+                logInfo("RESTORE_RECORD_MISSING_ENTITY", "Restored NPC record as MISSING_ENTITY: "
+                    + spawnContext(npc, "restore", null, null, null));
+            } else if (npc.entityUuid() == null || npc.entityUuid().isBlank()) {
+                npc.entityStatus(NpcEntityStatus.MISSING_ENTITY);
+                restoredMissingEntity++;
+                logInfo("RESTORE_RECORD_MISSING_ENTITY", "Restored NPC record as MISSING_ENTITY: "
+                    + spawnContext(npc, "restore", null, null, null));
+            } else {
+                npc.entityStatus(NpcEntityStatus.NEEDS_RELINK);
+                restoredNeedsRelink++;
+                logInfo("RESTORE_RECORD_NEEDS_RELINK", "Restored NPC record as NEEDS_RELINK: "
+                    + spawnContext(npc, "restore", null, null, null));
             }
             normalizeRestorePosition(npc);
             resetNavigationForRetarget(npc);
@@ -340,6 +345,9 @@ public final class NpcRoutineRunner {
                 + " remainingMs=" + navigationState.getRemainingTimeMs());
 
             npcs.put(npc.npcId(), npc);
+            if (npc.npcId() != null && !npc.npcId().isBlank()) {
+                restoredNpcIds.add(npc.npcId());
+            }
         }
 
         logInfo("RESTORE_STATUS_SUMMARY", "Restore status summary: disabled=" + restoredDisabled
@@ -352,7 +360,7 @@ public final class NpcRoutineRunner {
         return npcs.values().stream().toList();
     }
 
-    private void reconcilePersistedMarkerAssignments(NpcRecord npc) {
+    private void reconcileMarkerAssignmentsForSpawnOrAdmin(NpcRecord npc) {
         List<MarkerType> requiredTypes = requiredMarkerResolver.resolveSupportedRequiredMarkerTypes(npc.roleId());
         Set<MarkerType> requiredSet = Set.copyOf(requiredTypes);
 
@@ -367,8 +375,45 @@ public final class NpcRoutineRunner {
         }
 
         for (MarkerType markerType : requiredTypes) {
-            markerResolver.resolveRequiredMarkerWithFallback(npc, markerType);
+            markerResolver.resolveRequiredMarkerReadOnly(npc, markerType);
         }
+    }
+
+    private void diagnosePersistedMarkerAssignmentsReadOnly(NpcRecord npc, String source) {
+        List<MarkerType> requiredTypes = requiredMarkerResolver.resolveSupportedRequiredMarkerTypes(npc.roleId());
+        Set<MarkerType> requiredSet = Set.copyOf(requiredTypes);
+        List<String> nonRequiredAssigned = new ArrayList<>();
+        List<String> missingRequired = new ArrayList<>();
+
+        for (MarkerType markerType : MarkerType.values()) {
+            if (requiredSet.contains(markerType)) {
+                continue;
+            }
+
+            String markerId = markerResolver.markerIdForType(npc, markerType);
+            if (markerId != null && !markerId.isBlank()) {
+                nonRequiredAssigned.add(markerType.name() + "=" + markerId);
+            }
+        }
+
+        for (MarkerType markerType : requiredTypes) {
+            if (markerResolver.resolveRequiredMarkerReadOnly(npc, markerType).isEmpty()) {
+                missingRequired.add(markerType.name());
+            }
+        }
+
+        if (nonRequiredAssigned.isEmpty() && missingRequired.isEmpty()) {
+            return;
+        }
+
+        if (!logCooldown("MARKER_ASSIGNMENT_READ_ONLY_DIAG", npc.npcId(), RUNTIME_LOG_COOLDOWN_MS)) {
+            return;
+        }
+
+        logInfo("MARKER_ASSIGNMENT_READ_ONLY_DIAG", "Read-only marker assignment mismatch detected: "
+            + spawnContext(npc, source, null, null, null)
+            + " nonRequiredAssigned=" + (nonRequiredAssigned.isEmpty() ? "-" : String.join(",", nonRequiredAssigned))
+            + " missingRequired=" + (missingRequired.isEmpty() ? "-" : String.join(",", missingRequired)));
     }
 
     private void bindActiveMarkersByRole(NpcRecord npc) {
@@ -505,10 +550,21 @@ public final class NpcRoutineRunner {
     }
 
     public boolean removeNpc(String npcId) {
-        NpcRecord npc = npcs.remove(npcId);
+        NpcRecord npc = npcs.get(npcId);
         if (npc == null) {
             return false;
         }
+
+        EntityRemovalOutcome removalOutcome = removeLiveEntity(npc);
+        if (!removalOutcome.safeToDeleteRecord()) {
+            logSevere("REMOVE_NPC_BLOCKED_ENTITY_UNSURE", "Blocked NPC record removal because live-entity removal was not safely queued/confirmed: "
+                + "npcId=" + npc.npcId()
+                + " npcName=" + quote(npc.npcName())
+                + " outcome=" + removalOutcome.name());
+            return false;
+        }
+
+        npcs.remove(npcId);
 
         spawnRequestsInFlight.remove(npc.npcId());
         clearRespawnFailureState(npc.npcId());
@@ -517,8 +573,8 @@ public final class NpcRoutineRunner {
         pendingDoorAttempts.remove(npc.npcId());
         pendingDoorCloseAttempts.remove(npc.npcId());
         activeDoorPasses.remove(npc.npcId());
+        restoredNpcIds.remove(npc.npcId());
         clearRuntimeLogCooldownForNpc(npc.npcId());
-        removeLiveEntity(npc);
         markDirty();
         return true;
     }
@@ -534,10 +590,13 @@ public final class NpcRoutineRunner {
 
     public int clearNpcs() {
         List<String> npcIds = new ArrayList<>(npcs.keySet());
+        int removedCount = 0;
         for (String npcId : npcIds) {
-            removeNpc(npcId);
+            if (removeNpc(npcId)) {
+                removedCount++;
+            }
         }
-        return npcIds.size();
+        return removedCount;
     }
 
     public record RespawnMissingResult(
@@ -545,6 +604,7 @@ public final class NpcRoutineRunner {
         int relinked,
         int respawned,
         int skipped,
+        int pending,
         int ambiguous,
         int forceRequired,
         int wouldSpawn,
@@ -562,13 +622,14 @@ public final class NpcRoutineRunner {
 
     public RespawnMissingResult respawnMissingNpcsInWorld(World world, boolean forceSpawn, boolean dryRun, String trigger) {
         if (world == null) {
-            return new RespawnMissingResult(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, false);
+            return new RespawnMissingResult(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, false);
         }
 
         int checked = 0;
         int relinked = 0;
         int respawned = 0;
         int skipped = 0;
+        int pending = 0;
         int ambiguous = 0;
         int forceRequired = 0;
         int wouldSpawn = 0;
@@ -651,6 +712,21 @@ public final class NpcRoutineRunner {
                     stateChanged = true;
                     markDirty();
                     clearRespawnFailureState(npc.npcId());
+                }
+                continue;
+            }
+
+            // PENDING is a hard stop for this relink/respawn cycle.
+            if (relinkOutcome == RelinkWorkflowService.RelinkOutcome.PENDING) {
+                skipped++;
+                pending++;
+                if (dryRun) {
+                    wouldSkip++;
+                    logInfo("RESPAWN_DRY_RUN_PENDING_STOP", "Dry-run stopped after UUID relink returned PENDING; no weaker fallback/spawn in this cycle: "
+                        + spawnContext(npc, trigger, world, null, null));
+                } else {
+                    logInfo("RESPAWN_PENDING_STOP", "Stopped respawn cycle after UUID relink returned PENDING; no weaker fallback/spawn in this cycle: "
+                        + spawnContext(npc, trigger, world, null, null));
                 }
                 continue;
             }
@@ -825,6 +901,7 @@ public final class NpcRoutineRunner {
             relinked,
             respawned,
             skipped,
+            pending,
             ambiguous,
             forceRequired,
             wouldSpawn,
@@ -978,56 +1055,66 @@ public final class NpcRoutineRunner {
             npc.entityId(0);
 
             World world = Universe.get().getWorld(npc.worldId().value());
+            OwnershipSnapshot ownership = null;
             if (world != null) {
-                OwnershipSnapshot ownership = buildOwnershipSnapshot(world.getName());
-                RelinkWorkflowService.RelinkOutcome relinkOutcome = tryRelinkEntityRef(world, npc, trigger, ownership);
-                if (relinkOutcome == RelinkWorkflowService.RelinkOutcome.SUCCESS) {
-                    clearRespawnFailureState(npc.npcId());
-                    markDirty();
-                    npc.lastValidationWarningKey(null);
-                    continue;
-                }
-
-                RelinkWorkflowService.RolePrefixRelinkOutcome rolePrefixOutcome = tryRolePrefixRelinkEntityRef(world, npc, trigger, ownership);
-                if (rolePrefixOutcome == RelinkWorkflowService.RolePrefixRelinkOutcome.SUCCESS) {
-                    clearRespawnFailureState(npc.npcId());
-                    logInfo("RESPAWN_MATCH_FOUND_EXISTING_ENTITY", "Found existing entity during role-prefix relink fallback: "
-                        + spawnContext(npc, trigger, world, null, null));
-                    markDirty();
-                    npc.lastValidationWarningKey(null);
-                    continue;
-                }
-                if (rolePrefixOutcome == RelinkWorkflowService.RolePrefixRelinkOutcome.AMBIGUOUS) {
-                    String warnKey = "role-prefix-relink-ambiguous:" + npc.entityUuid();
-                    if (!warnKey.equals(npc.lastValidationWarningKey())) {
-                        logSevere("RESPAWN_RELINK_AMBIGUOUS", "Skipped replacement spawn due to ambiguous role-prefix relink candidates: "
-                            + spawnContext(npc, trigger, world, null, null));
-                        npc.lastValidationWarningKey(warnKey);
-                    }
-                    continue;
-                }
-
-                RelinkWorkflowService.AnchorRelinkOutcome anchorOutcome = tryAnchorRelinkEntityRef(world, npc, trigger, ownership);
-                if (anchorOutcome == RelinkWorkflowService.AnchorRelinkOutcome.SUCCESS) {
-                    clearRespawnFailureState(npc.npcId());
-                    logInfo("RESPAWN_MATCH_FOUND_EXISTING_ENTITY", "Found existing entity during relink fallback: "
-                        + spawnContext(npc, trigger, world, null, null));
-                    markDirty();
-                    npc.lastValidationWarningKey(null);
-                    continue;
-                }
-                if (anchorOutcome == RelinkWorkflowService.AnchorRelinkOutcome.AMBIGUOUS) {
-                    String warnKey = "anchor-relink-ambiguous:" + npc.entityUuid();
-                    if (!warnKey.equals(npc.lastValidationWarningKey())) {
-                        logSevere("RESPAWN_RELINK_AMBIGUOUS", "Skipped replacement spawn due to ambiguous anchor relink candidates: "
-                            + spawnContext(npc, trigger, world, null, null));
-                        npc.lastValidationWarningKey(warnKey);
-                    }
-                    continue;
-                }
-
+                ownership = buildOwnershipSnapshot(world.getName());
                 if (npc.entityStatus() != NpcEntityStatus.MISSING_ENTITY) {
-                    continue;
+                    RelinkWorkflowService.RelinkOutcome relinkOutcome = tryRelinkEntityRef(world, npc, trigger, ownership);
+                    if (relinkOutcome == RelinkWorkflowService.RelinkOutcome.SUCCESS) {
+                        clearRespawnFailureState(npc.npcId());
+                        markDirty();
+                        npc.lastValidationWarningKey(null);
+                        continue;
+                    }
+
+                    if (relinkOutcome == RelinkWorkflowService.RelinkOutcome.PENDING) {
+                        continue;
+                    }
+
+                    // Once UUID relink marks the NPC missing, stop weaker fallbacks in this cycle.
+                    if (npc.entityStatus() != NpcEntityStatus.MISSING_ENTITY) {
+                        RelinkWorkflowService.RolePrefixRelinkOutcome rolePrefixOutcome = tryRolePrefixRelinkEntityRef(world, npc, trigger, ownership);
+                        if (rolePrefixOutcome == RelinkWorkflowService.RolePrefixRelinkOutcome.SUCCESS) {
+                            clearRespawnFailureState(npc.npcId());
+                            logInfo("RESPAWN_MATCH_FOUND_EXISTING_ENTITY", "Found existing entity during role-prefix relink fallback: "
+                                + spawnContext(npc, trigger, world, null, null));
+                            markDirty();
+                            npc.lastValidationWarningKey(null);
+                            continue;
+                        }
+                        if (rolePrefixOutcome == RelinkWorkflowService.RolePrefixRelinkOutcome.AMBIGUOUS) {
+                            String warnKey = "role-prefix-relink-ambiguous:" + npc.entityUuid();
+                            if (!warnKey.equals(npc.lastValidationWarningKey())) {
+                                logSevere("RESPAWN_RELINK_AMBIGUOUS", "Skipped replacement spawn due to ambiguous role-prefix relink candidates: "
+                                    + spawnContext(npc, trigger, world, null, null));
+                                npc.lastValidationWarningKey(warnKey);
+                            }
+                            continue;
+                        }
+
+                        RelinkWorkflowService.AnchorRelinkOutcome anchorOutcome = tryAnchorRelinkEntityRef(world, npc, trigger, ownership);
+                        if (anchorOutcome == RelinkWorkflowService.AnchorRelinkOutcome.SUCCESS) {
+                            clearRespawnFailureState(npc.npcId());
+                            logInfo("RESPAWN_MATCH_FOUND_EXISTING_ENTITY", "Found existing entity during relink fallback: "
+                                + spawnContext(npc, trigger, world, null, null));
+                            markDirty();
+                            npc.lastValidationWarningKey(null);
+                            continue;
+                        }
+                        if (anchorOutcome == RelinkWorkflowService.AnchorRelinkOutcome.AMBIGUOUS) {
+                            String warnKey = "anchor-relink-ambiguous:" + npc.entityUuid();
+                            if (!warnKey.equals(npc.lastValidationWarningKey())) {
+                                logSevere("RESPAWN_RELINK_AMBIGUOUS", "Skipped replacement spawn due to ambiguous anchor relink candidates: "
+                                    + spawnContext(npc, trigger, world, null, null));
+                                npc.lastValidationWarningKey(warnKey);
+                            }
+                            continue;
+                        }
+                    }
+
+                    if (npc.entityStatus() != NpcEntityStatus.MISSING_ENTITY) {
+                        continue;
+                    }
                 }
             } else {
                 if (npc.entityStatus() != NpcEntityStatus.MISSING_ENTITY) {
@@ -1038,13 +1125,7 @@ public final class NpcRoutineRunner {
                 continue;
             }
 
-            if (!respawnPolicyConfig.enableAutoRespawnMissingNpc()) {
-                String warnKey = "auto-respawn-disabled:" + npc.entityUuid();
-                if (!warnKey.equals(npc.lastValidationWarningKey())) {
-                    logSevere("AUTO_RESPAWN_DISABLED", "NPC entity missing. Use /knpc respawn-missing or enable autoRespawnMissingNpc: "
-                        + spawnContext(npc, trigger, world, null, null));
-                    npc.lastValidationWarningKey(warnKey);
-                }
+            if (!passesRestartAutoRespawnPolicy(world, npc, trigger, ownership)) {
                 continue;
             }
 
@@ -1069,6 +1150,7 @@ public final class NpcRoutineRunner {
                             + spawnContext(npc, trigger, world, null, null));
                         clearRespawnFailureState(npc.npcId());
                         markDirty();
+                        persistStateAfterSuccessfulAutoRespawn(world, npc, trigger);
                         npc.lastValidationWarningKey(null);
                     } else {
                         int failureCount = respawnFailureCounts.getOrDefault(npc.npcId(), 0) + 1;
@@ -1105,10 +1187,11 @@ public final class NpcRoutineRunner {
 
         // Bind only role-required markers from current "active" markers.
         bindActiveMarkersByRole(npc);
-        reconcilePersistedMarkerAssignments(npc);
+        reconcileMarkerAssignmentsForSpawnOrAdmin(npc);
         npc.entityStatus(NpcEntityStatus.NEEDS_RELINK);
 
         npcs.put(npc.npcId(), npc);
+        restoredNpcIds.remove(npc.npcId());
         markDirty();
         logInfo("RECORD_CREATED", "Created NPC record: " + spawnContext(npc, "spawn-record-only", null, null, null));
         return npc;
@@ -1134,7 +1217,7 @@ public final class NpcRoutineRunner {
         try {
             npc.currentPosition(position);
             bindActiveMarkersByRole(npc);
-            reconcilePersistedMarkerAssignments(npc);
+            reconcileMarkerAssignmentsForSpawnOrAdmin(npc);
 
             if (!spawnNpcEntity(world, npc, trigger)) {
                 return null;
@@ -1143,6 +1226,7 @@ public final class NpcRoutineRunner {
             createdEntityRef = npc.entityRef();
 
             npcs.put(npc.npcId(), npc);
+            restoredNpcIds.remove(npc.npcId());
             recordRegistered = true;
             markDirty();
             logInfo("RECORD_CREATED", "Created NPC record: " + spawnContext(npc, trigger, world, null, null));
@@ -1156,16 +1240,101 @@ public final class NpcRoutineRunner {
         }
     }
 
-    public NpcRecord linkEntityRef(String npcId, Ref<EntityStore> entityRef) {
+    private NpcRecord linkEntityRef(String npcId, Ref<EntityStore> entityRef) {
         NpcRecord npc = npcs.get(npcId);
-        if (npc != null) {
-            PersistedIdentitySnapshot before = capturePersistedIdentitySnapshot(npc);
-            npc.entityRef(entityRef);
-            npc.entityId(1);  // Mark as spawned (persist to JSON)
-            npc.entityStatus(NpcEntityStatus.ACTIVE);
-            updatePersistedEntityIdentity(npc, entityRef);
-            markDirtyIfPersistedIdentityChanged(npc, before);
+        if (npc == null) {
+            return null;
         }
+
+        if (entityRef == null || !entityRef.isValid()) {
+            logSevere("LINK_ENTITY_REF_REJECTED_INVALID_REF", "Blocked manual entity link due to invalid ref: "
+                + "npcId=" + npcId);
+            return npc;
+        }
+
+        String candidateUuid = normalizeUuidKey(readEntityUuid(entityRef));
+        if (candidateUuid == null) {
+            logSevere("LINK_ENTITY_REF_REJECTED_UUID_UNREADABLE", "Blocked manual entity link because live UUID is unreadable: "
+                + "npcId=" + npcId);
+            return npc;
+        }
+
+        String persistedUuid = normalizeUuidKey(npc.entityUuid());
+        if (persistedUuid == null) {
+            logSevere("LINK_ENTITY_REF_REJECTED_NO_PERSISTED_UUID", "Blocked manual entity link because no persisted UUID exists for this record: "
+                + "npcId=" + npcId
+                + " candidateUuid=" + candidateUuid);
+            return npc;
+        }
+
+        if (!persistedUuid.equals(candidateUuid)) {
+            logSevere("LINK_ENTITY_REF_REJECTED_UUID_MISMATCH", "Blocked manual entity link because persisted UUID does not match live UUID: "
+                + "npcId=" + npcId
+                + " persistedUuid=" + persistedUuid
+                + " candidateUuid=" + candidateUuid);
+            return npc;
+        }
+
+        String worldName = npc.worldId() != null ? npc.worldId().value() : null;
+        OwnershipSnapshot ownership = buildOwnershipSnapshot(worldName);
+
+        String ownerByUuid = ownership.claimedEntityUuids().get(candidateUuid);
+        if (ownerByUuid != null && !ownerByUuid.equals(npcId)) {
+            logSevere("LINK_ENTITY_REF_REJECTED_UUID_OWNED", "Blocked manual entity link because UUID is claimed by another NPC: "
+                + "npcId=" + npcId
+                + " candidateUuid=" + candidateUuid
+                + " ownerNpcId=" + ownerByUuid);
+            return npc;
+        }
+
+        for (RelinkWorkflowService.OwnedEntityRefClaim claim : ownership.claimedEntityRefs()) {
+            if (claim == null || claim.entityRef() == null || npcId.equals(claim.npcId())) {
+                continue;
+            }
+            if (relinkSupport.sameRef(claim.entityRef(), entityRef)) {
+                logSevere("LINK_ENTITY_REF_REJECTED_REF_OWNED", "Blocked manual entity link because ref is claimed by another NPC: "
+                    + "npcId=" + npcId
+                    + " ownerNpcId=" + claim.npcId());
+                return npc;
+            }
+        }
+
+        var npcType = NPCEntity.getComponentType();
+        if (npcType == null) {
+            logSevere("LINK_ENTITY_REF_REJECTED_COMPONENT_TYPE_MISSING", "Blocked manual entity link because NPC component type is unavailable: "
+                + "npcId=" + npcId);
+            return npc;
+        }
+
+        NPCEntity liveNpc = entityRef.getStore().getComponent(entityRef, npcType);
+        if (liveNpc == null) {
+            logSevere("LINK_ENTITY_REF_REJECTED_NOT_NPC", "Blocked manual entity link because candidate ref is not an NPC entity: "
+                + "npcId=" + npcId);
+            return npc;
+        }
+
+        Optional<RoleDefinition> roleDefinition = roleDefinitions.findByRoleId(npc.roleId());
+        int expectedRoleIndex = roleDefinition
+            .map(definition -> NPCPlugin.get().getIndex(definition.npcPluginRoleName()))
+            .orElse(-1);
+
+        if (expectedRoleIndex >= 0
+            && liveNpc.getRoleIndex() != expectedRoleIndex
+            && liveNpc.getSpawnRoleIndex() != expectedRoleIndex) {
+            logSevere("LINK_ENTITY_REF_REJECTED_ROLE_MISMATCH", "Blocked manual entity link because candidate role does not match NPC role: "
+                + "npcId=" + npcId
+                + " expectedRoleIndex=" + expectedRoleIndex
+                + " liveRoleIndex=" + liveNpc.getRoleIndex()
+                + " liveSpawnRoleIndex=" + liveNpc.getSpawnRoleIndex());
+            return npc;
+        }
+
+        PersistedIdentitySnapshot before = capturePersistedIdentitySnapshot(npc);
+        npc.entityRef(entityRef);
+        npc.entityId(1);
+        npc.entityUuid(candidateUuid);
+        npc.entityStatus(NpcEntityStatus.ACTIVE);
+        markDirtyIfPersistedIdentityChanged(npc, before);
         return npc;
     }
 
@@ -1223,7 +1392,7 @@ public final class NpcRoutineRunner {
                 continue;
             }
 
-            if (markerResolver.resolveRequiredMarkerWithFallback(npc, markerType).isEmpty()) {
+            if (markerResolver.resolveRequiredMarkerWithFallbackAssigning(npc, markerType).isEmpty()) {
                 missingRequiredMarkers.add(markerType.name());
             }
         }
@@ -1268,7 +1437,7 @@ public final class NpcRoutineRunner {
             return true;
         }
 
-        reconcilePersistedMarkerAssignments(npc);
+        reconcileMarkerAssignmentsForSpawnOrAdmin(npc);
 
         SpawnIdentitySnapshot oldIdentity = captureSpawnIdentitySnapshot(npc);
 
@@ -1302,7 +1471,15 @@ public final class NpcRoutineRunner {
             return false;
         }
 
-        Vec3 position = npc.currentPosition() != null ? npc.currentPosition() : new Vec3(0, 0, 0);
+        AutoRespawnChunkGateTarget spawnTarget = resolveSafeSpawnPositionTarget(npc);
+        if (spawnTarget == null || spawnTarget.position() == null) {
+            restoreSpawnIdentitySnapshot(npc, oldIdentity, world, trigger, "spawn-precheck-unsafe-position");
+            logSevere("RESPAWN_UNSAFE_SPAWN_POSITION", "Blocked spawn because no safe persisted spawn position is available: "
+                + spawnContext(npc, trigger, world, definition, roleIndex));
+            return false;
+        }
+
+        Vec3 position = spawnTarget.position();
         Vector3d spawnPosition = new Vector3d(position.x(), position.y(), position.z());
         Store<EntityStore> store = world.getEntityStore().getStore();
 
@@ -1338,7 +1515,25 @@ public final class NpcRoutineRunner {
             npc.entityId(1);  // Mark as spawned (persist to JSON)
             npc.entityStatus(NpcEntityStatus.ACTIVE);
             assignRuntimeRoleName(npc, definition, spawnedRef, spawnedNpc, world, trigger);
+
+            String spawnedEntityUuid = readEntityUuid(spawnedRef);
+            if (spawnedEntityUuid == null || spawnedEntityUuid.isBlank()) {
+                throw new IllegalStateException("spawned-entity-missing-uuid");
+            }
+
             updatePersistedEntityIdentity(npc, spawnedRef);
+            if (!spawnedEntityUuid.equals(npc.entityUuid())) {
+                throw new IllegalStateException("spawned-entity-uuid-sync-mismatch");
+            }
+
+            // Keep persisted position aligned with the live entity transform after spawn.
+            Vec3 livePosition = readPosition(spawnedRef);
+            if (livePosition != null) {
+                npc.currentPosition(livePosition);
+            } else if (npc.currentPosition() == null) {
+                npc.currentPosition(position);
+            }
+
             logInfo("SPAWN_ENTITY_CREATED", "Spawned NPC entity: "
                 + spawnContext(npc, trigger, world, definition, roleIndex));
             OwnershipSnapshot ownership = buildOwnershipSnapshot(world.getName());
@@ -1466,14 +1661,15 @@ public final class NpcRoutineRunner {
 
         PersistedIdentitySnapshot before = capturePersistedIdentitySnapshot(npc);
 
-        AutoRespawnChunkGateTarget target = resolveAutoRespawnChunkGateTarget(npc);
+        AutoRespawnChunkGateTarget target = resolveSafeSpawnPositionTarget(npc);
         if (target == null || target.position() == null) {
             npc.entityRef(null);
             npc.entityId(0);
-            if (npc.entityStatus() != NpcEntityStatus.DISABLED) {
+            if (npc.entityStatus() != NpcEntityStatus.DISABLED
+                && npc.entityStatus() != NpcEntityStatus.MISSING_ENTITY) {
                 npc.entityStatus(NpcEntityStatus.NEEDS_RELINK);
             }
-            logInfo("AUTO_RESPAWN_SKIPPED", "Auto-respawn blocked: no safe position for chunk-gate precheck: "
+            logInfo("AUTO_RESPAWN_SKIPPED", "Auto-respawn blocked: no safe persisted spawn position for chunk-gate precheck: "
                 + spawnContext(npc, trigger, world, null, null)
                 + " gateSource=-");
             markDirtyIfPersistedIdentityChanged(npc, before);
@@ -1483,7 +1679,8 @@ public final class NpcRoutineRunner {
         if (!isChunkLoadedForPosition(world, target.position())) {
             npc.entityRef(null);
             npc.entityId(0);
-            if (npc.entityStatus() != NpcEntityStatus.DISABLED) {
+            if (npc.entityStatus() != NpcEntityStatus.DISABLED
+                && npc.entityStatus() != NpcEntityStatus.MISSING_ENTITY) {
                 npc.entityStatus(NpcEntityStatus.NEEDS_RELINK);
             }
             logInfo("AUTO_RESPAWN_SKIPPED", "Auto-respawn blocked: chunk not loaded or not verifiable: "
@@ -1497,18 +1694,152 @@ public final class NpcRoutineRunner {
         return true;
     }
 
-    private AutoRespawnChunkGateTarget resolveAutoRespawnChunkGateTarget(NpcRecord npc) {
-        Optional<MarkerRecord> idleMarker = resolveStatePreferredMarker(npc);
-        if (idleMarker.isPresent() && idleMarker.get().position() != null) {
-            return new AutoRespawnChunkGateTarget(idleMarker.get().position(), "idle-marker");
+    private boolean passesRestartAutoRespawnPolicy(
+        World world,
+        NpcRecord npc,
+        String trigger,
+        OwnershipSnapshot ownership
+    ) {
+        if (world == null || npc == null) {
+            return false;
+        }
+
+        if (npc.entityStatus() == NpcEntityStatus.DISABLED || npc.entityStatus() != NpcEntityStatus.MISSING_ENTITY) {
+            return false;
+        }
+
+        String npcId = npc.npcId();
+        if (npcId == null || npcId.isBlank()) {
+            String warnKey = "auto-respawn-policy:npcid-missing:" + nullToDash(npc.entityUuid());
+            if (!warnKey.equals(npc.lastValidationWarningKey())) {
+                logSevere("AUTO_RESPAWN_POLICY_BLOCKED", "Auto-respawn blocked: missing stable npcId: "
+                    + spawnContext(npc, trigger, world, null, null));
+                npc.lastValidationWarningKey(warnKey);
+            }
+            return false;
+        }
+
+        if (!restoredNpcIds.contains(npcId)) {
+            String warnKey = "auto-respawn-policy:not-restored:" + npcId;
+            if (!warnKey.equals(npc.lastValidationWarningKey())) {
+                logInfo("AUTO_RESPAWN_SKIPPED", "Auto-respawn blocked: record was not restored from state.json: "
+                    + spawnContext(npc, trigger, world, null, null));
+                npc.lastValidationWarningKey(warnKey);
+            }
+            return false;
+        }
+
+        if (!respawnPolicyConfig.enableAutoRespawnMissingNpc()) {
+            String warnKey = "auto-respawn-disabled:" + npc.entityUuid();
+            if (!warnKey.equals(npc.lastValidationWarningKey())) {
+                logSevere("AUTO_RESPAWN_DISABLED", "NPC entity missing. Use /knpc respawn-missing or enable autoRespawnMissingNpc: "
+                    + spawnContext(npc, trigger, world, null, null));
+                npc.lastValidationWarningKey(warnKey);
+            }
+            return false;
+        }
+
+        if (!templateResolver.respawnAfterRestartEnabledForRole(npc.roleId())) {
+            String warnKey = "auto-respawn-policy:profile-disabled:" + npcId;
+            if (!warnKey.equals(npc.lastValidationWarningKey())) {
+                logInfo("AUTO_RESPAWN_SKIPPED", "Auto-respawn blocked by persistence profile policy (respawnAfterRestart=false): "
+                    + spawnContext(npc, trigger, world, null, null));
+                npc.lastValidationWarningKey(warnKey);
+            }
+            return false;
+        }
+
+        if (roleDefinitions.findByRoleId(npc.roleId()).isEmpty() || templateResolver.resolveByRoleId(npc.roleId()).isEmpty()) {
+            String warnKey = "auto-respawn-policy:invalid-role:" + npcId;
+            if (!warnKey.equals(npc.lastValidationWarningKey())) {
+                logSevere("AUTO_RESPAWN_POLICY_BLOCKED", "Auto-respawn blocked: invalid role/definition for restart recovery: "
+                    + spawnContext(npc, trigger, world, null, null));
+                npc.lastValidationWarningKey(warnKey);
+            }
+            return false;
+        }
+
+        String entityUuid = npc.entityUuid();
+        if (entityUuid == null || entityUuid.isBlank()) {
+            String warnKey = "auto-respawn-policy:entity-uuid-missing:" + npcId;
+            if (!warnKey.equals(npc.lastValidationWarningKey())) {
+                logInfo("AUTO_RESPAWN_SKIPPED", "Auto-respawn blocked: no persisted entityUuid available for restart recovery: "
+                    + spawnContext(npc, trigger, world, null, null));
+                npc.lastValidationWarningKey(warnKey);
+            }
+            return false;
+        }
+
+        String ownerByUuid = ownership != null
+            ? ownership.claimedEntityUuids().get(normalizeUuidKey(entityUuid))
+            : null;
+        if (ownerByUuid != null && !ownerByUuid.equals(npcId)) {
+            String warnKey = "auto-respawn-policy:uuid-owned:" + entityUuid;
+            if (!warnKey.equals(npc.lastValidationWarningKey())) {
+                logSevere("AUTO_RESPAWN_POLICY_BLOCKED", "Auto-respawn blocked: persisted entityUuid is owned by another active NPC record: "
+                    + spawnContext(npc, trigger, world, null, null)
+                    + " ownerNpcId=" + ownerByUuid);
+                npc.lastValidationWarningKey(warnKey);
+            }
+            return false;
+        }
+
+        AutoRespawnChunkGateTarget spawnTarget = resolveSafeSpawnPositionTarget(npc);
+        if (spawnTarget == null || spawnTarget.position() == null) {
+            String warnKey = "auto-respawn-policy:unsafe-position:" + npcId;
+            if (!warnKey.equals(npc.lastValidationWarningKey())) {
+                logInfo("AUTO_RESPAWN_SKIPPED", "Auto-respawn blocked: missing/invalid persisted spawn position (manual recovery required): "
+                    + spawnContext(npc, trigger, world, null, null));
+                npc.lastValidationWarningKey(warnKey);
+            }
+            return false;
+        }
+
+        List<RequiredMarkerResolver.Requirement> requirements = requiredMarkerResolver.resolveRequirements(npc.roleId());
+        if (requirements.isEmpty()) {
+            String warnKey = "auto-respawn-policy:required-markers-unresolved:" + npcId;
+            if (!warnKey.equals(npc.lastValidationWarningKey())) {
+                logSevere("AUTO_RESPAWN_POLICY_BLOCKED", "Auto-respawn blocked: required marker policy unresolved for role: "
+                    + spawnContext(npc, trigger, world, null, null));
+                npc.lastValidationWarningKey(warnKey);
+            }
+            return false;
+        }
+
+        for (RequiredMarkerResolver.Requirement requirement : requirements) {
+            MarkerType markerType = requirement.markerType();
+            if (markerType == null || markerResolver.resolveRequiredMarkerReadOnly(npc, markerType).isEmpty()) {
+                String warnKey = "auto-respawn-policy:missing-required-marker:" + npcId;
+                if (!warnKey.equals(npc.lastValidationWarningKey())) {
+                    logInfo("AUTO_RESPAWN_SKIPPED", "Auto-respawn blocked: missing/invalid required marker assignment: "
+                        + spawnContext(npc, trigger, world, null, null));
+                    npc.lastValidationWarningKey(warnKey);
+                }
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private AutoRespawnChunkGateTarget resolveSafeSpawnPositionTarget(NpcRecord npc) {
+        if (npc == null || !npc.hasKnownCurrentPosition()) {
+            return null;
         }
 
         Vec3 current = npc.currentPosition();
-        if (current != null) {
-            return new AutoRespawnChunkGateTarget(current, "current-position");
+        if (!isFinitePosition(current)) {
+            return null;
         }
 
-        return null;
+        return new AutoRespawnChunkGateTarget(current, "current-position");
+    }
+
+    private boolean isFinitePosition(Vec3 position) {
+        return position != null
+            && Double.isFinite(position.x())
+            && Double.isFinite(position.y())
+            && Double.isFinite(position.z());
     }
 
     private boolean isChunkLoadedForPosition(World world, Vec3 position) {
@@ -1558,26 +1889,67 @@ public final class NpcRoutineRunner {
         return null;
     }
 
-    private void removeLiveEntity(NpcRecord npc) {
-        Ref<EntityStore> liveRef = npc.entityRef();
-        clearEntityIdentity(npc);
+    private enum EntityRemovalOutcome {
+        NO_IDENTITY,
+        REMOVAL_QUEUED_UNCONFIRMED,
+        REMOVAL_FAILED_REF_INVALID,
+        REMOVAL_FAILED_WORLD_MISSING,
+        REMOVAL_FAILED_QUEUE_EXCEPTION;
 
-        if (liveRef == null || !liveRef.isValid()) {
-            return;
+        private boolean safeToDeleteRecord() {
+            return this == NO_IDENTITY;
+        }
+    }
+
+    private EntityRemovalOutcome removeLiveEntity(NpcRecord npc) {
+        Ref<EntityStore> liveRef = npc.entityRef();
+
+        boolean hasPersistedIdentity = (npc.entityUuid() != null && !npc.entityUuid().isBlank()) || npc.entityId() != 0;
+        boolean hasLiveRef = liveRef != null && liveRef.isValid();
+
+        if (!hasPersistedIdentity && !hasLiveRef) {
+            return EntityRemovalOutcome.NO_IDENTITY;
+        }
+
+        if (!hasLiveRef) {
+            System.err.println("[KeystoneNPC] Cannot safely remove entity for NPC '" + npc.npcName()
+                + "' (" + npc.npcId() + "): live entity ref invalid while identity still present");
+            return EntityRemovalOutcome.REMOVAL_FAILED_REF_INVALID;
         }
 
         World world = Universe.get().getWorld(npc.worldId().value());
         if (world == null) {
             System.err.println("[KeystoneNPC] Cannot remove entity for NPC '" + npc.npcName()
                 + "' (" + npc.npcId() + "): world not found");
-            return;
+            return EntityRemovalOutcome.REMOVAL_FAILED_WORLD_MISSING;
         }
 
-        world.execute(() -> {
-            if (liveRef != null && liveRef.isValid()) {
-                liveRef.getStore().removeEntity(liveRef, RemoveReason.REMOVE);
-            }
-        });
+        try {
+            world.execute(() -> {
+                if (liveRef != null && liveRef.isValid()) {
+                    try {
+                        liveRef.getStore().removeEntity(liveRef, RemoveReason.REMOVE);
+                    } catch (RuntimeException ex) {
+                        logSevere("REMOVE_LIVE_ENTITY_EXECUTE_FAILED", "Entity removal failed during queued world execution: "
+                            + "npcId=" + npc.npcId()
+                            + " npcName=" + quote(npc.npcName())
+                            + " exception=" + ex.getClass().getSimpleName() + ":" + ex.getMessage());
+                    }
+                }
+            });
+        } catch (RuntimeException ex) {
+            logSevere("REMOVE_LIVE_ENTITY_QUEUE_FAILED", "Failed to queue live entity removal in world thread: "
+                + "npcId=" + npc.npcId()
+                + " npcName=" + quote(npc.npcName())
+                + " exception=" + ex.getClass().getSimpleName() + ":" + ex.getMessage());
+            return EntityRemovalOutcome.REMOVAL_FAILED_QUEUE_EXCEPTION;
+        }
+
+        // Queue acceptance does not confirm execution success; keep identity and block record deletion.
+        logSevere("REMOVE_LIVE_ENTITY_UNCONFIRMED", "Live entity removal was queued but not confirmed; keeping record and identity to avoid orphan risk: "
+            + "npcId=" + npc.npcId()
+            + " npcName=" + quote(npc.npcName()));
+        return EntityRemovalOutcome.REMOVAL_QUEUED_UNCONFIRMED;
     }
 
     private void rollbackSpawnedEntity(World world, Ref<EntityStore> entityRef, String npcId, String trigger, RuntimeException ex) {
@@ -1713,6 +2085,34 @@ public final class NpcRoutineRunner {
         }
     }
 
+    private void persistStateAfterSuccessfulAutoRespawn(World world, NpcRecord npc, String trigger) {
+        if (stateSaveCallback == null || npc == null) {
+            return;
+        }
+
+        boolean saved = false;
+        try {
+            saved = stateSaveCallback.getAsBoolean();
+        } catch (RuntimeException ex) {
+            logSevere("RESPAWN_STATE_SAVE_FAILED", "Immediate state save callback failed after successful auto-respawn: "
+                + spawnContext(npc, trigger, world, null, null)
+                + " exception=" + ex.getClass().getSimpleName() + ":" + ex.getMessage());
+        }
+
+        if (saved) {
+            stateDirty = false;
+            nextDirtySaveAtMs = 0L;
+            logInfo("RESPAWN_STATE_SAVED", "Persisted state.json after successful auto-respawn: "
+                + spawnContext(npc, trigger, world, null, null));
+            return;
+        }
+
+        stateDirty = true;
+        nextDirtySaveAtMs = System.currentTimeMillis() + DIRTY_SAVE_INTERVAL_MS;
+        logSevere("RESPAWN_STATE_SAVE_DEFERRED", "Immediate state.json save failed after successful auto-respawn; deferred retry scheduled: "
+            + spawnContext(npc, trigger, world, null, null));
+    }
+
     private void flushDirtyStateIfDue(long nowMs) {
         if (!stateDirty || stateSaveCallback == null) {
             return;
@@ -1746,7 +2146,7 @@ public final class NpcRoutineRunner {
         if (npc.state() == null || !npc.state().isWalking()) {
             npc.lastSkillDecisionKey(null);
         }
-        reconcilePersistedMarkerAssignments(npc);
+        diagnosePersistedMarkerAssignmentsReadOnly(npc, "tick-update");
         npcUpdateWorkflowService.updateNpc(npc, world);
     }
 
@@ -1764,10 +2164,12 @@ public final class NpcRoutineRunner {
 
         npc.entityRef(null);
         npc.entityId(0);
-        if (npc.entityUuid() == null || npc.entityUuid().isBlank()) {
-            npc.entityStatus(NpcEntityStatus.MISSING_ENTITY);
-        } else {
-            npc.entityStatus(NpcEntityStatus.NEEDS_RELINK);
+        if (npc.entityStatus() != NpcEntityStatus.MISSING_ENTITY) {
+            if (npc.entityUuid() == null || npc.entityUuid().isBlank()) {
+                npc.entityStatus(NpcEntityStatus.MISSING_ENTITY);
+            } else {
+                npc.entityStatus(NpcEntityStatus.NEEDS_RELINK);
+            }
         }
 
         clearRuntimeStateForMissingLiveEntity(npc);
@@ -1858,8 +2260,8 @@ public final class NpcRoutineRunner {
                 continue;
             }
 
-            String entityUuid = record.entityUuid();
-            if (entityUuid != null && !entityUuid.isBlank()) {
+            String entityUuid = normalizeUuidKey(record.entityUuid());
+            if (entityUuid != null) {
                 claimedEntityUuids.putIfAbsent(entityUuid, record.npcId());
             }
 
@@ -2046,13 +2448,7 @@ public final class NpcRoutineRunner {
         String candidateUuid,
         String npcId
     ) {
-        String normalizedCandidateUuid = candidateUuid == null ? null : candidateUuid.trim();
-        if (normalizedCandidateUuid != null && normalizedCandidateUuid.isBlank()) {
-            normalizedCandidateUuid = null;
-        }
-        if (normalizedCandidateUuid != null) {
-            normalizedCandidateUuid = normalizedCandidateUuid.toLowerCase(Locale.ROOT);
-        }
+        String normalizedCandidateUuid = normalizeUuidKey(candidateUuid);
 
         if (candidateRef == null && normalizedCandidateUuid == null) {
             return false;
@@ -2116,6 +2512,32 @@ public final class NpcRoutineRunner {
         return entitySync.readPosition(entityRef);
     }
 
+    private String readEntityUuid(Ref<EntityStore> entityRef) {
+        if (entityRef == null || !entityRef.isValid()) {
+            return null;
+        }
+
+        UUIDComponent uuidComponent = entityRef.getStore().getComponent(entityRef, UUIDComponent.getComponentType());
+        if (uuidComponent == null || uuidComponent.getUuid() == null) {
+            return null;
+        }
+
+        return uuidComponent.getUuid().toString();
+    }
+
+    private String normalizeUuidKey(String rawUuid) {
+        if (rawUuid == null) {
+            return null;
+        }
+
+        String normalized = rawUuid.trim();
+        if (normalized.isBlank()) {
+            return null;
+        }
+
+        return normalized.toLowerCase(Locale.ROOT);
+    }
+
     private void updateNpcPositionFromEntity(NpcRecord npc, Ref<EntityStore> entityRef) {
         entitySync.updateNpcPositionFromEntity(npc, entityRef);
     }
@@ -2130,7 +2552,8 @@ public final class NpcRoutineRunner {
         PersistedIdentitySnapshot before = capturePersistedIdentitySnapshot(npc);
         npc.entityRef(null);
         npc.entityId(0);
-        if (npc.entityStatus() != NpcEntityStatus.DISABLED) {
+        if (npc.entityStatus() != NpcEntityStatus.DISABLED
+            && npc.entityStatus() != NpcEntityStatus.MISSING_ENTITY) {
             npc.entityStatus(
                 npc.entityUuid() == null || npc.entityUuid().isBlank()
                     ? NpcEntityStatus.MISSING_ENTITY

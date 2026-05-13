@@ -251,7 +251,8 @@ Wenn `entityRef == null` oder invalid:
 ```text
 entityRef = null
 entityId = 0
-wenn entityUuid vorhanden: entityStatus = NEEDS_RELINK
+wenn entityStatus bereits MISSING_ENTITY: bleibt MISSING_ENTITY (sticky)
+sonst bei entityUuid vorhanden: entityStatus = NEEDS_RELINK
 wenn entityUuid fehlt: entityStatus = MISSING_ENTITY
 Runtime-Navigation clearen
 pendingActionId löschen
@@ -377,6 +378,7 @@ Gedrosselte Events können sein:
 ENTITY_REF_INVALID
 MISSING_ENTITY
 NEEDS_RELINK
+RELINK_ATTEMPT
 RELINK_RETRY
 RELINK_PENDING
 AUTO_RESPAWN_SKIPPED
@@ -422,6 +424,7 @@ Spätere Änderungen dürfen keine neue Log-Flut erzeugen, z. B.:
 - pro Tick `NEEDS_RELINK`
 - pro Tick `AUTO_RESPAWN_SKIPPED`
 - pro Tick `Cannot move NPC`
+- nach `RELINK_GIVEUP_MARKED_MISSING` sofort im nächsten Tick wieder derselbe Relink-Zyklus
 
 ### Review-Fragen
 
@@ -530,16 +533,22 @@ spawnNpcEntity(...)
 
 ### Geprüfte Position
 
-Bevorzugt:
-
-```text
-Idle-Marker-Position
-```
-
-Fallback:
-
 ```text
 currentPosition
+```
+
+Wichtig:
+
+```text
+nur wenn currentPosition bekannt (hasKnownCurrentPosition)
+und alle Koordinaten finite sind
+```
+
+Nicht erlaubt:
+
+```text
+Origin-/Default-Fallback (0,0,0)
+Idle-Marker als implizite Spawn-Position im Auto-Respawn
 ```
 
 ### Wenn Chunk nicht geladen oder nicht sicher prüfbar ist
@@ -550,7 +559,8 @@ Dann:
 kein Auto-Respawn
 entityRef = null
 entityId = 0
-entityStatus = NEEDS_RELINK
+wenn bereits MISSING_ENTITY: bleibt MISSING_ENTITY (sticky)
+sonst entityStatus = NEEDS_RELINK
 Log via Cooldown
 kein Tick-Spam
 ```
@@ -601,9 +611,9 @@ Spätere Änderungen dürfen nicht wieder Auto-Respawn in ungeladenen Bereichen 
 
 - [ ] Sitzt der Gate vor Auto-Respawn?
 - [ ] Wird world geprüft?
-- [ ] Wird Idle-Marker oder currentPosition geprüft?
+- [ ] Wird nur sichere bekannte finite currentPosition verwendet?
 - [ ] Wird bei ungeladenem Chunk wirklich nicht gespawnt?
-- [ ] Bleibt Status `NEEDS_RELINK`?
+- [ ] Bleibt bei Missing der Status `MISSING_ENTITY` (sticky)?
 - [ ] Kein Tick-Spam?
 - [ ] Kein globales Chunk-Preloading?
 
@@ -824,6 +834,13 @@ nur bei echter Persistenzänderung dirty markieren
 - active actions
 - live-only handles
 
+Zusätzlich gilt:
+
+```text
+transiente Laufzustände werden vor Persistenz normalisiert
+(z. B. WALKING_TO_* -> stabiler Zielzustand, PAUSED_MISSING_MARKER -> IDLE)
+```
+
 ### Darf nicht kaputtgehen
 
 Spätere Änderungen dürfen nicht:
@@ -842,6 +859,149 @@ Spätere Änderungen dürfen nicht:
 - [ ] Wird `entityRef` nicht gespeichert?
 - [ ] Wird Runtime-Navigation nicht gespeichert?
 - [ ] Bleibt `state.json` kompatibel?
+
+---
+
+## Step 9 — Load/Save-Failure + Dirty-Reset-Regeln
+
+### Ziel
+
+Fehler bei Load/Save dürfen niemals als Erfolg gewertet werden oder still `state.json` zerstören.
+
+### Validierter Zustand
+
+Load-Failure:
+
+```text
+stateLoadFailed = true
+kein Restore-Autosave
+saveStateSafely() blockiert spätere Saves
+```
+
+Partial-Load (defensive skips):
+
+```text
+stateLoadPartial = true
+automatic save blockiert
+kein stilles Überschreiben mit teilgeladenem Zustand
+```
+
+Save-Failure:
+
+```text
+saveStateSafely() gibt false zurück
+Fehler bleibt Fehler (kein Erfolgssignal)
+```
+
+Dirty-Reset:
+
+```text
+stateDirty wird nur nach bestätigtem Save gelöscht
+bei Save-Fehler bleibt/bleibt wieder dirty und retry wird geplant
+```
+
+### Was geschützt wird
+
+- kein Empty-Overwrite nach fehlgeschlagenem Load
+- kein "Save erfolgreich" trotz Save-Fehler
+- kein Verlust von Retry-Signal bei Dirty-State
+
+### Review-Fragen
+
+- [ ] Blockiert Load-Failure alle automatischen Überschreibungen?
+- [ ] Blockiert Partial-Load den automatischen Save?
+- [ ] Gibt Save-Fehler korrekt `false` zurück?
+- [ ] Wird Dirty nur nach echtem Save gelöscht?
+
+---
+
+## Step 10 — Relink/Respawn Policy (PENDING + Profile + Position)
+
+### Ziel
+
+Keine irreführenden Recovery-Pfade: PENDING stoppt Fallbacks, Policy bleibt strikt.
+
+### Validierter Zustand
+
+PENDING-Regel:
+
+```text
+RelinkOutcome.PENDING stoppt den aktuellen Relink/Respawn-Zyklus
+keine schwächeren Fallbacks, kein Ersatzspawn in diesem Zyklus
+```
+
+Restart-Auto-Respawn-Policy (`respawnAfterRestart`):
+
+```text
+nur für restaurierte Records
+nur wenn autoRespawnMissingNpc global aktiv
+nur wenn persistence profile respawnAfterRestart=true
+nur mit gültiger role/definition
+nur mit persistierter entityUuid ohne Ownership-Konflikt
+nur mit vollständig auflösbaren required markers (read-only)
+```
+
+Position-Safety:
+
+```text
+Auto-Respawn/Spawn nur mit sicherer bekannter finite currentPosition
+kein impliziter Marker-/Origin-Fallback
+```
+
+### Was geschützt wird
+
+- kein falsches Dry-run-/Recovery-Signal bei PENDING
+- kein Auto-Respawn trotz policy-blocked profile
+- kein Spawn auf unbekannter/kaputter Position
+
+### Review-Fragen
+
+- [ ] Stoppt PENDING weiterhin jeden schwächeren Fallback im Zyklus?
+- [ ] Erzwingt respawnAfterRestart=true im Persistence-Profile den Gate?
+- [ ] Blockieren UUID-Ownership-Konflikte den Auto-Respawn?
+- [ ] Bleibt Spawn ohne bekannte finite Position blockiert?
+
+---
+
+## Step 11 — Marker-Fallback, Remove/Clear-Orphan, ACTIVE-Bind
+
+### Ziel
+
+Mutation strikt trennen und destruktive Pfade nur bei sicherer Beweislage erlauben.
+
+### Validierter Zustand
+
+Marker-Fallback:
+
+```text
+read-only: resolveRequiredMarkerReadOnly(...) für restore/tick/diagnose/policy
+mutierend: resolveRequiredMarkerWithFallbackAssigning(...) nur in spawn/admin assignment flows
+```
+
+Remove/Clear-Orphan-Safety:
+
+```text
+removeNpc löscht Record nur bei sicherem Outcome (NO_IDENTITY)
+ungeklärte/ungeprüfte Entity-Entfernung blockiert Record-Delete
+cleanup-orphans blockiert ohne --force bei offenen NEEDS_RELINK/MISSING/invalid ACTIVE
+cleanup-orphans löscht keine claimed oder ownership-ambiguous Kandidaten
+```
+
+ACTIVE-Bind-Sicherheitsregeln:
+
+```text
+ACTIVE erst nach UUID+Ownership+Role-Prüfung
+UUID-Relink: live UUID muss exakt zur persistierten UUID passen
+Anchor-Relink: nur eindeutiger ownership-sicherer Kandidat
+AMBIGUOUS => blockiert, kein Blind-Bind
+```
+
+### Review-Fragen
+
+- [ ] Bleiben read-only und mutierende Marker-Resolver getrennt?
+- [ ] Wird remove/clear bei unbestätigter Entity-Entfernung blockiert?
+- [ ] Blockiert cleanup-orphans weiterhin bei offenen Relink-Risiken ohne `--force`?
+- [ ] Wird `entityStatus=ACTIVE` nur nach vollständiger Sicherheitsprüfung gesetzt?
 
 ---
 
@@ -1435,6 +1595,9 @@ Step 5: Chunk-Gate vor Auto-Respawn
 Step 6: dynamischer Role-Prefix über setRoleName deaktiviert
 Step 7: Anchor-Fallback nur letzter Fallback, AMBIGUOUS blockiert
 Step 8: Save/Dirty-System mit diff-basierter Dirty-Markierung
+Step 9: Load/Save-Failure blockiert destruktive Overwrites, Dirty-Reset nur nach echtem Save
+Step 10: PENDING stoppt Fallbacks; respawnAfterRestart und Position-Safety sind harte Gates
+Step 11: Marker-Fallback read-only vs mutierend getrennt; Remove/Clear-Orphan und ACTIVE-Bind gehärtet
 ```
 
 Wichtigster finaler Architekturentscheid:
@@ -1456,11 +1619,18 @@ Vor Abschluss eines Patches muss beantwortet werden:
 [ ] Kein Movement ohne EntityRef?
 [ ] Keine alte Navigation nach Restart?
 [ ] Kein Auto-Respawn ohne Chunk-Gate?
+[ ] Kein Auto-Respawn ohne bekannte finite currentPosition?
 [ ] Kein dynamisches setRoleName mit KeystoneNPC_?
 [ ] UUID-Relink vergleicht Live-UUID hart?
+[ ] RelinkOutcome.PENDING stoppt weiterhin Fallback/Spawn im Zyklus?
 [ ] Anchor-Fallback blockiert AMBIGUOUS?
+[ ] respawnAfterRestart=false blockiert Auto-Respawn zuverlässig?
 [ ] Keine unclaimed Entity blind gelöscht?
 [ ] Kein Save pro Tick?
+[ ] Load-Failure/Partial-Load blockiert automatische Overwrite-Saves?
+[ ] Save-Failure zählt nie als Erfolg?
+[ ] Dirty wird nur nach echtem Save gelöscht?
+[ ] Marker read-only Pfade mutieren keine Assignments?
 [ ] entityRef nicht persistiert?
 [ ] Runtime-Navigation nicht persistiert?
 [ ] state.json kompatibel?

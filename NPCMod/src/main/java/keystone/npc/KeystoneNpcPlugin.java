@@ -18,7 +18,6 @@ import keystone.npc.definition.NpcDefinitionRegistry;
 import keystone.npc.definition.NpcTemplateResolver;
 import keystone.npc.markers.MarkerRegistry;
 import keystone.npc.persistence.JsonFileStateStore;
-import keystone.npc.persistence.StateStore;
 import keystone.npc.roles.RoleDefinitionRegistry;
 import keystone.npc.routine.NpcRoutineRunner;
 import keystone.npc.routine.NpcTickSystem;
@@ -38,11 +37,13 @@ public class KeystoneNpcPlugin extends JavaPlugin {
     private final NpcDefinitionRegistry npcDefinitions;
     private final NpcTemplateResolver templateResolver;
     private final SkillChecks skillChecks;
-    private final StateStore stateStore;
+    private final JsonFileStateStore stateStore;
     private final NpcRoutineRunner scheduler;
     private final Path pluginDataDirectory;
     private boolean initialRespawnQueued;
     private boolean stateSavePathLogged;
+    private volatile boolean stateLoadFailed;
+    private volatile boolean stateLoadPartial;
 
     private NpcCommandRegistrar commands;
 
@@ -77,10 +78,23 @@ public class KeystoneNpcPlugin extends JavaPlugin {
         roleDefinitions.load();
         System.out.println("[KeystoneNPC] Loaded role definitions: " + String.join(", ", roleDefinitions.roleIds()));
 
-        var loaded = stateStore.load();
-        markerRegistry.restore(loaded.markers(), loaded.activeMarkerIds());
-        scheduler.restore(loaded.npcs());
-        saveState();
+        JsonFileStateStore.LoadResult loadResult = stateStore.loadWithStatus();
+        if (!loadResult.loadSuccessful()) {
+            stateLoadFailed = true;
+            System.err.println("[KeystoneNPC][PLUGIN_SETUP_STATE_LOAD_FAILED] State load failed; skipping restore auto-save to prevent empty overwrite.");
+        } else {
+            var loaded = loadResult.state();
+            markerRegistry.restore(loaded.markers(), loaded.activeMarkerIds());
+            scheduler.restore(loaded.npcs());
+            if (loadResult.partialLoad()) {
+                stateLoadPartial = true;
+                System.err.println("[KeystoneNPC][STATE_LOAD_PARTIAL_NO_AUTOSAVE] State loaded with skipped/defensive records; automatic save is blocked to avoid destructive overwrite.");
+            } else {
+                if (!saveStateSafely()) {
+                    System.err.println("[KeystoneNPC][PLUGIN_SETUP_SAVE_FAILED] Failed to persist startup state after successful load.");
+                }
+            }
+        }
 
         // Run scheduler in the native ECS tick pipeline.
         getEntityStoreRegistry().registerSystem(new NpcTickSystem(scheduler));
@@ -103,6 +117,15 @@ public class KeystoneNpcPlugin extends JavaPlugin {
     }
 
     public boolean saveStateSafely() {
+        if (stateLoadFailed) {
+            System.err.println("[KeystoneNPC][PLUGIN_SAVE_BLOCKED_AFTER_LOAD_FAILURE] Save blocked because state load failed earlier; refusing to overwrite potentially recoverable state.json.");
+            return false;
+        }
+        if (stateLoadPartial) {
+            System.err.println("[KeystoneNPC][PLUGIN_SAVE_BLOCKED_AFTER_PARTIAL_LOAD] Save blocked because state load skipped/changed invalid records; refusing automatic overwrite of state.json.");
+            return false;
+        }
+
         try {
             logStateSavePathOnce();
             stateStore.save(markerRegistry.snapshot(), scheduler.snapshot(), markerRegistry.snapshotActiveMarkerIds());

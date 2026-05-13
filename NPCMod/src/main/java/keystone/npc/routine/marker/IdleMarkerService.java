@@ -99,13 +99,13 @@ public final class IdleMarkerService {
     public Optional<MarkerRecord> resolveStatePreferredMarker(NpcRecord npc) {
         Optional<MarkerType> authoritativeMarkerType = markerResolver.resolveAuthoritativeMarkerType(npc.state());
         if (authoritativeMarkerType.isPresent()) {
-            return markerResolver.resolveRequiredMarkerWithFallback(npc, authoritativeMarkerType.get());
+            return markerResolver.resolveRequiredMarkerReadOnly(npc, authoritativeMarkerType.get());
         }
 
         if (npc.state().isWalking()) {
             Optional<MarkerType> walkingMarkerType = markerResolver.resolveMarkerTypeForRole(npc.state().markerRole());
             if (walkingMarkerType.isPresent()) {
-                return markerResolver.resolveRequiredMarkerWithFallback(npc, walkingMarkerType.get());
+                return markerResolver.resolveRequiredMarkerReadOnly(npc, walkingMarkerType.get());
             }
         }
 
@@ -118,7 +118,7 @@ public final class IdleMarkerService {
             return false;
         }
 
-        Optional<MarkerRecord> marker = markerResolver.resolveRequiredMarkerWithFallback(npc, markerType.get());
+        Optional<MarkerRecord> marker = markerResolver.resolveRequiredMarkerReadOnly(npc, markerType.get());
         if (marker.isEmpty()) {
             return false;
         }
@@ -179,7 +179,7 @@ public final class IdleMarkerService {
     }
 
     private void addRestoreMarkerCandidate(List<MarkerRecord> candidates, NpcRecord npc, MarkerType markerType) {
-        Optional<MarkerRecord> marker = markerResolver.resolveRequiredMarkerWithFallback(npc, markerType);
+        Optional<MarkerRecord> marker = markerResolver.resolveRequiredMarkerReadOnly(npc, markerType);
         marker.ifPresent(candidates::add);
     }
 

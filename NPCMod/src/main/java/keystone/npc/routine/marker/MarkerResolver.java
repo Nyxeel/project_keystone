@@ -65,7 +65,19 @@ public final class MarkerResolver {
         return marker;
     }
 
+    // Compatibility entrypoint: keeps historical behavior and therefore mutates assignments.
+    // Use resolveRequiredMarkerReadOnly in restore/tick/validation/diagnostic paths.
     public Optional<MarkerRecord> resolveRequiredMarkerWithFallback(NpcRecord npc, MarkerType markerType) {
+        return resolveRequiredMarkerWithFallbackAssigning(npc, markerType);
+    }
+
+    public Optional<MarkerRecord> resolveRequiredMarkerReadOnly(NpcRecord npc, MarkerType markerType) {
+        String assignedMarkerId = markerIdForType(npc, markerType);
+        return resolveMarkerInNpcWorld(npc, markerType, assignedMarkerId);
+    }
+
+    // Explicit mutating variant for assignment contexts (e.g., spawn/admin assignment flows).
+    public Optional<MarkerRecord> resolveRequiredMarkerWithFallbackAssigning(NpcRecord npc, MarkerType markerType) {
         String assignedMarkerId = markerIdForType(npc, markerType);
         Optional<MarkerRecord> direct = resolveMarkerInNpcWorld(npc, markerType, assignedMarkerId);
         if (direct.isPresent()) {

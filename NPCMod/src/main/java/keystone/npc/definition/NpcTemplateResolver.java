@@ -23,6 +23,7 @@ import keystone.npc.movement.InstructionDefinition;
 import keystone.npc.movement.MotionControllerDefinition;
 import keystone.npc.movement.MovementProfile;
 import keystone.npc.navigation.NpcNavigationProfile;
+import keystone.npc.persistence.profile.PersistenceProfile;
 import keystone.npc.routine.RoutineDefinition;
 import keystone.npc.routine.RoutineEntry;
 import keystone.npc.skills.NpcSkill;
@@ -76,6 +77,7 @@ public final class NpcTemplateResolver {
     private final Map<String, ActionProfile> actionByDefinitionId = new LinkedHashMap<>();
     private final Map<String, MovementProfile> movementByDefinitionId = new LinkedHashMap<>();
     private final Map<String, NpcNavigationProfile> navigationByDefinitionId = new LinkedHashMap<>();
+    private final Map<String, PersistenceProfile> persistenceByDefinitionId = new LinkedHashMap<>();
     private final Map<String, List<String>> invalidRoleReasonsByRoleId = new LinkedHashMap<>();
     private final Map<String, List<String>> definitionIdsByRoleId = new LinkedHashMap<>();
 
@@ -90,6 +92,7 @@ public final class NpcTemplateResolver {
         actionByDefinitionId.clear();
         movementByDefinitionId.clear();
         navigationByDefinitionId.clear();
+        persistenceByDefinitionId.clear();
         invalidRoleReasonsByRoleId.clear();
         definitionIdsByRoleId.clear();
         skillResolver.clearCache();
@@ -186,6 +189,25 @@ public final class NpcTemplateResolver {
         return Optional.ofNullable(navigationByDefinitionId.get(NpcDefinition.normalizeId(definitionId)));
     }
 
+    public synchronized Optional<PersistenceProfile> resolvePersistenceProfile(String definitionId) {
+        if (definitionId == null || definitionId.isBlank()) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(persistenceByDefinitionId.get(NpcDefinition.normalizeId(definitionId)));
+    }
+
+    public synchronized Optional<PersistenceProfile> resolvePersistenceProfileByRoleId(String roleId) {
+        return resolveByRoleId(roleId)
+            .map(EffectiveNpcDefinition::id)
+            .flatMap(this::resolvePersistenceProfile);
+    }
+
+    public synchronized boolean respawnAfterRestartEnabledForRole(String roleId) {
+        return resolvePersistenceProfileByRoleId(roleId)
+            .map(PersistenceProfile::respawnAfterRestartEnabled)
+            .orElse(Boolean.FALSE);
+    }
+
     private void resolveDefinition(NpcDefinition concrete) {
         NpcDefinition merged = concrete;
         List<String> errors = new ArrayList<>();
@@ -245,6 +267,12 @@ public final class NpcTemplateResolver {
             NpcNavigationProfile.class,
             errors
         );
+        Optional<PersistenceProfile> persistenceProfile = parseProfile(
+            definitionId,
+            profiles != null ? profiles.persistence() : null,
+            PersistenceProfile.class,
+            errors
+        );
         String resolvedNavigationProfilePath = resolveProfilePath(definitionId, profiles != null ? profiles.navigation() : null);
         validateNavigationProfile(navigationProfile, resolvedNavigationProfilePath, errors);
 
@@ -282,6 +310,7 @@ public final class NpcTemplateResolver {
         actionProfile.ifPresent(value -> actionByDefinitionId.put(effective.id(), value));
         movement.ifPresent(value -> movementByDefinitionId.put(effective.id(), value));
         navigationProfile.ifPresent(value -> navigationByDefinitionId.put(effective.id(), value));
+        persistenceProfile.ifPresent(value -> persistenceByDefinitionId.put(effective.id(), value));
     }
 
     private void validateProfilePathsExist(String definitionId, NpcProfileRefs profiles, List<String> errors) {
@@ -742,6 +771,7 @@ public final class NpcTemplateResolver {
             actionByDefinitionId.remove(definitionId);
             movementByDefinitionId.remove(definitionId);
             navigationByDefinitionId.remove(definitionId);
+            persistenceByDefinitionId.remove(definitionId);
         }
     }
 

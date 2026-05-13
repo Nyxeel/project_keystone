@@ -11,4 +11,7 @@ public record PersistenceProfile(
     Boolean respawnAfterRestart,
     Boolean despawnWhenFarAway
 ) {
+    public boolean respawnAfterRestartEnabled() {
+        return Boolean.TRUE.equals(respawnAfterRestart);
+    }
 }

@@ -1,11 +1,12 @@
 package keystone.npc.relink;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.lang.reflect.Method;
 import java.util.function.BiConsumer;
 
 import com.hypixel.hytale.component.Ref;
@@ -19,16 +20,16 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.hypixel.hytale.server.npc.NPCPlugin;
 import com.hypixel.hytale.server.npc.entities.NPCEntity;
 
-import keystone.npc.domain.NpcRecord;
 import keystone.npc.domain.NpcEntityStatus;
+import keystone.npc.domain.NpcRecord;
+import keystone.npc.markers.MarkerRecord;
+import keystone.npc.markers.MarkerType;
+import keystone.npc.markers.Vec3;
 import keystone.npc.roles.RoleDefinition;
 import keystone.npc.roles.RoleDefinitionRegistry;
 import keystone.npc.routine.entity.EntitySyncService;
 import keystone.npc.routine.marker.IdleMarkerService;
 import keystone.npc.routine.marker.MarkerResolver;
-import keystone.npc.markers.MarkerRecord;
-import keystone.npc.markers.MarkerType;
-import keystone.npc.markers.Vec3;
 
 public final class RelinkWorkflowService {
     public enum RelinkOutcome {
@@ -146,8 +147,8 @@ public final class RelinkWorkflowService {
         Map<String, String> claimedEntityUuids,
         List<OwnedEntityRefClaim> claimedEntityRefs
     ) {
-        String rawUuid = npc.entityUuid();
-        if (rawUuid == null || rawUuid.isBlank()) {
+        String rawUuid = normalizeUuidKey(npc.entityUuid());
+        if (rawUuid == null) {
             npc.entityStatus(NpcEntityStatus.MISSING_ENTITY);
             uuidRelinkMissCounts.remove(npc.npcId());
             uuidRelinkFirstMissAtMs.remove(npc.npcId());
@@ -185,7 +186,10 @@ public final class RelinkWorkflowService {
             long firstMissAt = uuidRelinkFirstMissAtMs.computeIfAbsent(npc.npcId(), key -> now);
             int misses = uuidRelinkMissCounts.getOrDefault(npc.npcId(), 0) + 1;
             uuidRelinkMissCounts.put(npc.npcId(), misses);
-            npc.entityStatus(NpcEntityStatus.NEEDS_RELINK);
+            if (npc.entityStatus() != NpcEntityStatus.DISABLED
+                && npc.entityStatus() != NpcEntityStatus.MISSING_ENTITY) {
+                npc.entityStatus(NpcEntityStatus.NEEDS_RELINK);
+            }
 
             if (misses == 1) {
                 logInfo("RELINK_ATTEMPT", "Attempt relink by persisted UUID: "
@@ -305,8 +309,8 @@ public final class RelinkWorkflowService {
         Map<String, String> claimedEntityUuids,
         List<OwnedEntityRefClaim> claimedEntityRefs
     ) {
-        String rawUuid = npc.entityUuid();
-        if (rawUuid == null || rawUuid.isBlank()) {
+        String rawUuid = normalizeUuidKey(npc.entityUuid());
+        if (rawUuid == null) {
             return new RelinkEvaluationOutcome(RelinkOutcome.PENDING, null, null);
         }
 
@@ -513,6 +517,13 @@ public final class RelinkWorkflowService {
                 }
 
                 String candidateUuid = readEntityUuid(candidateRef);
+                candidateUuid = normalizeUuidKey(candidateUuid);
+                if (candidateUuid == null) {
+                    logInfo("RELINK_ANCHOR_SKIPPED_UUID_UNREADABLE", "Skipping anchor relink candidate with unreadable UUID: "
+                        + spawnContextFormatter.format(npc, trigger, world, roleDefinition.get(), roleIndex));
+                    continue;
+                }
+
                 String ownerByUuid = ownerByUuid(candidateUuid, claimedEntityUuids);
                 if (ownerByUuid != null && !ownerByUuid.equals(npc.npcId())) {
                     logInfo("RELINK_ANCHOR_SKIPPED_CLAIMED", "Skipping anchor relink candidate UUID claimed by another NPC: "
@@ -543,11 +554,18 @@ public final class RelinkWorkflowService {
             return AnchorRelinkOutcome.NO_MATCH;
         }
 
+        String keepUuid = normalizeUuidKey(readEntityUuid(keepRef));
+        if (keepUuid == null) {
+            logSevere("RELINK_ANCHOR_UUID_UNREADABLE", "Anchor relink candidate has unreadable UUID; relink blocked to avoid stale UUID/ref mismatch: "
+                + spawnContextFormatter.format(npc, trigger, world, roleDefinition.get(), roleIndex));
+            return AnchorRelinkOutcome.NO_MATCH;
+        }
+
         npc.entityRef(keepRef);
         npc.entityId(1);
+        npc.entityUuid(keepUuid);
         npc.entityStatus(NpcEntityStatus.ACTIVE);
         normalizeRuntimeRoleName(npc, keepRef, null, world, trigger, "anchor-relink");
-        entitySync.updatePersistedEntityIdentity(npc, keepRef);
         dedupeRoleIdDuplicates(
             world,
             npc,
@@ -642,6 +660,11 @@ public final class RelinkWorkflowService {
                 }
 
                 String candidateUuid = readEntityUuid(candidateRef);
+                candidateUuid = normalizeUuidKey(candidateUuid);
+                if (candidateUuid == null) {
+                    continue;
+                }
+
                 String ownerByUuid = ownerByUuid(candidateUuid, claimedEntityUuids);
                 if (ownerByUuid != null && !ownerByUuid.equals(npc.npcId())) {
                     continue;
@@ -664,7 +687,12 @@ public final class RelinkWorkflowService {
             return new AnchorRelinkEvaluationOutcome(AnchorRelinkOutcome.NO_MATCH, null, null);
         }
 
-        return new AnchorRelinkEvaluationOutcome(AnchorRelinkOutcome.SUCCESS, keepRef, readEntityUuid(keepRef));
+        String keepUuid = normalizeUuidKey(readEntityUuid(keepRef));
+        if (keepUuid == null) {
+            return new AnchorRelinkEvaluationOutcome(AnchorRelinkOutcome.NO_MATCH, null, null);
+        }
+
+        return new AnchorRelinkEvaluationOutcome(AnchorRelinkOutcome.SUCCESS, keepRef, keepUuid);
     }
 
     public void dedupeRoleIdDuplicates(
@@ -848,7 +876,7 @@ public final class RelinkWorkflowService {
     }
 
     private void addMarkerAnchor(List<Vec3> anchors, NpcRecord npc, MarkerType markerType) {
-        Optional<MarkerRecord> marker = markerResolver.resolveRequiredMarkerWithFallback(npc, markerType);
+        Optional<MarkerRecord> marker = markerResolver.resolveRequiredMarkerReadOnly(npc, markerType);
         marker.ifPresent(value -> anchors.add(value.position()));
     }
 
@@ -869,10 +897,36 @@ public final class RelinkWorkflowService {
     }
 
     private String ownerByUuid(String candidateUuid, Map<String, String> claimedEntityUuids) {
-        if (candidateUuid == null || candidateUuid.isBlank() || claimedEntityUuids == null || claimedEntityUuids.isEmpty()) {
+        String normalizedCandidateUuid = normalizeUuidKey(candidateUuid);
+        if (normalizedCandidateUuid == null || claimedEntityUuids == null || claimedEntityUuids.isEmpty()) {
             return null;
         }
-        return claimedEntityUuids.get(candidateUuid);
+
+        String owner = claimedEntityUuids.get(normalizedCandidateUuid);
+        if (owner != null) {
+            return owner;
+        }
+
+        for (Map.Entry<String, String> entry : claimedEntityUuids.entrySet()) {
+            if (normalizedCandidateUuid.equals(normalizeUuidKey(entry.getKey()))) {
+                return entry.getValue();
+            }
+        }
+
+        return null;
+    }
+
+    private String normalizeUuidKey(String rawUuid) {
+        if (rawUuid == null) {
+            return null;
+        }
+
+        String normalized = rawUuid.trim();
+        if (normalized.isBlank()) {
+            return null;
+        }
+
+        return normalized.toLowerCase(Locale.ROOT);
     }
 
     private String readEntityUuid(Ref<EntityStore> entityRef) {

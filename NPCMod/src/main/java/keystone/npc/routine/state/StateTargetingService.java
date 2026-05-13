@@ -119,7 +119,7 @@ public final class StateTargetingService {
     }
 
     public boolean startNavigationToMarker(NpcRecord npc, MarkerType markerType, NpcState targetState) {
-        Optional<MarkerRecord> marker = markerResolver.resolveRequiredMarkerWithFallback(npc, markerType);
+        Optional<MarkerRecord> marker = markerResolver.resolveRequiredMarkerReadOnly(npc, markerType);
         if (marker.isEmpty()) {
             warnOnce(
                 npc,
@@ -269,7 +269,7 @@ public final class StateTargetingService {
                 minuteOfDay
             );
 
-            Optional<MarkerRecord> resolvedMarker = markerResolver.resolveRequiredMarkerWithFallback(npc, routineMarker.get());
+            Optional<MarkerRecord> resolvedMarker = markerResolver.resolveRequiredMarkerReadOnly(npc, routineMarker.get());
             if (resolvedMarker.isEmpty()) {
                 warnOnce(
                     npc,
@@ -301,7 +301,7 @@ public final class StateTargetingService {
 
     public boolean hasRequiredMarkers(NpcRecord npc, RoleDefinition roleDefinition) {
         for (MarkerType markerType : requiredMarkerTypes(npc, roleDefinition)) {
-            if (markerResolver.resolveRequiredMarkerWithFallback(npc, markerType).isEmpty()) {
+            if (markerResolver.resolveRequiredMarkerReadOnly(npc, markerType).isEmpty()) {
                 return false;
             }
         }
@@ -311,7 +311,7 @@ public final class StateTargetingService {
     public String missingRequiredMarkers(NpcRecord npc, RoleDefinition roleDefinition) {
         List<String> missing = new java.util.ArrayList<>();
         for (MarkerType markerType : requiredMarkerTypes(npc, roleDefinition)) {
-            if (markerResolver.resolveRequiredMarkerWithFallback(npc, markerType).isEmpty()) {
+            if (markerResolver.resolveRequiredMarkerReadOnly(npc, markerType).isEmpty()) {
                 missing.add(markerType.name().toLowerCase(Locale.ROOT));
             }
         }

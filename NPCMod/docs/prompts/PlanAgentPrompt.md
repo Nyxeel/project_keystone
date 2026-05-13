@@ -126,3 +126,10 @@ Hier ist die Auswertung/Analyse:
 
 Bitte jetzt nicht implementieren.
 Bitte nur die PLAN- und AGENT-Prompts aus dieser Auswertung erzeugen.
+
+
+
+WICHTIG!!!!!
+Schreib dazu das am ende des komplettes durchfuehrung des plans auch die files in
+/home/pj/projects/hytale/project_keystone/NPCMod/docs/safety geupdatet werden muessen!
+DAS IST PFLICHT!!!

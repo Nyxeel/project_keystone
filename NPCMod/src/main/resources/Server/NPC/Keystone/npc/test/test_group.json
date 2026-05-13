@@ -9,7 +9,7 @@
     "combat": "combat/peaceful.json",
     "spawn": "spawns/forest_village.json",
     "persistence": "persistence/persistent_citizen.json",
-    "actions": "npc/test/actions/test_actions.json"
+    "actions": "Keystone/npc/test/actions/test_actions.json"
   },
   "variants": [
     {
@@ -19,10 +19,10 @@
       "displayName": "Test NPC",
       "nameTranslationKey": "keystone.npc.roles.test.name",
       "appearance": {
-        "profile": "npc/test/appearances/default.json",
+        "profile": "Keystone/npc/test/appearances/default.json",
         "value": "Player"
       },
-      "routine": "npc/test/routines/default_day_cycle.json",
+      "routine": "Keystone/npc/test/routines/default_day_cycle.json",
       "requiredMarkers": [
         "bed",
         "chest",

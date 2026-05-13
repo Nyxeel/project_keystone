@@ -1,7 +1,7 @@
 # JSON Hierarchy Control File
 
-> **Status:** Validated Baseline  
-> **Projekt:** Hytale-Mod „NPCMod / KeystoneNPC“  
+> **Status:** Validated Baseline
+> **Projekt:** Hytale-Mod „NPCMod / KeystoneNPC“
 > **Zweck:** Dauerhafte Kontroll- und Review-Datei für die neue `Server/NPC` JSON-, Role-, Skill- und Keystone-Hierarchie. Diese Datei schützt die validierte Architektur vor versehentlichen Regressionen durch spätere AI-/Agent-/Entwickler-Patches.
 
 ---
@@ -29,7 +29,7 @@
 Die neue Keystone-NPC-Struktur trennt strikt zwischen **Hytale Engine-Roles**, **Keystone Mod-Konfiguration** und **konkreten NPC-Instanzen**.
 
 > [!IMPORTANT]
-> **Hytale Engine-Role ≠ Keystone roleId ≠ npcId.**  
+> **Hytale Engine-Role ≠ Keystone roleId ≠ npcId.**
 > Diese drei Begriffe dürfen nie vermischt werden.
 
 | Begriff | Bedeutung | Beispiel | Persistenz / Ort |
@@ -223,6 +223,7 @@ state.json speichert konkrete Instanzdaten
 - Legacy-Pfade wurden als Zielzustand entfernt.
 - README für Keystone-Struktur ist vorgesehen / validiert.
 - Interne Java-Namen wurden von `Capability` auf `Skill` umgestellt.
+- `PersistenceProfile.respawnAfterRestart` wird aktiv als Restart-Auto-Respawn-Gate ausgewertet (kein impliziter Default-Respawn).
 
 ### 3.2 Absichtlich noch nicht umgesetzt
 
@@ -230,7 +231,7 @@ state.json speichert konkrete Instanzdaten
 - Appearance-Apply-Logik ist noch nicht umgesetzt.
 - CombatProfile steuert noch kein vollständiges Kampfverhalten.
 - SpawnProfile steuert noch kein vollständiges Spawn-System.
-- PersistenceProfile steuert noch nicht vollständig pro NPC das Persistenzverhalten.
+- PersistenceProfile steuert derzeit nur Teilbereiche aktiv (u. a. `respawnAfterRestart`-Gate); vollständige per-NPC-Runtime-Steuerung ist noch nicht umgesetzt.
 - Action-Animation/Sound/Loop ist noch nicht vollständig an Runtime angebunden.
 
 > [!IMPORTANT]
@@ -1302,8 +1303,8 @@ Step 5: Lumberjack-Gruppe validiert
 Step 6: hytaleRole/Duplicate/Marker-Basisvalidierung validiert
 Step 7: Appearance-Priorität dokumentiert
 Step 8: Legacy-Pfade als Zielzustand entfernt
-Step 9: Keystone README vorgesehen/validiert
-Step 10: Finaler Gesamtcheck vorgesehen
+Step 9: Keystone README validiert
+Step 10: Finaler Gesamtcheck validiert
 Step 11: Capability → Skill interner Naming-Refactor validiert
 ```
 
@@ -1317,7 +1318,8 @@ Skill-Naming: validiert
 Legacy-Fallback: bewusst erhalten
 Marker-v2: später geplant
 Appearance-Apply: später geplant
-Combat/Spawn/Persistence Runtime-Anbindung: später geplant
+Combat/Spawn Runtime-Anbindung: später geplant
+Persistence Runtime-Anbindung: teilweise aktiv (respawnAfterRestart-Gate), sonst später geplant
 ```
 
 ---
@@ -1333,6 +1335,7 @@ Combat/Spawn/Persistence Runtime-Anbindung: später geplant
 [ ] Jede npc_group-Variante hat hytaleRole?
 [ ] hytaleRole-Dateien existieren in Server/NPC/Roles/ ?
 [ ] Keine dynamischen KeystoneNPC_... Engine-Roles?
+[ ] respawnAfterRestart bleibt als explizites Profile-Gate erhalten (kein impliziter Auto-Respawn)?
 [ ] Kein undead_guard wieder aktiv?
 [ ] Kein alter Server/NPC/npc/lumberjack-Pfad wieder aktiv?
 [ ] skills bleibt neuer Pfadname?
@@ -1391,5 +1394,5 @@ Commit-Regeln:
 ## Letzte Regel
 
 > [!CAUTION]
-> **Wenn eine dieser Regeln bewusst geändert wird, muss diese Kontroll-Datei sofort aktualisiert werden.**  
+> **Wenn eine dieser Regeln bewusst geändert wird, muss diese Kontroll-Datei sofort aktualisiert werden.**
 > Die Änderung braucht neue Review-Fragen, neue Negativ-Tests und eine klare Begründung, warum die neue Architektur sicherer oder notwendig ist.

@@ -18,11 +18,11 @@
       "displayName": "Lumberjack",
       "nameTranslationKey": "keystone.npc.roles.lumberjack.name",
       "appearance": {
-        "profile": "npc/lumberjack/appearances/lumberjack.json",
-        "value": "Player"
+        "profile": "Keystone/npc/lumberjack/appearances/lumberjack.json",
+        "value": "Temple_Mithril_Guard"
       },
-      "routine": "npc/lumberjack/routines/default_day_cycle.json",
-      "actions": "npc/lumberjack/actions/lumberjack_actions.json",
+      "routine": "Keystone/npc/lumberjack/routines/default_day_cycle.json",
+      "actions": "Keystone/npc/lumberjack/actions/lumberjack_actions.json",
       "requiredMarkers": [
         "bed",
         "chest",
@@ -43,11 +43,11 @@
       "displayName": "Lumberjack Wife",
       "nameTranslationKey": "keystone.npc.roles.lumberjack_wife.name",
       "appearance": {
-        "profile": "npc/lumberjack/appearances/lumberjack_wife.json",
+        "profile": "Keystone/npc/lumberjack/appearances/lumberjack_wife.json",
         "value": "Player"
       },
-      "routine": "npc/lumberjack/routines/default_day_cycle.json",
-      "actions": "npc/lumberjack/actions/lumberjack_actions.json",
+      "routine": "Keystone/npc/lumberjack/routines/default_day_cycle.json",
+      "actions": "Keystone/npc/lumberjack/actions/lumberjack_actions.json",
       "requiredMarkers": [
         "bed",
         "chest",
@@ -68,11 +68,11 @@
       "displayName": "Lumberjack Oldman",
       "nameTranslationKey": "keystone.npc.roles.lumberjack_oldman.name",
       "appearance": {
-        "profile": "npc/lumberjack/appearances/lumberjack_oldman.json",
+        "profile": "Keystone/npc/lumberjack/appearances/lumberjack_oldman.json",
         "value": "Player"
       },
-      "routine": "npc/lumberjack/routines/default_day_cycle.json",
-      "actions": "npc/lumberjack/actions/lumberjack_actions.json",
+      "routine": "Keystone/npc/lumberjack/routines/default_day_cycle.json",
+      "actions": "Keystone/npc/lumberjack/actions/lumberjack_actions.json",
       "requiredMarkers": [
         "bed",
         "chest",
@@ -93,11 +93,11 @@
       "displayName": "Lumberjack Oldwife",
       "nameTranslationKey": "keystone.npc.roles.lumberjack_oldwife.name",
       "appearance": {
-        "profile": "npc/lumberjack/appearances/lumberjack_oldwife.json",
+        "profile": "Keystone/npc/lumberjack/appearances/lumberjack_oldwife.json",
         "value": "Player"
       },
-      "routine": "npc/lumberjack/routines/default_day_cycle.json",
-      "actions": "npc/lumberjack/actions/lumberjack_actions.json",
+      "routine": "Keystone/npc/lumberjack/routines/default_day_cycle.json",
+      "actions": "Keystone/npc/lumberjack/actions/lumberjack_actions.json",
       "requiredMarkers": [
         "bed",
         "chest",

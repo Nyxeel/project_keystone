@@ -141,11 +141,11 @@ Beschreibe den aktuell geprüften Zustand:
 - welche Annahmen gelten
 - welche Tests bereits bestanden wurden
 
-## 4. Validierte Agent Steps / Feature-Phasen
+## 4. Validierte Agent Steps / Feature-Phasen wichtig immer AGENT Step X (x die zahl des steps)
 
 Für jeden Step:
 
-## Step X — [Name]
+## AGENT Step X — [Name]
 
 ### Ziel
 
@@ -163,7 +163,7 @@ Welche Fehler verhindert dieser Step?
 
 Welche späteren Änderungen dürfen diesen Step nicht brechen?
 
-### Review-Fragen
+### AGENT STEP X - Review-Fragen
 
 - [ ] Frage 1
 - [ ] Frage 2
@@ -357,7 +357,7 @@ Ergänze am Ende der Kontroll-Datei noch einen kurzen Abschnitt „AI-Ergänzung
 
 
 ## LETZTE REGEL
-- **Wenn eine dieser Regeln bewusst geändert wird, muss diese Kontroll-Datei sofort aktualisiert werden.** Die Änderung braucht dann neue Review-Fragen, neue Negativ-Tests und eine klare Begründung, warum die neue Architektur sicherer oder notwendig ist.
+- **Wenn eine dieser Regeln bewusst geändert wird, muss diese Kontroll-Datei sofort aktualisiert werden.** Wenn ein plan vorliegt, dann nciht bei jedem step die dateien updaten, sondern erst am ende der step kette!! Die Änderung braucht dann neue Review-Fragen, neue Negativ-Tests und eine klare Begründung, warum die neue Architektur sicherer oder notwendig ist.
 
 
 
