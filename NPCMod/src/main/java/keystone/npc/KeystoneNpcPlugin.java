@@ -5,6 +5,7 @@ import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 
 import javax.annotation.Nonnull;
 
@@ -114,6 +115,32 @@ public class KeystoneNpcPlugin extends JavaPlugin {
 
     public void saveState() {
         saveStateSafely();
+    }
+
+    public boolean isStateLoadFailed() {
+        return stateLoadFailed;
+    }
+
+    public boolean isStateLoadPartial() {
+        return stateLoadPartial;
+    }
+
+    public Path createStateBackupForMigration() {
+        Path stateFilePath = pluginDataDirectory.resolve(STATE_FILE).toAbsolutePath().normalize();
+        if (!Files.exists(stateFilePath) || !Files.isRegularFile(stateFilePath)) {
+            System.err.println("[KeystoneNPC][MIGRATION_BACKUP_FAILED] State file missing: " + stateFilePath);
+            return null;
+        }
+
+        Path backupPath = stateFilePath.getParent().resolve("state.migration." + System.currentTimeMillis() + ".bak.json");
+        try {
+            Files.copy(stateFilePath, backupPath, StandardCopyOption.COPY_ATTRIBUTES);
+            return backupPath;
+        } catch (Exception ex) {
+            System.err.println("[KeystoneNPC][MIGRATION_BACKUP_FAILED] Could not create backup: "
+                + backupPath + " " + ex.getClass().getSimpleName() + ": " + ex.getMessage());
+            return null;
+        }
     }
 
     public boolean saveStateSafely() {

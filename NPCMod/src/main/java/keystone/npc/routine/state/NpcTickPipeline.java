@@ -17,6 +17,7 @@ import keystone.npc.roles.RoleDefinition;
 import keystone.npc.roles.RoleDefinitionRegistry;
 import keystone.npc.routine.entity.EntitySyncService;
 import keystone.npc.routine.marker.IdleMarkerService;
+import keystone.npc.routine.marker.MarkerResolver;
 import keystone.npc.routine.pathfinding.NavigationRuntimeService;
 
 public final class NpcTickPipeline {
@@ -28,6 +29,7 @@ public final class NpcTickPipeline {
     private final StateTargetingService stateTargetingService;
     private final NavigationRuntimeService navigationRuntimeService;
     private final IdleMarkerService idleMarkerService;
+    private final MarkerResolver markerResolver;
     private final EntitySyncService entitySync;
     private final boolean engineNavigationEnabled;
     private final BiConsumer<NpcRecord, String> missingMarkerWarningSink;
@@ -37,6 +39,7 @@ public final class NpcTickPipeline {
         StateTargetingService stateTargetingService,
         NavigationRuntimeService navigationRuntimeService,
         IdleMarkerService idleMarkerService,
+        MarkerResolver markerResolver,
         EntitySyncService entitySync,
         boolean engineNavigationEnabled,
         BiConsumer<NpcRecord, String> missingMarkerWarningSink
@@ -45,6 +48,7 @@ public final class NpcTickPipeline {
         this.stateTargetingService = Objects.requireNonNull(stateTargetingService);
         this.navigationRuntimeService = Objects.requireNonNull(navigationRuntimeService);
         this.idleMarkerService = Objects.requireNonNull(idleMarkerService);
+        this.markerResolver = Objects.requireNonNull(markerResolver);
         this.entitySync = Objects.requireNonNull(entitySync);
         this.engineNavigationEnabled = engineNavigationEnabled;
         this.missingMarkerWarningSink = Objects.requireNonNull(missingMarkerWarningSink);
@@ -317,14 +321,7 @@ public final class NpcTickPipeline {
             return null;
         }
 
-        return switch (markerType) {
-            case BED -> npc.bedMarkerId();
-            case DOOR -> npc.doorMarkerId();
-            case CHEST -> npc.chestMarkerId();
-            case FOOD -> npc.foodMarkerId();
-            case WORK -> npc.workMarkerId();
-            case CHILL -> npc.chillMarkerId();
-        };
+        return markerResolver.markerIdForType(npc, markerType);
     }
 
     private boolean sameTargetPosition(Vec3 left, Vec3 right, double epsilonSq) {

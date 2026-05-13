@@ -1,5 +1,7 @@
 package keystone.npc.domain;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Objects;
 
 import com.hypixel.hytale.component.Ref;
@@ -16,7 +18,8 @@ import keystone.npc.roles.RoleDefinition;
  * Minimum-Felder laut Spec:
  * npcId, npcName, role, state, worldId, currentPosition,
  * homeInstanceId, workInstanceId,
- * bedMarkerId, doorMarkerId, workMarkerId
+ * bedMarkerId, doorMarkerId, workMarkerId,
+ * markerAssignments (Marker-v2-ready, legacy fields remain supported)
  */
 public final class NpcRecord {
 
@@ -38,6 +41,7 @@ public final class NpcRecord {
     private String foodMarkerId;
     private String workMarkerId;
     private String chillMarkerId;
+    private Map<String, MarkerAssignment> markerAssignments;
 
     private long entityId = 0;  // Serializable: non-zero means entity was already spawned
     private String entityUuid;
@@ -124,6 +128,35 @@ public final class NpcRecord {
 
     public String chillMarkerId() { return chillMarkerId; }
     public void chillMarkerId(String v) { this.chillMarkerId = v; }
+
+    public Map<String, MarkerAssignment> markerAssignments() {
+        return markerAssignments == null ? Map.of() : Map.copyOf(markerAssignments);
+    }
+
+    public void markerAssignments(Map<String, MarkerAssignment> markerAssignments) {
+        if (markerAssignments == null || markerAssignments.isEmpty()) {
+            this.markerAssignments = null;
+            return;
+        }
+
+        Map<String, MarkerAssignment> sanitized = new LinkedHashMap<>();
+        for (Map.Entry<String, MarkerAssignment> entry : markerAssignments.entrySet()) {
+            String logicalKey = entry.getKey();
+            MarkerAssignment assignment = entry.getValue();
+            if (logicalKey == null || logicalKey.isBlank() || assignment == null) {
+                continue;
+            }
+
+            String markerId = assignment.markerId();
+            if (markerId == null || markerId.isBlank() || assignment.markerType() == null) {
+                continue;
+            }
+
+            sanitized.put(logicalKey.trim(), new MarkerAssignment(markerId.trim(), assignment.markerType()));
+        }
+
+        this.markerAssignments = sanitized.isEmpty() ? null : sanitized;
+    }
 
     public Ref<EntityStore> entityRef() { return entityRef; }
     public void entityRef(Ref<EntityStore> entityRef) { this.entityRef = entityRef; }

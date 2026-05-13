@@ -1052,6 +1052,29 @@ Mutierendes Reconcile ist nur in expliziten Kontexten erlaubt:
 - Spawn
 - Admin-Kontext
 
+Explizite Legacy->markerAssignments-Migration ist nur in einem dedizierten Admin-Command erlaubt:
+
+- `/knpc marker migrate --dry-run`
+- `/knpc marker migrate --apply`
+
+Pflicht-Gates fuer diesen Migrationspfad:
+
+- Backup vor Apply
+- Apply nur nach Dry-run
+- Block bei `stateLoadFailed`
+- Block bei `stateLoadPartial`
+- `saveStateSafely()` muss erfolgreich sein
+- bei Save-Failure: keine Erfolgsmeldung und Rollback/Drift-Warnung
+- keine Legacy-Feldloeschung im ersten Migrationsstep
+
+Verboten bleibt:
+
+- Migration beim Load
+- Migration beim Restore
+- Migration bei Diagnose/Validation
+- Migration im Tick
+- automatische Legacy-Loeschung
+
 Symbol-Audit (Markdown-only, ohne Compile):
 
 ```bash

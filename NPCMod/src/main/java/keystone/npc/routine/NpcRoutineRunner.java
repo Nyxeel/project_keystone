@@ -32,6 +32,7 @@ import com.hypixel.hytale.server.npc.entities.NPCEntity;
 
 import keystone.npc.debug.NpcDebugSupport;
 import keystone.npc.definition.NpcTemplateResolver;
+import keystone.npc.domain.MarkerAssignment;
 import keystone.npc.domain.NpcEntityStatus;
 import keystone.npc.domain.NpcRecord;
 import keystone.npc.domain.NpcState;
@@ -267,6 +268,7 @@ public final class NpcRoutineRunner {
             this.stateTargetingService,
             this.navigationRuntimeService,
             this.idleMarkerService,
+            this.markerResolver,
             this.entitySync,
             ENGINE_NAVIGATION_ENABLED,
             this::emitMissingMarkerWarnings
@@ -881,7 +883,7 @@ public final class NpcRoutineRunner {
         addMarkerIdIfPresent(ownedMarkerIds, npc.foodMarkerId());
         addMarkerIdIfPresent(ownedMarkerIds, npc.workMarkerId());
         addMarkerIdIfPresent(ownedMarkerIds, npc.chillMarkerId());
-        // Future markerAssignments can be included here once persisted on NpcRecord.
+        addMarkerAssignmentsIfPresent(ownedMarkerIds, npc.markerAssignments());
         return ownedMarkerIds;
     }
 
@@ -890,8 +892,7 @@ public final class NpcRoutineRunner {
             return false;
         }
 
-        return npc.entityStatus() != NpcEntityStatus.MISSING_ENTITY
-            && npc.entityStatus() != NpcEntityStatus.NEEDS_RELINK;
+        return npc.entityStatus() == NpcEntityStatus.ACTIVE;
     }
 
     private String blockedRemoveMessage(EntityRemovalOutcome outcome) {
@@ -940,6 +941,7 @@ public final class NpcRoutineRunner {
             addMarkerIdIfPresent(markerIds, npc.foodMarkerId());
             addMarkerIdIfPresent(markerIds, npc.workMarkerId());
             addMarkerIdIfPresent(markerIds, npc.chillMarkerId());
+            addMarkerAssignmentsIfPresent(markerIds, npc.markerAssignments());
             addMarkerIdIfPresent(markerIds, npc.navigationState().getTargetMarkerId());
         }
 
@@ -974,6 +976,19 @@ public final class NpcRoutineRunner {
             return;
         }
         sink.add(markerId);
+    }
+
+    private void addMarkerAssignmentsIfPresent(Set<String> sink, Map<String, MarkerAssignment> markerAssignments) {
+        if (sink == null || markerAssignments == null || markerAssignments.isEmpty()) {
+            return;
+        }
+
+        for (Map.Entry<String, MarkerAssignment> entry : markerAssignments.entrySet()) {
+            if (entry == null || entry.getValue() == null) {
+                continue;
+            }
+            addMarkerIdIfPresent(sink, entry.getValue().markerId());
+        }
     }
 
     private <T> void restoreMapEntry(Map<String, T> map, String key, T value) {

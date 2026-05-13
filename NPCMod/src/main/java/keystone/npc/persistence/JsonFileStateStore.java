@@ -19,6 +19,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonParseException;
 
+import keystone.npc.domain.MarkerAssignment;
 import keystone.npc.domain.NpcEntityStatus;
 import keystone.npc.domain.NpcRecord;
 import keystone.npc.domain.NpcState;
@@ -262,6 +263,7 @@ public final class JsonFileStateStore implements StateStore {
         Vec3 position = npc.hasKnownCurrentPosition() ? npc.currentPosition() : null;
         NpcState persistedState = normalizePersistedState(npc.state());
         PersistedNavigation navigation = null;
+        Map<String, PersistedMarkerAssignment> markerAssignments = toPersistedMarkerAssignments(npc.markerAssignments());
         return new PersistedNpc(
                 npc.npcId(),
                 npc.npcName(),
@@ -278,6 +280,7 @@ public final class JsonFileStateStore implements StateStore {
                 npc.foodMarkerId(),
                 npc.workMarkerId(),
                 npc.chillMarkerId(),
+                markerAssignments,
                 npc.entityUuid(),
                 navigation
         );
@@ -441,6 +444,7 @@ public final class JsonFileStateStore implements StateStore {
         record.foodMarkerId(npc.foodMarkerId());
         record.workMarkerId(npc.workMarkerId());
         record.chillMarkerId(npc.chillMarkerId());
+        record.markerAssignments(toRuntimeMarkerAssignments(npc.markerAssignments(), parseFlags, npc.npcId()));
 
         restorePersistedNavigation(record, npc.navigation());
 
@@ -463,5 +467,95 @@ public final class JsonFileStateStore implements StateStore {
             throw new IllegalArgumentException("persisted-vec3-non-finite");
         }
         return new Vec3(vec3.x(), vec3.y(), vec3.z());
+    }
+
+    private Map<String, PersistedMarkerAssignment> toPersistedMarkerAssignments(Map<String, MarkerAssignment> markerAssignments) {
+        if (markerAssignments == null || markerAssignments.isEmpty()) {
+            return null;
+        }
+
+        Map<String, PersistedMarkerAssignment> sanitized = new LinkedHashMap<>();
+        for (Map.Entry<String, MarkerAssignment> entry : markerAssignments.entrySet()) {
+            String logicalKey = entry.getKey();
+            MarkerAssignment assignment = entry.getValue();
+            if (logicalKey == null || logicalKey.isBlank() || assignment == null) {
+                continue;
+            }
+
+            String markerId = assignment.markerId();
+            MarkerType markerType = assignment.markerType();
+            if (markerId == null || markerId.isBlank() || markerType == null) {
+                continue;
+            }
+
+            sanitized.put(logicalKey.trim(), new PersistedMarkerAssignment(markerId.trim(), markerType.name()));
+        }
+
+        return sanitized.isEmpty() ? null : sanitized;
+    }
+
+    private Map<String, MarkerAssignment> toRuntimeMarkerAssignments(
+        Map<String, PersistedMarkerAssignment> markerAssignments,
+        ParseFlags parseFlags,
+        String npcId
+    ) {
+        if (markerAssignments == null || markerAssignments.isEmpty()) {
+            return null;
+        }
+
+        Map<String, MarkerAssignment> sanitized = new LinkedHashMap<>();
+        for (Map.Entry<String, PersistedMarkerAssignment> entry : markerAssignments.entrySet()) {
+            String logicalKey = entry.getKey();
+            if (logicalKey == null || logicalKey.isBlank()) {
+                parseFlags.markPartial();
+                System.err.println("[KeystoneNPC][STATE_LOAD_MARKER_ASSIGNMENT_SKIPPED] Invalid logical marker key for npcId="
+                    + npcId + " (null/blank).");
+                continue;
+            }
+
+            PersistedMarkerAssignment assignment = entry.getValue();
+            if (assignment == null) {
+                parseFlags.markPartial();
+                System.err.println("[KeystoneNPC][STATE_LOAD_MARKER_ASSIGNMENT_SKIPPED] Null marker assignment for npcId="
+                    + npcId + " logicalKey=" + logicalKey + ".");
+                continue;
+            }
+
+            String markerId = assignment.markerId();
+            if (markerId == null || markerId.isBlank()) {
+                parseFlags.markPartial();
+                System.err.println("[KeystoneNPC][STATE_LOAD_MARKER_ASSIGNMENT_SKIPPED] Invalid markerId for npcId="
+                    + npcId + " logicalKey=" + logicalKey + " (null/blank).");
+                continue;
+            }
+
+            String markerTypeRaw = assignment.markerType();
+            if (markerTypeRaw == null || markerTypeRaw.isBlank()) {
+                parseFlags.markPartial();
+                System.err.println("[KeystoneNPC][STATE_LOAD_MARKER_ASSIGNMENT_SKIPPED] Invalid markerType for npcId="
+                    + npcId + " logicalKey=" + logicalKey + " (null/blank).");
+                continue;
+            }
+
+            MarkerType markerType;
+            try {
+                markerType = MarkerType.valueOf(markerTypeRaw.trim());
+            } catch (IllegalArgumentException ex) {
+                parseFlags.markPartial();
+                System.err.println("[KeystoneNPC][STATE_LOAD_MARKER_ASSIGNMENT_SKIPPED] Unknown markerType for npcId="
+                    + npcId + " logicalKey=" + logicalKey + " markerType=" + markerTypeRaw + ".");
+                continue;
+            }
+
+            try {
+                sanitized.put(logicalKey.trim(), new MarkerAssignment(markerId.trim(), markerType));
+            } catch (IllegalArgumentException ex) {
+                parseFlags.markPartial();
+                System.err.println("[KeystoneNPC][STATE_LOAD_MARKER_ASSIGNMENT_SKIPPED] Invalid assignment payload for npcId="
+                    + npcId + " logicalKey=" + logicalKey + ": " + ex.getMessage());
+            }
+        }
+
+        return sanitized.isEmpty() ? null : sanitized;
     }
 }

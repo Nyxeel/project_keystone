@@ -912,6 +912,10 @@ Read-only Kontexte dürfen markerAssignments nur lesen/diagnostizieren.
 Read-only Kontexte dürfen Legacy-Markerfelder niemals mutieren.
 Mutierende Marker-Zuweisung/Reconcile ist nur in explizitem Spawn/Admin/Repair/Cleanup-Kontext erlaubt (harte Allowlist).
 Kaputte markerAssignments dürfen nicht still in state.json zurückgeschrieben werden.
+Legacy->markerAssignments Migration ist nur explizit per /knpc marker migrate --dry-run|--apply erlaubt.
+Migration ist im Load/Restore/Diagnose/Tick verboten.
+Migration muss Backup+Dry-run+LoadFailure/PartialLoad-Block+Save-Ergebnisprüfung erzwingen.
+Keine Legacy-Feldloeschung im ersten Migrationsstep.
 ```
 
 Methodenstatus (Marker-Audit):

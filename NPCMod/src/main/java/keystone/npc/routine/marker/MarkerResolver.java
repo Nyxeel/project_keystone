@@ -3,6 +3,7 @@ package keystone.npc.routine.marker;
 import java.util.Objects;
 import java.util.Optional;
 
+import keystone.npc.domain.MarkerAssignment;
 import keystone.npc.domain.NpcRecord;
 import keystone.npc.domain.NpcState;
 import keystone.npc.domain.TargetRole;
@@ -18,6 +19,15 @@ public final class MarkerResolver {
     }
 
     public String markerIdForType(NpcRecord npc, MarkerType markerType) {
+        String markerIdFromAssignments = markerIdFromAssignments(npc, markerType);
+        if (markerIdFromAssignments != null) {
+            return markerIdFromAssignments;
+        }
+
+        return legacyMarkerIdForType(npc, markerType);
+    }
+
+    private String legacyMarkerIdForType(NpcRecord npc, MarkerType markerType) {
         return switch (markerType) {
             case BED -> npc.bedMarkerId();
             case DOOR -> npc.doorMarkerId();
@@ -25,6 +35,40 @@ public final class MarkerResolver {
             case FOOD -> npc.foodMarkerId();
             case WORK -> npc.workMarkerId();
             case CHILL -> npc.chillMarkerId();
+        };
+    }
+
+    private String markerIdFromAssignments(NpcRecord npc, MarkerType markerType) {
+        if (npc == null || markerType == null) {
+            return null;
+        }
+
+        String logicalKey = logicalKeyForType(markerType);
+        MarkerAssignment assignment = npc.markerAssignments().get(logicalKey);
+        if (assignment == null) {
+            return null;
+        }
+
+        if (assignment.markerType() != markerType) {
+            return null;
+        }
+
+        String markerId = assignment.markerId();
+        if (markerId == null || markerId.isBlank()) {
+            return null;
+        }
+
+        return markerId.trim();
+    }
+
+    private String logicalKeyForType(MarkerType markerType) {
+        return switch (markerType) {
+            case BED -> "bed";
+            case DOOR -> "door";
+            case CHEST -> "chest";
+            case FOOD -> "food";
+            case WORK -> "work";
+            case CHILL -> "chill";
         };
     }
 

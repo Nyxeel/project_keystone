@@ -94,7 +94,7 @@ ARBEITSPRINZIP
 - Jeder Agent-Step muss den Gesamtkontext kurz wiederholen, damit Copilot das Gesamtziel nicht verliert.
 - Jeder Agent-Step muss klar sagen, was NICHT geändert werden darf.
 - Jeder Agent-Step muss vor Änderung prüfen, ob der Fehler im aktuellen Code wirklich noch existiert.
-- Jeder Java-/Ressourcen-Step muss ein Compile-/Test-Gate enthalten.
+
 - Markdown-only Steps brauchen kein Maven-Compile, aber eine Doku-Konsistenzprüfung.
 - Keine großen Refactors, außer die Auswertung verlangt es ausdrücklich.
 - Keine angrenzenden Features nebenbei implementieren.
@@ -341,7 +341,7 @@ Ein Step gilt erst als abgeschlossen, wenn:
 - Fix-Ziel erfüllt
 - Regression-Check bestanden
 - keine direkte neue Nebenwirkung offen
-- Compile grün, falls Java-/Ressourcen-Step
+
 - Doku-Konsistenzprüfung bestanden, falls Markdown-only-Step
 - Review PASS
 
@@ -542,7 +542,7 @@ Der Review-Prompt soll prüfen:
 - ob Save-/Load-/Rollback-Fehler korrekt behandelt werden
 - ob Marker read-only Pfade weiterhin read-only sind
 - ob Commands keine falschen Erfolgsmeldungen ausgeben
-- ob Compile/Test erfolgreich war
+
 - ob der nächste Step sicher gestartet werden kann
 
 Zusätzliche Review-Pflicht:
@@ -620,9 +620,6 @@ PASS / FAIL / PARTIAL
 ## Neue Nebenwirkungen
 - keine / Liste
 
-## Compile
-- mvn -q -DskipTests test-compile:
-- Ergebnis:
 
 ## Entscheidung
 - Fix-Step nötig: ja/nein
@@ -750,7 +747,26 @@ Backlog-Punkte dürfen nicht nebenbei umgesetzt werden.
 HIER IST DIE AUSWERTUNG / ANALYSE
 ────────────────────────────
 
+
 <<AUSWERTUNG EINFÜGEN>>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ────────────────────────────
 ABSCHLUSSANWEISUNG

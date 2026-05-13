@@ -1,5 +1,6 @@
 package keystone.npc.commands.marker;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -25,6 +26,7 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 
 import keystone.npc.KeystoneNpcPlugin;
 import keystone.npc.debug.NpcDebugSupport;
+import keystone.npc.domain.MarkerAssignment;
 import keystone.npc.domain.NpcRecord;
 import keystone.npc.markers.MarkerRecord;
 import keystone.npc.markers.MarkerRegistry;
@@ -98,6 +100,7 @@ public final class MarkerSetCommand extends AbstractPlayerCommand {
         String markerTypeName = type.name().toLowerCase(Locale.ROOT);
         NpcRecord targetNpc = null;
         String markerBeforeOnNpc = null;
+        MarkerAssignment markerAssignmentBeforeOnNpc = null;
         if (context.provided(targetNpcArg)) {
             String target = targetNpcArg.get(context);
             targetNpc = resolveTargetNpc(context, target, markerTypeName);
@@ -115,6 +118,7 @@ public final class MarkerSetCommand extends AbstractPlayerCommand {
             }
 
             markerBeforeOnNpc = markerIdForType(targetNpc, type);
+            markerAssignmentBeforeOnNpc = markerAssignmentForType(targetNpc, type);
         }
 
         MarkerRecord activeMarkerBefore = markerRegistry.getActive(type).orElse(null);
@@ -136,14 +140,19 @@ public final class MarkerSetCommand extends AbstractPlayerCommand {
         boolean npcAssignmentChanged = false;
         boolean rerouteStarted = false;
         if (targetNpc != null) {
-            if (!Objects.equals(markerBeforeOnNpc, markerId)) {
+            boolean legacyNeedsUpdate = !Objects.equals(markerBeforeOnNpc, markerId);
+            MarkerAssignment expectedAssignment = new MarkerAssignment(markerId, type);
+            boolean assignmentNeedsUpdate = !expectedAssignment.equals(markerAssignmentBeforeOnNpc);
+
+            if (legacyNeedsUpdate) {
                 rerouteStarted = scheduler.assignMarkerToNpc(targetNpc, type, markerId);
-                npcAssignmentChanged = Objects.equals(markerIdForType(targetNpc, type), markerId);
-                if (!npcAssignmentChanged) {
+                boolean legacyUpdated = Objects.equals(markerIdForType(targetNpc, type), markerId);
+                if (!legacyUpdated) {
                     RuntimeRollbackResult rollback = rollbackRuntimeState(
                         type,
                         targetNpc,
                         markerBeforeOnNpc,
+                        markerAssignmentBeforeOnNpc,
                         markersBefore,
                         activeMarkerIdsBefore,
                         rerouteStarted
@@ -160,6 +169,61 @@ public final class MarkerSetCommand extends AbstractPlayerCommand {
                     }
                     return;
                 }
+
+                npcAssignmentChanged = true;
+            }
+
+            if (assignmentNeedsUpdate) {
+                MarkerAssignmentGateResult gateResult = validateMarkerAssignmentGate(targetNpc, type, markerId);
+                if (!gateResult.allowed()) {
+                    RuntimeRollbackResult rollback = rollbackRuntimeState(
+                        type,
+                        targetNpc,
+                        markerBeforeOnNpc,
+                        markerAssignmentBeforeOnNpc,
+                        markersBefore,
+                        activeMarkerIdsBefore,
+                        rerouteStarted
+                    );
+                    context.sendMessage(Message.raw("[knpc] Marker assignment failed: " + gateResult.reason()));
+                    if (rollback.rolledBack() && !rollback.driftRisk()) {
+                        context.sendMessage(Message.raw("[knpc] Runtime changes were rolled back."));
+                    } else if (rollback.rolledBack()) {
+                        context.sendMessage(Message.raw("[knpc] Marker-Daten wurden zurueckgesetzt, aber Reroute-/Navigation-Runtime konnte nicht sicher vollstaendig zurueckgesetzt werden."));
+                    } else {
+                        context.sendMessage(Message.raw("[knpc] Marker assignment failed and rollback was incomplete."));
+                    }
+                    if (rollback.driftRisk()) {
+                        context.sendMessage(Message.raw("[knpc] Runtime/state drift risk: " + rollback.reason()));
+                    }
+                    return;
+                }
+
+                setMarkerAssignmentForType(targetNpc, type, markerId);
+                if (!expectedAssignment.equals(markerAssignmentForType(targetNpc, type))) {
+                    RuntimeRollbackResult rollback = rollbackRuntimeState(
+                        type,
+                        targetNpc,
+                        markerBeforeOnNpc,
+                        markerAssignmentBeforeOnNpc,
+                        markersBefore,
+                        activeMarkerIdsBefore,
+                        rerouteStarted
+                    );
+                    if (rollback.rolledBack() && !rollback.driftRisk()) {
+                        context.sendMessage(Message.raw("[knpc] Marker assignment failed. Runtime changes were rolled back."));
+                    } else if (rollback.rolledBack()) {
+                        context.sendMessage(Message.raw("[knpc] Marker assignment failed. Marker-Daten wurden zurueckgesetzt, aber Reroute-/Navigation-Runtime konnte nicht sicher vollstaendig zurueckgesetzt werden."));
+                    } else {
+                        context.sendMessage(Message.raw("[knpc] Marker assignment failed and rollback was incomplete."));
+                    }
+                    if (rollback.driftRisk()) {
+                        context.sendMessage(Message.raw("[knpc] Runtime/state drift risk: " + rollback.reason()));
+                    }
+                    return;
+                }
+
+                npcAssignmentChanged = true;
             }
         }
 
@@ -175,6 +239,7 @@ public final class MarkerSetCommand extends AbstractPlayerCommand {
                 type,
                 targetNpc,
                 markerBeforeOnNpc,
+                markerAssignmentBeforeOnNpc,
                 markersBefore,
                 activeMarkerIdsBefore,
                 rerouteStarted
@@ -316,10 +381,39 @@ public final class MarkerSetCommand extends AbstractPlayerCommand {
         };
     }
 
+    private MarkerAssignmentGateResult validateMarkerAssignmentGate(NpcRecord npc, MarkerType markerType, String markerId) {
+        if (npc == null || markerType == null || markerId == null || markerId.isBlank()) {
+            return new MarkerAssignmentGateResult(false, "invalid marker assignment request");
+        }
+
+        if (!isMarkerAllowedForNpc(npc, markerType)) {
+            return new MarkerAssignmentGateResult(false,
+                "marker " + markerType.name() + " is not valid for role " + npc.roleId());
+        }
+
+        MarkerRecord marker = markerRegistry.getById(markerId).orElse(null);
+        if (marker == null) {
+            return new MarkerAssignmentGateResult(false, "markerId not found in registry: " + markerId);
+        }
+
+        if (marker.type() != markerType) {
+            return new MarkerAssignmentGateResult(false,
+                "marker type mismatch: requested=" + markerType.name() + " actual=" + marker.type().name());
+        }
+
+        if (!marker.worldId().equals(npc.worldId())) {
+            return new MarkerAssignmentGateResult(false,
+                "marker world mismatch: markerWorld=" + marker.worldId().value() + " npcWorld=" + npc.worldId().value());
+        }
+
+        return new MarkerAssignmentGateResult(true, "-");
+    }
+
     private RuntimeRollbackResult rollbackRuntimeState(
         MarkerType markerType,
         NpcRecord targetNpc,
         String markerBeforeOnNpc,
+        MarkerAssignment markerAssignmentBeforeOnNpc,
         List<MarkerRecord> markersBefore,
         Map<MarkerType, String> activeMarkerIdsBefore,
         boolean rerouteStarted
@@ -335,6 +429,7 @@ public final class MarkerSetCommand extends AbstractPlayerCommand {
         if (targetNpc != null) {
             try {
                 setMarkerIdForType(targetNpc, markerType, markerBeforeOnNpc);
+                restoreMarkerAssignmentForType(targetNpc, markerType, markerAssignmentBeforeOnNpc);
             } catch (RuntimeException ex) {
                 npcAssignmentRestored = false;
             }
@@ -364,6 +459,61 @@ public final class MarkerSetCommand extends AbstractPlayerCommand {
         }
     }
 
+    private static MarkerAssignment markerAssignmentForType(NpcRecord npc, MarkerType markerType) {
+        if (npc == null || markerType == null) {
+            return null;
+        }
+        return npc.markerAssignments().get(logicalKeyForType(markerType));
+    }
+
+    private static void setMarkerAssignmentForType(NpcRecord npc, MarkerType markerType, String markerId) {
+        if (npc == null || markerType == null) {
+            return;
+        }
+
+        Map<String, MarkerAssignment> assignments = new LinkedHashMap<>(npc.markerAssignments());
+        String logicalKey = logicalKeyForType(markerType);
+
+        if (markerId == null || markerId.isBlank()) {
+            assignments.remove(logicalKey);
+        } else {
+            assignments.put(logicalKey, new MarkerAssignment(markerId, markerType));
+        }
+
+        npc.markerAssignments(assignments);
+    }
+
+    private static void restoreMarkerAssignmentForType(NpcRecord npc, MarkerType markerType, MarkerAssignment previousAssignment) {
+        if (npc == null || markerType == null) {
+            return;
+        }
+
+        Map<String, MarkerAssignment> assignments = new LinkedHashMap<>(npc.markerAssignments());
+        String logicalKey = logicalKeyForType(markerType);
+
+        if (previousAssignment == null) {
+            assignments.remove(logicalKey);
+        } else {
+            assignments.put(logicalKey, previousAssignment);
+        }
+
+        npc.markerAssignments(assignments);
+    }
+
+    private static String logicalKeyForType(MarkerType markerType) {
+        return switch (markerType) {
+            case BED -> "bed";
+            case DOOR -> "door";
+            case CHEST -> "chest";
+            case FOOD -> "food";
+            case WORK -> "work";
+            case CHILL -> "chill";
+        };
+    }
+
     private record RuntimeRollbackResult(boolean rolledBack, boolean driftRisk, String reason) {
+    }
+
+    private record MarkerAssignmentGateResult(boolean allowed, String reason) {
     }
 }

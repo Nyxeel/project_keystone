@@ -57,7 +57,12 @@ public final class NpcRespawnMissingCommand extends AbstractPlayerCommand {
 
         NpcRoutineRunner.RespawnMissingResult result = scheduler.respawnMissingNpcsInWorld(world, force, dryRun, "command-respawn-missing");
         if (result.stateChanged() && !dryRun) {
-            plugin.saveStateSafely();
+            boolean saved = plugin.saveStateSafely();
+            if (!saved) {
+                context.sendMessage(Message.raw("[knpc] Respawn aborted: state persistence failed."));
+                context.sendMessage(Message.raw("[knpc] Runtime/state drift risk: runtime was changed, but state.json could not be saved."));
+                return;
+            }
         }
 
         if (dryRun) {

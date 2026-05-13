@@ -29,9 +29,13 @@ record PersistedNpc(
     String foodMarkerId,
     String workMarkerId,
     String chillMarkerId,
+    Map<String, PersistedMarkerAssignment> markerAssignments,
     String entityUuid,
     PersistedNavigation navigation
 ) {
+}
+
+record PersistedMarkerAssignment(String markerId, String markerType) {
 }
 
 record PersistedNavigation(
