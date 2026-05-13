@@ -108,14 +108,18 @@ public final class NpcTickPipeline {
                 syncNpcPositionFromLiveEntity(npc);
                 navState.clear();
 
-                stopActionForTargetChange(npc, desiredTarget.actionId());
-                npc.pendingActionId(desiredTarget.actionId());
+                if (!hasValidEntityRef(npc)) {
+                    return;
+                }
+
+                stopActionForTargetChange(npc, desiredTarget.targetActionId());
+                npc.pendingActionId(desiredTarget.targetActionId());
                 stateTargetingService.startNavigationToTarget(npc, desiredTarget);
                 return;
             }
 
-            if (!Objects.equals(npc.pendingActionId(), desiredTarget.actionId())) {
-                npc.pendingActionId(desiredTarget.actionId());
+            if (!Objects.equals(npc.pendingActionId(), desiredTarget.targetActionId())) {
+                npc.pendingActionId(desiredTarget.targetActionId());
             }
 
             if (engineNavigationEnabled) {
@@ -149,14 +153,18 @@ public final class NpcTickPipeline {
         }
 
         if (npc.state() != desiredTargetState || shouldStartNavigationFromIdleSameState(npc, desiredTarget)) {
-            stopActionForTargetChange(npc, desiredTarget.actionId());
-            npc.pendingActionId(desiredTarget.actionId());
+            if (!hasValidEntityRef(npc)) {
+                return;
+            }
+
+            stopActionForTargetChange(npc, desiredTarget.targetActionId());
+            npc.pendingActionId(desiredTarget.targetActionId());
             stateTargetingService.startNavigationToTarget(npc, desiredTarget);
             return;
         }
 
         idleMarkerService.enforceAuthoritativeIdlePosition(npc, "idle-state-check", true);
-        updateActionState(npc, desiredTarget.actionId());
+        updateActionState(npc, desiredTarget.targetActionId());
     }
 
     private void updateActionState(NpcRecord npc, String desiredActionId) {
@@ -217,12 +225,20 @@ public final class NpcTickPipeline {
             return "state";
         }
 
+        if (!Objects.equals(navState.getTargetMarkerName(), desiredTarget.targetMarkerName())) {
+            return "marker-name";
+        }
+
         if (!Objects.equals(navState.getTargetMarkerType(), desiredTarget.markerType())) {
             return "marker-type";
         }
 
         if (!Objects.equals(navState.getTargetMarkerId(), desiredTarget.markerId())) {
             return "marker-id";
+        }
+
+        if (!Objects.equals(navState.getTargetActionId(), desiredTarget.targetActionId())) {
+            return "target-action";
         }
 
         if (!sameTargetPosition(navState.getTargetPosition(), desiredTarget.targetPosition(), TARGET_POSITION_REROUTE_EPSILON_SQ)) {
@@ -274,6 +290,10 @@ public final class NpcTickPipeline {
         }
 
         return !isAtIdleTarget(currentPosition, desiredTargetPosition);
+    }
+
+    private boolean hasValidEntityRef(NpcRecord npc) {
+        return npc != null && npc.entityRef() != null && npc.entityRef().isValid();
     }
 
     private MarkerType markerTypeForState(NpcState state) {

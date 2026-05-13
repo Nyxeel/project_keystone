@@ -30,17 +30,36 @@ public final class NpcRemoveCommand extends CommandBase {
     @Override
     protected void executeSync(@Nonnull CommandContext context) {
         int index = indexArg.get(context);
-        boolean removed = scheduler.removeNpcByIndex(index);
-        if (!removed) {
+        NpcRoutineRunner.RemoveNpcResult removeResult = scheduler.removeNpcByIndexDetailed(index);
+        if (!removeResult.found()) {
             context.sendMessage(Message.raw("[knpc] Invalid NPC index: " + index));
             return;
         }
 
-        if (!plugin.saveStateSafely()) {
-            context.sendMessage(Message.raw("[knpc] Removed NPC #" + index + ", but state save failed. Runtime changes may not be persisted."));
+        context.sendMessage(Message.raw("[knpc] Remove target: index=" + removeResult.index()
+            + " npcId=" + removeResult.npcId()
+            + " name='" + removeResult.npcName() + "'"
+            + " role=" + removeResult.roleId()
+            + " entityStatus=" + (removeResult.entityStatus() == null ? "-" : removeResult.entityStatus().name())));
+
+        if (!removeResult.removed()) {
+            context.sendMessage(Message.raw("[knpc] Remove blocked: " + removeResult.message()
+                + " (entityRemovalOutcome=" + removeResult.entityRemovalOutcome() + ")."));
             return;
         }
 
-        context.sendMessage(Message.raw("[knpc] Removed NPC #" + index + " and saved state."));
+        if (!plugin.saveStateSafely()) {
+            boolean rolledBack = scheduler.rollbackRemovedNpc(removeResult.rollbackSnapshot());
+            if (rolledBack) {
+                context.sendMessage(Message.raw("[knpc] Remove aborted: state save failed. Runtime rollback completed for NPC #" + index + "."));
+            } else {
+                context.sendMessage(Message.raw("[knpc] Remove aborted: state save failed and runtime rollback was incomplete for NPC #" + index + "."));
+                context.sendMessage(Message.raw("[knpc] Runtime/state drift risk: rollback could not fully restore marker/runtime state."));
+            }
+            return;
+        }
+
+        context.sendMessage(Message.raw("[knpc] Removed NPC #" + index
+            + " and saved state (ownedMarkersRemoved=" + removeResult.removedOwnedMarkerCount() + ")."));
     }
 }

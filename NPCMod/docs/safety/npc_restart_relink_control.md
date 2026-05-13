@@ -974,8 +974,19 @@ Mutation strikt trennen und destruktive Pfade nur bei sicherer Beweislage erlaub
 Marker-Fallback:
 
 ```text
-read-only: resolveRequiredMarkerReadOnly(...) für restore/tick/diagnose/policy
-mutierend: resolveRequiredMarkerWithFallbackAssigning(...) nur in spawn/admin assignment flows
+read-only: resolveRequiredMarkerReadOnly(...) bleibt in Restore/Tick/Diagnose/Validation/Recovery/Respawn-Policy/Relink-Ankerprüfung strikt read-only
+mutierend: Marker-Zuweisung ist nur in explizitem Spawn/Admin/Repair/Cleanup-Kontext erlaubt (harte Allowlist)
+read-only Kontexte dürfen MarkerAssignments und Legacy-Markerfelder niemals verändern
+```
+
+Methodenstatus (Marker-Resolver-Audit):
+
+```text
+resolveRequiredMarkerWithFallbackAssigning(...) ist entfernt (nicht mehr aktiv)
+resolveRequiredMarkerWithFallback(...) ist entfernt (nicht mehr aktiv)
+resolveRequiredMarkerReadOnly(...) ist der verbindliche read-only Resolver
+MarkerRegistry.getNextAvailable(...) bleibt nur deprecated Lookup-Helfer
+MarkerRingTraversal bleibt internes Registry-Hilfsmittel und ist keine Persistenz-Wahrheit
 ```
 
 Remove/Clear-Orphan-Safety:
@@ -999,6 +1010,9 @@ AMBIGUOUS => blockiert, kein Blind-Bind
 ### Review-Fragen
 
 - [ ] Bleiben read-only und mutierende Marker-Resolver getrennt?
+- [ ] Ist die Mutations-Allowlist weiter strikt: nur Spawn/Admin/Repair/Cleanup?
+- [ ] Bleiben `resolveRequiredMarkerWithFallbackAssigning(...)` und `resolveRequiredMarkerWithFallback(...)` entfernt?
+- [ ] Bleibt `getNextAvailable(...)` deprecated und außerhalb read-only Pfade (Restore/Tick/Validation/Diagnose/Recovery/Respawn-Policy/Relink-Ankerprüfung)?
 - [ ] Wird remove/clear bei unbestätigter Entity-Entfernung blockiert?
 - [ ] Blockiert cleanup-orphans weiterhin bei offenen Relink-Risiken ohne `--force`?
 - [ ] Wird `entityStatus=ACTIVE` nur nach vollständiger Sicherheitsprüfung gesetzt?
@@ -1037,6 +1051,21 @@ Mutierendes Reconcile ist nur in expliziten Kontexten erlaubt:
 - Cleanup-Command
 - Spawn
 - Admin-Kontext
+
+Symbol-Audit (Markdown-only, ohne Compile):
+
+```bash
+cd project_keystone/NPCMod
+rg -n "resolveRequiredMarkerWithFallbackAssigning|resolveRequiredMarkerWithFallback" src/main/java
+rg -n "getNextAvailable\(" src/main/java/keystone/npc
+```
+
+Erwartung:
+
+```text
+keine Treffer für resolveRequiredMarkerWithFallbackAssigning/resolveRequiredMarkerWithFallback
+getNextAvailable(...) nur als deprecated Registry-/Traversal-Helfer, nicht in Restore/Tick/Validation/Diagnose/Recovery/Respawn-Policy/Relink-Ankerprüfung
+```
 
 Safety-Ziel:
 
@@ -1696,6 +1725,9 @@ Vor Abschluss eines Patches muss beantwortet werden:
 [ ] Save-Failure zählt nie als Erfolg?
 [ ] Dirty wird nur nach echtem Save gelöscht?
 [ ] Marker read-only Pfade mutieren keine Assignments?
+[ ] Marker-Mutation bleibt auf Spawn/Admin/Repair/Cleanup begrenzt?
+[ ] resolveRequiredMarkerWithFallbackAssigning/resolveRequiredMarkerWithFallback bleiben entfernt?
+[ ] getNextAvailable bleibt deprecated und wird nicht in read-only Pfaden verwendet?
 [ ] Reconcile mutiert nicht in Load/Restore/Validation/Diagnose/Tick?
 [ ] Reconcile setzt in read-only Pfaden weder stateDirty noch Save-Trigger?
 [ ] entityRef nicht persistiert?

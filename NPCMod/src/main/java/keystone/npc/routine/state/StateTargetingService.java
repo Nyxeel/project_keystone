@@ -41,6 +41,9 @@ import keystone.npc.routine.marker.MarkerResolver;
 import keystone.npc.routine.pathfinding.PathfindingSupport;
 
 public final class StateTargetingService {
+    private static final double TARGET_STOP_EPSILON = 0.10d;
+    private static final double TARGET_ARRIVAL_Y_TOLERANCE = 1.25d;
+
     private final MarkerResolver markerResolver;
     private final PathfindingSupport pathfindingSupport;
     private final EngineNavigationController engineNavigation;
@@ -57,9 +60,10 @@ public final class StateTargetingService {
     public record DesiredTarget(
         NpcState targetState,
         MarkerType markerType,
+        String targetMarkerName,
         String markerId,
         Vec3 targetPosition,
-        String actionId,
+        String targetActionId,
         String source
     ) {
     }
@@ -111,9 +115,11 @@ public final class StateTargetingService {
         return startNavigationToResolvedTarget(
             npc,
             desiredTarget.markerType(),
+            desiredTarget.targetMarkerName(),
             desiredTarget.markerId(),
             desiredTarget.targetPosition(),
             desiredTarget.targetState(),
+            desiredTarget.targetActionId(),
             desiredTarget.source()
         );
     }
@@ -136,9 +142,11 @@ public final class StateTargetingService {
         return startNavigationToResolvedTarget(
             npc,
             markerType,
+            markerType.name().toLowerCase(Locale.ROOT),
             markerRecord.markerId(),
             markerRecord.position(),
             targetState,
+            null,
             npc.movementProfileId() != null ? "json" : "fallback"
         );
     }
@@ -146,15 +154,73 @@ public final class StateTargetingService {
     private boolean startNavigationToResolvedTarget(
         NpcRecord npc,
         MarkerType markerType,
+        String markerName,
         String markerId,
         Vec3 markerPos,
         NpcState targetState,
+        String targetActionId,
         String source
     ) {
-        Vec3 startPos = pathfindingSupport.resolveNavigationStartPosition(npc, markerPos);
-        long durationMs = NpcNavigation.calculateDurationMs(startPos, markerPos);
+        if (npc == null || markerType == null || markerPos == null || targetState == null) {
+            return false;
+        }
 
-        npc.navigationState().startNavigation(startPos, markerPos, durationMs, targetState, markerType, markerId);
+        if (!isValidPosition(markerPos)) {
+            return false;
+        }
+
+        if (npc.entityRef() == null || !npc.entityRef().isValid()) {
+            return false;
+        }
+
+        Vec3 livePos = engineNavigation.readCurrentPosition(npc.entityRef());
+        if (isValidPosition(livePos)) {
+            npc.currentPosition(livePos);
+        }
+
+        Vec3 currentOrLivePos = isValidPosition(livePos) ? livePos : (isValidPosition(npc.currentPosition()) ? npc.currentPosition() : null);
+        double stopDistance = effectiveStopDistance(npc);
+        if (currentOrLivePos != null && hasReachedTarget(currentOrLivePos, markerPos, stopDistance)) {
+            applyImmediateTargetTransition(npc, markerType, markerName, markerId, markerPos, targetState, targetActionId);
+            return true;
+        }
+
+        Vec3 startPos = pathfindingSupport.resolveNavigationStartPosition(npc, markerPos);
+        if (!isValidPosition(startPos)) {
+            startPos = currentOrLivePos;
+        }
+
+        if (!isValidPosition(startPos)) {
+            return false;
+        }
+
+        if (hasReachedTarget(startPos, markerPos, stopDistance)) {
+            applyImmediateTargetTransition(npc, markerType, markerName, markerId, markerPos, targetState, targetActionId);
+            return true;
+        }
+
+        long durationMs = NpcNavigation.calculateDurationMs(startPos, markerPos);
+        if (durationMs <= 0L) {
+            applyImmediateTargetTransition(npc, markerType, markerName, markerId, markerPos, targetState, targetActionId);
+            return true;
+        }
+
+        npc.navigationState().startNavigation(
+            startPos,
+            markerPos,
+            durationMs,
+            targetState,
+            markerType,
+            markerId,
+            markerName,
+            targetActionId
+        );
+
+        if (!npc.navigationState().hasTarget()) {
+            applyImmediateTargetTransition(npc, markerType, markerName, markerId, markerPos, targetState, targetActionId);
+            return true;
+        }
+
         npc.state(walkingStateForMarker(markerType));
         clearDoorTracking(npc.npcId());
 
@@ -176,6 +242,114 @@ public final class StateTargetingService {
             + " motionControllerType=" + nullToDash(npc.motionControllerType())
             + " source=" + movementSource);
         return true;
+    }
+
+    private void applyImmediateTargetTransition(
+        NpcRecord npc,
+        MarkerType markerType,
+        String markerName,
+        String markerId,
+        Vec3 markerPos,
+        NpcState targetState,
+        String targetActionId
+    ) {
+        npc.navigationState().clear();
+        clearDoorTracking(npc.npcId());
+
+        Vec3 livePos = engineNavigation.readCurrentPosition(npc.entityRef());
+        if (livePos != null) {
+            npc.currentPosition(livePos);
+        } else if (markerPos != null) {
+            npc.currentPosition(markerPos);
+        }
+
+        npc.state(targetState);
+        if (markerName != null && !markerName.isBlank()) {
+            npc.activeRoutineMarker(markerName);
+        }
+
+        applyImmediateActionState(npc, targetActionId);
+
+        System.out.println("[KNPC][Navigation] " + npc.npcName()
+            + " immediate target reached marker=" + nullToDash(markerName)
+            + " markerType=" + markerType.name().toLowerCase(Locale.ROOT)
+            + " markerId=" + nullToDash(markerId)
+            + " state=" + targetState.name()
+            + " action=" + nullToDash(targetActionId));
+    }
+
+    private void applyImmediateActionState(NpcRecord npc, String targetActionId) {
+        npc.pendingActionId(targetActionId);
+
+        if (targetActionId == null || targetActionId.isBlank()) {
+            if (npc.activeActionId() != null) {
+                System.out.println("[KNPC][Action] " + npc.npcName()
+                    + " stop action=" + npc.activeActionId()
+                    + " reason=no_desired_action");
+                npc.activeActionId(null);
+                npc.lastActionNoRestartLog(null);
+            }
+            npc.pendingActionId(null);
+            return;
+        }
+
+        if (targetActionId.equals(npc.activeActionId())) {
+            if (!targetActionId.equals(npc.lastActionNoRestartLog())) {
+                System.out.println("[KNPC][Action] " + npc.npcName()
+                    + " keep action=" + targetActionId
+                    + " reason=already_active");
+                npc.lastActionNoRestartLog(targetActionId);
+            }
+            npc.pendingActionId(null);
+            return;
+        }
+
+        npc.activeActionId(targetActionId);
+        npc.lastActionNoRestartLog(null);
+        System.out.println("[KNPC][Action] " + npc.npcName()
+            + " start action=" + targetActionId
+            + " state=" + npc.state().name()
+            + " marker=" + nullToDash(npc.activeRoutineMarker()));
+        npc.pendingActionId(null);
+    }
+
+    private double effectiveStopDistance(NpcRecord npc) {
+        if (npc == null || npc.stopDistance() == null) {
+            return TARGET_STOP_EPSILON;
+        }
+
+        Double stopDistance = npc.stopDistance();
+        if (!Double.isFinite(stopDistance) || stopDistance <= 0.0d) {
+            return TARGET_STOP_EPSILON;
+        }
+
+        return Math.max(stopDistance, TARGET_STOP_EPSILON);
+    }
+
+    private boolean hasReachedTarget(Vec3 currentPosition, Vec3 targetPosition, double stopDistance) {
+        if (currentPosition == null || targetPosition == null) {
+            return false;
+        }
+
+        if (!isValidPosition(currentPosition) || !isValidPosition(targetPosition)) {
+            return false;
+        }
+
+        double dx = currentPosition.x() - targetPosition.x();
+        double dz = currentPosition.z() - targetPosition.z();
+        double horizontalDistanceSq = dx * dx + dz * dz;
+        if (horizontalDistanceSq > stopDistance * stopDistance) {
+            return false;
+        }
+
+        return Math.abs(currentPosition.y() - targetPosition.y()) <= TARGET_ARRIVAL_Y_TOLERANCE;
+    }
+
+    private boolean isValidPosition(Vec3 position) {
+        return position != null
+            && Double.isFinite(position.x())
+            && Double.isFinite(position.y())
+            && Double.isFinite(position.z());
     }
 
     public DesiredTarget resolveDesiredTarget(World world, NpcRecord npc, RoleDefinition roleDefinition) {
@@ -286,6 +460,7 @@ public final class StateTargetingService {
             return new DesiredTarget(
                 entryState,
                 routineMarker.get(),
+                nextMarker,
                 markerRecord.markerId(),
                 markerRecord.position(),
                 actionId,

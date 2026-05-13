@@ -18,6 +18,8 @@ public final class NavigationTarget {
     private NpcState targetState;
     private MarkerType targetMarkerType;
     private String targetMarkerId;
+    private String targetMarkerName;
+    private String targetActionId;
 
     public NavigationTarget() {
     }
@@ -26,7 +28,7 @@ public final class NavigationTarget {
      * Start navigating from start to target over duration.
      */
     public void startNavigation(Vec3 start, Vec3 target, long durationMs, NpcState targetState) {
-        startNavigation(start, target, durationMs, targetState, null, null);
+        startNavigation(start, target, durationMs, targetState, null, null, null, null);
     }
 
     /**
@@ -40,6 +42,22 @@ public final class NavigationTarget {
         MarkerType targetMarkerType,
         String targetMarkerId
     ) {
+        startNavigation(start, target, durationMs, targetState, targetMarkerType, targetMarkerId, null, null);
+    }
+
+    /**
+     * Start navigating from start to target over duration and store target marker/action identity.
+     */
+    public void startNavigation(
+        Vec3 start,
+        Vec3 target,
+        long durationMs,
+        NpcState targetState,
+        MarkerType targetMarkerType,
+        String targetMarkerId,
+        String targetMarkerName,
+        String targetActionId
+    ) {
         if (start == null || target == null || targetState == null || durationMs <= 0) {
             clear();
             return;
@@ -52,13 +70,15 @@ public final class NavigationTarget {
         this.targetState = targetState;
         this.targetMarkerType = targetMarkerType;
         this.targetMarkerId = targetMarkerId;
+        this.targetMarkerName = targetMarkerName;
+        this.targetActionId = targetActionId;
     }
 
     /**
      * Resume navigation from current position with remaining duration.
      */
     public void resumeNavigation(Vec3 currentPosition, Vec3 target, long remainingMs, NpcState targetState) {
-        resumeNavigation(currentPosition, target, remainingMs, targetState, null, null);
+        resumeNavigation(currentPosition, target, remainingMs, targetState, null, null, null, null);
     }
 
     /**
@@ -72,6 +92,22 @@ public final class NavigationTarget {
         MarkerType targetMarkerType,
         String targetMarkerId
     ) {
+        resumeNavigation(currentPosition, target, remainingMs, targetState, targetMarkerType, targetMarkerId, null, null);
+    }
+
+    /**
+     * Resume navigation from current position with remaining duration and marker/action identity.
+     */
+    public void resumeNavigation(
+        Vec3 currentPosition,
+        Vec3 target,
+        long remainingMs,
+        NpcState targetState,
+        MarkerType targetMarkerType,
+        String targetMarkerId,
+        String targetMarkerName,
+        String targetActionId
+    ) {
         if (currentPosition == null || target == null || targetState == null || remainingMs <= 0) {
             clear();
             return;
@@ -84,6 +120,8 @@ public final class NavigationTarget {
         this.targetState = targetState;
         this.targetMarkerType = targetMarkerType;
         this.targetMarkerId = targetMarkerId;
+        this.targetMarkerName = targetMarkerName;
+        this.targetActionId = targetActionId;
     }
 
     /**
@@ -163,6 +201,27 @@ public final class NavigationTarget {
     }
 
     /**
+     * Get the marker name of the current target, if known.
+     */
+    public String getTargetMarkerName() {
+        return targetMarkerName;
+    }
+
+    /**
+     * Get the action id of the current target, if known.
+     */
+    public String getTargetActionId() {
+        return targetActionId;
+    }
+
+    /**
+     * Alias for action identity of the current target.
+     */
+    public String getTargetAction() {
+        return targetActionId;
+    }
+
+    /**
      * Get target position.
      */
     public Vec3 getTargetPosition() {
@@ -180,6 +239,8 @@ public final class NavigationTarget {
         targetState = null;
         targetMarkerType = null;
         targetMarkerId = null;
+        targetMarkerName = null;
+        targetActionId = null;
     }
 
     /**

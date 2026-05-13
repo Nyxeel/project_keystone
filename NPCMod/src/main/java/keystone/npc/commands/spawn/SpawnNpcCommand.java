@@ -1,5 +1,14 @@
 package keystone.npc.commands.spawn;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
+
+import javax.annotation.Nonnull;
+
+import org.joml.Vector3d;
+
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.Message;
@@ -13,23 +22,18 @@ import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.hypixel.hytale.server.npc.NPCPlugin;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Objects;
-import javax.annotation.Nonnull;
+
 import keystone.npc.KeystoneNpcPlugin;
 import keystone.npc.debug.NpcDebugSupport;
 import keystone.npc.definition.NpcTemplateResolver;
-import keystone.npc.roles.RoleDefinition;
-import keystone.npc.roles.RoleDefinitionRegistry;
-import keystone.npc.routine.NpcRoutineRunner;
 import keystone.npc.markers.MarkerRegistry;
 import keystone.npc.markers.MarkerType;
 import keystone.npc.markers.RequiredMarkerResolver;
 import keystone.npc.markers.Vec3;
 import keystone.npc.markers.WorldId;
-import org.joml.Vector3d;
+import keystone.npc.roles.RoleDefinition;
+import keystone.npc.roles.RoleDefinitionRegistry;
+import keystone.npc.routine.NpcRoutineRunner;
 
 public final class SpawnNpcCommand extends AbstractPlayerCommand {
 
@@ -190,17 +194,23 @@ public final class SpawnNpcCommand extends AbstractPlayerCommand {
             return;
         }
 
-        markerRegistry.clearActive();
         if (!plugin.saveStateSafely()) {
             boolean rolledBack = scheduler.removeNpc(npc.npcId());
-            System.err.println("[KeystoneNPC][SPAWN_ROLLBACK_ORPHAN_PREVENTED] Spawn rollback executed after save failure: "
-                + "npcId=" + npc.npcId() + " rolledBack=" + rolledBack);
-            context.sendMessage(Message.raw("[knpc] Spawn aborted because state persistence failed. Entity rollback was executed."));
+            if (rolledBack) {
+                System.err.println("[KeystoneNPC][SPAWN_ROLLBACK_COMPLETED_AFTER_SAVE_FAILURE] Spawn rollback completed after save failure: "
+                    + "npcId=" + npc.npcId());
+                context.sendMessage(Message.raw("[knpc] Spawn aborted: state persistence failed. Runtime rollback completed."));
+            } else {
+                System.err.println("[KeystoneNPC][SPAWN_ROLLBACK_FAILED_AFTER_SAVE_FAILURE] Spawn rollback failed after save failure; orphan risk possible: "
+                    + "npcId=" + npc.npcId());
+                context.sendMessage(Message.raw("[knpc] Spawn aborted: state persistence failed and rollback did not complete."));
+                context.sendMessage(Message.raw("[knpc] Orphan risk: spawned entity may still exist without persisted NPC record."));
+            }
             return;
         }
 
         context.sendMessage(Message.raw("[knpc] Spawned " + role.roleId() + " '" + npc.npcName()
-            + "' (id=" + npc.npcId() + "). Active markers reset."));
+            + "' (id=" + npc.npcId() + ")."));
 
         if (NpcDebugSupport.showMarkersEnabled(templateResolver, npc.roleId())) {
             for (String line : NpcDebugSupport.buildMarkerSnapshotLines(npc, markerRegistry, templateResolver, roleDefinitions)) {

@@ -24,12 +24,36 @@ public final class NpcClearCommand extends CommandBase {
 
     @Override
     protected void executeSync(@Nonnull CommandContext context) {
-        int removed = scheduler.clearNpcs();
+        NpcRoutineRunner.ClearNpcsSnapshot clearSnapshot = scheduler.snapshotForClear();
+        NpcRoutineRunner.ClearNpcsResult clearResult = scheduler.clearNpcsDetailed();
+
         if (!plugin.saveStateSafely()) {
-            context.sendMessage(Message.raw("[knpc] Removed " + removed + " NPC(s), but state save failed. Runtime changes may not be persisted."));
+            boolean rollbackFromEntries = scheduler.rollbackClearedNpcs(clearResult);
+            boolean snapshotRestored = true;
+            if (!rollbackFromEntries) {
+                snapshotRestored = scheduler.restoreClearSnapshot(clearSnapshot);
+            }
+
+            if (rollbackFromEntries) {
+                context.sendMessage(Message.raw("[knpc] Clear aborted: state save failed. Runtime rollback completed."));
+            } else if (snapshotRestored) {
+                context.sendMessage(Message.raw("[knpc] Clear aborted: state save failed. Rollback was partially recovered from pre-clear snapshot."));
+                context.sendMessage(Message.raw("[knpc] Runtime/state drift risk: runtime cleanup state may be partially divergent until next stable save."));
+            } else {
+                context.sendMessage(Message.raw("[knpc] Clear aborted: state save failed and rollback was incomplete."));
+                context.sendMessage(Message.raw("[knpc] Runtime/state drift risk: rollback could not fully restore markers/records."));
+            }
             return;
         }
 
-        context.sendMessage(Message.raw("[knpc] Removed " + removed + " NPC(s) and saved state."));
+        context.sendMessage(Message.raw("[knpc] Clear complete: removed=" + clearResult.removedCount()
+            + " blocked=" + clearResult.blockedCount()
+            + " requested=" + clearResult.requestedCount()
+            + " ownedMarkersRemoved=" + clearResult.removedOwnedMarkerCount()
+            + "."));
+
+        if (clearResult.blockedCount() > 0) {
+            context.sendMessage(Message.raw("[knpc] Some NPC records were kept because entity removal was not safely confirmed. Use /knpc remove per NPC after fixing entity/world state."));
+        }
     }
 }

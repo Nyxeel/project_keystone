@@ -69,6 +69,10 @@ C) Review Prompt nach jedem Step
 
 Für jeden Agent Step einen passenden Review-Prompt erstellen.
 
+Liste in der Reihenfolge
+ -AGENT step x
+ -Review AGENT step x
+
 Der Review-Prompt soll prüfen:
 - ob der Step wirklich nur seinen Scope geändert hat
 - ob Nebenwirkungen entstanden sind
@@ -132,4 +136,8 @@ Bitte nur die PLAN- und AGENT-Prompts aus dieser Auswertung erzeugen.
 WICHTIG!!!!!
 Schreib dazu das am ende des komplettes durchfuehrung des plans auch die files in
 /home/pj/projects/hytale/project_keystone/NPCMod/docs/safety geupdatet werden muessen!
+
+und schreib als letztes dann patchnotes im namensformat time + patchinhalt/thema + .md
+zb 2026-05-13_04-50_Marker-State-Reconcile-Safety-Patch.md
+und speicher die file in /home/pj/projects/hytale/project_keystone/NPCMod/docs/patch_reports
 DAS IST PFLICHT!!!

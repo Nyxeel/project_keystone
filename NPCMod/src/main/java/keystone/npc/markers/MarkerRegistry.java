@@ -60,6 +60,28 @@ public final class MarkerRegistry {
         return Optional.ofNullable(byId.get(markerId));
     }
 
+    public synchronized boolean removeById(String markerId) {
+        if (markerId == null || markerId.isBlank()) {
+            return false;
+        }
+
+        MarkerRecord removed = byId.remove(markerId);
+        if (removed == null) {
+            return false;
+        }
+
+        LinkedHashSet<String> orderedIds = orderedIdsByType.get(removed.type());
+        if (orderedIds != null) {
+            orderedIds.remove(markerId);
+            if (orderedIds.isEmpty()) {
+                orderedIdsByType.remove(removed.type());
+            }
+        }
+
+        lastByType.entrySet().removeIf(entry -> markerId.equals(entry.getValue()));
+        return true;
+    }
+
     /** Returns markers of a type in deterministic set order (oldest -> newest). */
     public synchronized List<MarkerRecord> getCandidates(MarkerType type) {
         return getCandidates(type, null);
@@ -73,7 +95,11 @@ public final class MarkerRegistry {
     /**
      * Resolve the next valid marker after the given marker id, with wrap-around.
      * If currentMarkerId is unknown, search starts from the ring head.
+     *
+     * Safety contract: never use this method in restore/tick/relink/respawn-policy
+     * paths to auto-replace persisted marker assignments.
      */
+    @Deprecated
     public synchronized Optional<MarkerRecord> getNextAvailable(MarkerType type, String currentMarkerId, WorldId worldId) {
         return ringTraversal.getNextAvailable(byId, orderedIdsByType, type, currentMarkerId, worldId);
     }
@@ -114,18 +140,10 @@ public final class MarkerRegistry {
         for (var m : markers) {
             byId.put(m.markerId(), m);
             orderedIdsByType.computeIfAbsent(m.type(), key -> new LinkedHashSet<>()).add(m.markerId());
-            // Compatibility fallback for older saves without explicit active marker map.
-            lastByType.put(m.type(), m.markerId());
         }
 
-        // Compatibility path: old saves without active marker map keep fallback behavior.
-        if (activeMarkerIds == null) {
-            return;
-        }
-
-        // Explicit map (including empty) overrides fallback behavior.
-        lastByType.clear();
-        if (activeMarkerIds.isEmpty()) {
+        // Safety: do not auto-revive active markers from plain marker lists.
+        if (activeMarkerIds == null || activeMarkerIds.isEmpty()) {
             return;
         }
 

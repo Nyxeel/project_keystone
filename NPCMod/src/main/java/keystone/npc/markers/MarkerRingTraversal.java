@@ -40,6 +40,7 @@ final class MarkerRingTraversal {
         String currentMarkerId,
         WorldId worldId
     ) {
+        // Lookup helper only; callers must not treat this as persisted-assignment truth.
         LinkedHashSet<String> orderedIds = orderedIdsByType.get(type);
         if (orderedIds == null || orderedIds.isEmpty()) {
             return Optional.empty();

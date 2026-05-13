@@ -2,11 +2,14 @@ package keystone.npc.persistence;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -150,27 +153,11 @@ public final class JsonFileStateStore implements StateStore {
                 }
             }
 
-            Map<String, String> persistedActiveMarkerIds = persisted.activeMarkerIds();
-            Map<String, String> sanitizedActiveMarkerIds = persistedActiveMarkerIds;
-            if (persistedActiveMarkerIds != null && !persistedActiveMarkerIds.isEmpty()) {
-                sanitizedActiveMarkerIds = new LinkedHashMap<>();
-                for (var entry : persistedActiveMarkerIds.entrySet()) {
-                    String rawType = entry.getKey();
-                    String markerId = entry.getValue();
-                    if (rawType == null || markerId == null || markerId.isBlank()) {
-                        continue;
-                    }
-
-                    try {
-                        MarkerType.valueOf(rawType);
-                        sanitizedActiveMarkerIds.put(rawType, markerId);
-                    } catch (IllegalArgumentException ex) {
-                        parseFlags.markPartial();
-                        System.err.println("[KeystoneNPC][STATE_LOAD_ACTIVE_MARKER_SKIPPED] Unknown active marker type in state: "
-                            + rawType + " markerId=" + markerId + ". Auto-save will stay blocked until corrected.");
-                    }
-                }
-            }
+            Map<String, String> sanitizedActiveMarkerIds = validatePersistedActiveMarkerIds(
+                persisted.activeMarkerIds(),
+                markers,
+                parseFlags
+            );
 
             Map<MarkerType, String> activeMarkerIds = activeMarkerIdMapper.toActiveMarkerIds(sanitizedActiveMarkerIds);
 
@@ -206,7 +193,8 @@ public final class JsonFileStateStore implements StateStore {
     @Override
     public void save(List<MarkerRecord> markers, List<NpcRecord> npcs, Map<MarkerType, String> activeMarkerIds) {
         try {
-            Files.createDirectories(path.getParent() == null ? Paths.get(".") : path.getParent());
+            Path targetDir = path.getParent() == null ? Paths.get(".") : path.getParent();
+            Files.createDirectories(targetDir);
 
             List<PersistedMarker> persistedMarkers = new ArrayList<>(markers.size());
             for (MarkerRecord marker : markers) {
@@ -224,8 +212,20 @@ public final class JsonFileStateStore implements StateStore {
                         activeMarkerIdMapper.toPersistedActiveMarkerIds(activeMarkerIds)
             );
 
-            Files.writeString(path, GSON.toJson(persisted), StandardCharsets.UTF_8,
-                    StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
+            String serialized = GSON.toJson(persisted);
+            Path tempFile = Files.createTempFile(targetDir, "state", ".json.tmp");
+            try {
+                Files.writeString(tempFile, serialized, StandardCharsets.UTF_8,
+                    StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
+                moveTempFileAtomically(tempFile, path);
+            } finally {
+                try {
+                    Files.deleteIfExists(tempFile);
+                } catch (IOException cleanupEx) {
+                    System.err.println("[KeystoneNPC][STATE_SAVE_TEMP_CLEANUP_FAILED] Failed to clean temp state file: "
+                        + tempFile + " " + cleanupEx.getClass().getSimpleName() + ": " + cleanupEx.getMessage());
+                }
+            }
         } catch (IOException e) {
             System.err.println("[KeystoneNPC][STATE_SAVE_IO_ERROR] Failed to save state file: " + path);
             System.err.println("[KeystoneNPC][STATE_SAVE_IO_ERROR] " + e.getClass().getSimpleName() + ": " + e.getMessage());
@@ -238,6 +238,14 @@ public final class JsonFileStateStore implements StateStore {
             System.err.println("[KeystoneNPC][STATE_SAVE_LINKAGE_ERROR] Save skipped due to classloader/linkage issue: " + path);
             System.err.println("[KeystoneNPC][STATE_SAVE_LINKAGE_ERROR] " + e.getClass().getSimpleName() + ": " + e.getMessage());
             throw e;
+        }
+    }
+
+    private void moveTempFileAtomically(Path tempFile, Path targetFile) throws IOException {
+        try {
+            Files.move(tempFile, targetFile, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+        } catch (AtomicMoveNotSupportedException ex) {
+            Files.move(tempFile, targetFile, StandardCopyOption.REPLACE_EXISTING);
         }
     }
 
@@ -299,6 +307,75 @@ public final class JsonFileStateStore implements StateStore {
                 toVec3(marker.position()),
                 MarkerType.valueOf(Objects.requireNonNull(marker.type()))
         );
+    }
+
+    private Map<String, String> validatePersistedActiveMarkerIds(
+        Map<String, String> persistedActiveMarkerIds,
+        List<MarkerRecord> loadedMarkers,
+        ParseFlags parseFlags
+    ) {
+        if (persistedActiveMarkerIds == null) {
+            return null;
+        }
+
+        Map<String, MarkerRecord> markerById = new HashMap<>();
+        if (loadedMarkers != null) {
+            for (MarkerRecord marker : loadedMarkers) {
+                if (marker == null || marker.markerId() == null || marker.markerId().isBlank()) {
+                    continue;
+                }
+                markerById.put(marker.markerId(), marker);
+            }
+        }
+
+        Map<String, String> sanitized = new LinkedHashMap<>();
+        for (var entry : persistedActiveMarkerIds.entrySet()) {
+            String rawType = entry.getKey();
+            String markerId = entry.getValue();
+
+            if (rawType == null || rawType.isBlank()) {
+                parseFlags.markPartial();
+                System.err.println("[KeystoneNPC][STATE_LOAD_ACTIVE_MARKER_SKIPPED] Invalid active marker type key (null/blank). Auto-save will stay blocked until corrected.");
+                continue;
+            }
+
+            if (markerId == null || markerId.isBlank()) {
+                parseFlags.markPartial();
+                System.err.println("[KeystoneNPC][STATE_LOAD_ACTIVE_MARKER_SKIPPED] Invalid active marker id for type "
+                    + rawType + " (null/blank). Auto-save will stay blocked until corrected.");
+                continue;
+            }
+
+            MarkerType markerType;
+            try {
+                markerType = MarkerType.valueOf(rawType.trim());
+            } catch (IllegalArgumentException ex) {
+                parseFlags.markPartial();
+                System.err.println("[KeystoneNPC][STATE_LOAD_ACTIVE_MARKER_SKIPPED] Unknown active marker type in state: "
+                    + rawType + " markerId=" + markerId + ". Auto-save will stay blocked until corrected.");
+                continue;
+            }
+
+            MarkerRecord marker = markerById.get(markerId);
+            if (marker == null) {
+                parseFlags.markPartial();
+                System.err.println("[KeystoneNPC][STATE_LOAD_ACTIVE_MARKER_SKIPPED] Active marker id not found in loaded markers: "
+                    + markerId + " type=" + markerType.name() + ". Auto-save will stay blocked until corrected.");
+                continue;
+            }
+
+            if (marker.type() != markerType) {
+                parseFlags.markPartial();
+                System.err.println("[KeystoneNPC][STATE_LOAD_ACTIVE_MARKER_SKIPPED] Active marker type mismatch for markerId="
+                    + markerId + ": expected=" + markerType.name() + " actual=" + marker.type().name()
+                    + ". Auto-save will stay blocked until corrected.");
+                continue;
+            }
+
+            sanitized.put(markerType.name(), markerId);
+        }
+
+        return sanitized;
     }
 
     private NpcRecord toNpcRecord(PersistedNpc npc, ParseFlags parseFlags) {

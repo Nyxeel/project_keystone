@@ -2,6 +2,7 @@ package keystone.npc.commands.marker;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -91,9 +92,12 @@ public final class MarkerSetCommand extends AbstractPlayerCommand {
 
         var worldId = new WorldId(world.getName());
         var pos = new Vec3(p.x(), p.y(), p.z());
+        List<MarkerRecord> markersBefore = markerRegistry.snapshot();
+        Map<MarkerType, String> activeMarkerIdsBefore = markerRegistry.snapshotActiveMarkerIds();
 
         String markerTypeName = type.name().toLowerCase(Locale.ROOT);
         NpcRecord targetNpc = null;
+        String markerBeforeOnNpc = null;
         if (context.provided(targetNpcArg)) {
             String target = targetNpcArg.get(context);
             targetNpc = resolveTargetNpc(context, target, markerTypeName);
@@ -109,6 +113,8 @@ public final class MarkerSetCommand extends AbstractPlayerCommand {
                     + (allowed.isEmpty() ? "none" : String.join(", ", allowed))));
                 return;
             }
+
+            markerBeforeOnNpc = markerIdForType(targetNpc, type);
         }
 
         MarkerRecord activeMarkerBefore = markerRegistry.getActive(type).orElse(null);
@@ -128,21 +134,61 @@ public final class MarkerSetCommand extends AbstractPlayerCommand {
         }
 
         boolean npcAssignmentChanged = false;
+        boolean rerouteStarted = false;
         if (targetNpc != null) {
-            String markerBeforeOnNpc = markerIdForType(targetNpc, type);
             if (!Objects.equals(markerBeforeOnNpc, markerId)) {
-                scheduler.assignMarkerToNpc(targetNpc, type, markerId);
-                npcAssignmentChanged = true;
+                rerouteStarted = scheduler.assignMarkerToNpc(targetNpc, type, markerId);
+                npcAssignmentChanged = Objects.equals(markerIdForType(targetNpc, type), markerId);
+                if (!npcAssignmentChanged) {
+                    RuntimeRollbackResult rollback = rollbackRuntimeState(
+                        type,
+                        targetNpc,
+                        markerBeforeOnNpc,
+                        markersBefore,
+                        activeMarkerIdsBefore,
+                        rerouteStarted
+                    );
+                    if (rollback.rolledBack() && !rollback.driftRisk()) {
+                        context.sendMessage(Message.raw("[knpc] Marker assignment failed. Runtime changes were rolled back."));
+                    } else if (rollback.rolledBack()) {
+                        context.sendMessage(Message.raw("[knpc] Marker assignment failed. Marker-Daten wurden zurueckgesetzt, aber Reroute-/Navigation-Runtime konnte nicht sicher vollstaendig zurueckgesetzt werden."));
+                    } else {
+                        context.sendMessage(Message.raw("[knpc] Marker assignment failed and rollback was incomplete."));
+                    }
+                    if (rollback.driftRisk()) {
+                        context.sendMessage(Message.raw("[knpc] Runtime/state drift risk: " + rollback.reason()));
+                    }
+                    return;
+                }
             }
         }
 
         if (!markerSelectionChanged && !npcAssignmentChanged) {
-            context.sendMessage(Message.raw("[knpc] Keine Änderung: Marker ist bereits aktiv und zugewiesen."));
+            context.sendMessage(Message.raw(targetNpc == null
+                ? "[knpc] Keine Änderung: Marker ist bereits aktiv."
+                : "[knpc] Keine Änderung: Marker ist bereits aktiv und zugewiesen."));
             return;
         }
 
         if (!plugin.saveStateSafely()) {
-            context.sendMessage(Message.raw("[knpc] Save failed: runtime marker change is active, but state.json was not updated."));
+            RuntimeRollbackResult rollback = rollbackRuntimeState(
+                type,
+                targetNpc,
+                markerBeforeOnNpc,
+                markersBefore,
+                activeMarkerIdsBefore,
+                rerouteStarted
+            );
+            if (rollback.rolledBack() && !rollback.driftRisk()) {
+                context.sendMessage(Message.raw("[knpc] Save failed. Runtime changes were rolled back."));
+            } else if (rollback.rolledBack()) {
+                context.sendMessage(Message.raw("[knpc] Save failed. Marker-Daten wurden zurueckgesetzt, aber Reroute-/Navigation-Runtime konnte nicht sicher vollstaendig zurueckgesetzt werden."));
+            } else {
+                context.sendMessage(Message.raw("[knpc] Save failed and rollback was incomplete."));
+            }
+            if (rollback.driftRisk()) {
+                context.sendMessage(Message.raw("[knpc] Runtime/state drift risk: " + rollback.reason()));
+            }
             return;
         }
 
@@ -151,12 +197,18 @@ public final class MarkerSetCommand extends AbstractPlayerCommand {
             if (!markerSelectionChanged && npcAssignmentChanged) {
                 context.sendMessage(Message.raw("[KNPC][Marker] existing " + markerTypeName
                     + " marker reused and assigned to NPC #" + npcIndex + " ('" + targetNpc.npcName() + "')."));
+                if (rerouteStarted) {
+                    context.sendMessage(Message.raw("[KNPC][Marker] Reroute zum neu zugewiesenen Marker wurde gestartet."));
+                }
                 return;
             }
 
             context.sendMessage(Message.raw("[KNPC][Marker] " + markerTypeName
                 + " gesetzt bei " + NpcDebugSupport.formatPositionForChat(pos)
                 + " und NPC #" + npcIndex + " ('" + targetNpc.npcName() + "') zugewiesen."));
+            if (rerouteStarted) {
+                context.sendMessage(Message.raw("[KNPC][Marker] Reroute zum neu zugewiesenen Marker wurde gestartet."));
+            }
             return;
         }
 
@@ -262,5 +314,56 @@ public final class MarkerSetCommand extends AbstractPlayerCommand {
             case WORK -> npc.workMarkerId();
             case CHILL -> npc.chillMarkerId();
         };
+    }
+
+    private RuntimeRollbackResult rollbackRuntimeState(
+        MarkerType markerType,
+        NpcRecord targetNpc,
+        String markerBeforeOnNpc,
+        List<MarkerRecord> markersBefore,
+        Map<MarkerType, String> activeMarkerIdsBefore,
+        boolean rerouteStarted
+    ) {
+        boolean markerRegistryRestored = true;
+        try {
+            markerRegistry.restore(markersBefore, activeMarkerIdsBefore);
+        } catch (RuntimeException ex) {
+            markerRegistryRestored = false;
+        }
+
+        boolean npcAssignmentRestored = true;
+        if (targetNpc != null) {
+            try {
+                setMarkerIdForType(targetNpc, markerType, markerBeforeOnNpc);
+            } catch (RuntimeException ex) {
+                npcAssignmentRestored = false;
+            }
+        }
+
+        boolean rolledBack = markerRegistryRestored && npcAssignmentRestored;
+        if (!rolledBack) {
+            return new RuntimeRollbackResult(false, true, "rollback could not restore previous marker selection/assignment");
+        }
+
+        if (rerouteStarted) {
+            return new RuntimeRollbackResult(true, true,
+                "Marker-Daten wurden zurueckgesetzt, aber Reroute-/Navigation-Runtime konnte nicht sicher vollstaendig zurueckgesetzt werden.");
+        }
+
+        return new RuntimeRollbackResult(true, false, "-");
+    }
+
+    private static void setMarkerIdForType(NpcRecord npc, MarkerType markerType, String markerId) {
+        switch (markerType) {
+            case BED -> npc.bedMarkerId(markerId);
+            case DOOR -> npc.doorMarkerId(markerId);
+            case CHEST -> npc.chestMarkerId(markerId);
+            case FOOD -> npc.foodMarkerId(markerId);
+            case WORK -> npc.workMarkerId(markerId);
+            case CHILL -> npc.chillMarkerId(markerId);
+        }
+    }
+
+    private record RuntimeRollbackResult(boolean rolledBack, boolean driftRisk, String reason) {
     }
 }

@@ -1,6 +1,7 @@
 package keystone.npc.routine;
 
 import java.lang.reflect.Method;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
@@ -549,10 +550,213 @@ public final class NpcRoutineRunner {
         return started;
     }
 
+    public record RemoveNpcRollbackSnapshot(
+        NpcRecord npc,
+        List<MarkerRecord> markers,
+        Map<MarkerType, String> activeMarkerIds,
+        boolean spawnRequestInFlight,
+        Long respawnRetryAt,
+        Integer respawnFailureCount,
+        Long nextDoorActionAt,
+        Long nextDoorCloseActionAt,
+        PendingDoorAttempt pendingDoorAttempt,
+        PendingDoorAttempt pendingDoorCloseAttempt,
+        Deque<ActiveDoorPass> activeDoorPasses,
+        boolean restoredNpc,
+        Map<String, Long> runtimeCooldownEntries
+    ) {
+    }
+
+    public record RemoveNpcResult(
+        boolean found,
+        boolean removed,
+        int index,
+        String npcId,
+        String npcName,
+        String roleId,
+        NpcEntityStatus entityStatus,
+        String entityRemovalOutcome,
+        int removedOwnedMarkerCount,
+        String message,
+        RemoveNpcRollbackSnapshot rollbackSnapshot
+    ) {
+    }
+
+    public record ClearNpcsSnapshot(
+        List<NpcRecord> npcs,
+        List<MarkerRecord> markers,
+        Map<MarkerType, String> activeMarkerIds
+    ) {
+    }
+
+    public record ClearNpcsResult(
+        int requestedCount,
+        int removedCount,
+        int blockedCount,
+        int removedOwnedMarkerCount,
+        List<RemoveNpcResult> entries
+    ) {
+    }
+
+    public RemoveNpcResult removeNpcByIndexDetailed(int index) {
+        List<NpcRecord> npcList = snapshotIndexed();
+        if (index < 0 || index >= npcList.size()) {
+            return new RemoveNpcResult(false, false, index, null, null, null, null, "-", 0,
+                "invalid-index", null);
+        }
+
+        NpcRecord target = npcList.get(index);
+        return removeNpcDetailed(target == null ? null : target.npcId(), index);
+    }
+
     public boolean removeNpc(String npcId) {
+        return removeNpcDetailed(npcId, -1).removed();
+    }
+
+    public boolean removeNpcByIndex(int index) {
+        return removeNpcByIndexDetailed(index).removed();
+    }
+
+    public boolean rollbackRemovedNpc(RemoveNpcRollbackSnapshot snapshot) {
+        if (snapshot == null || snapshot.npc() == null || snapshot.npc().npcId() == null
+            || snapshot.npc().npcId().isBlank()) {
+            return false;
+        }
+
+        boolean markerStateRestored = true;
+        try {
+            markerRegistry.restore(snapshot.markers(), snapshot.activeMarkerIds());
+        } catch (RuntimeException ex) {
+            markerStateRestored = false;
+        }
+
+        String npcId = snapshot.npc().npcId();
+        npcs.put(npcId, snapshot.npc());
+
+        if (snapshot.spawnRequestInFlight()) {
+            spawnRequestsInFlight.add(npcId);
+        } else {
+            spawnRequestsInFlight.remove(npcId);
+        }
+
+        restoreMapEntry(respawnRetryAtMs, npcId, snapshot.respawnRetryAt());
+        restoreMapEntry(respawnFailureCounts, npcId, snapshot.respawnFailureCount());
+        restoreMapEntry(nextDoorActionAtMs, npcId, snapshot.nextDoorActionAt());
+        restoreMapEntry(nextDoorCloseActionAtMs, npcId, snapshot.nextDoorCloseActionAt());
+        restoreMapEntry(pendingDoorAttempts, npcId, snapshot.pendingDoorAttempt());
+        restoreMapEntry(pendingDoorCloseAttempts, npcId, snapshot.pendingDoorCloseAttempt());
+
+        if (snapshot.activeDoorPasses() != null) {
+            activeDoorPasses.put(npcId, new ArrayDeque<>(snapshot.activeDoorPasses()));
+        } else {
+            activeDoorPasses.remove(npcId);
+        }
+
+        if (snapshot.restoredNpc()) {
+            restoredNpcIds.add(npcId);
+        } else {
+            restoredNpcIds.remove(npcId);
+        }
+
+        clearRuntimeLogCooldownForNpc(npcId);
+        if (snapshot.runtimeCooldownEntries() != null && !snapshot.runtimeCooldownEntries().isEmpty()) {
+            runtimeLogCooldownByNpcEvent.putAll(snapshot.runtimeCooldownEntries());
+        }
+
+        markDirty();
+        return markerStateRestored;
+    }
+
+    public ClearNpcsSnapshot snapshotForClear() {
+        return new ClearNpcsSnapshot(
+            new ArrayList<>(snapshotIndexed()),
+            markerRegistry.snapshot(),
+            markerRegistry.snapshotActiveMarkerIds()
+        );
+    }
+
+    public ClearNpcsResult clearNpcsDetailed() {
+        List<NpcRecord> npcSnapshot = new ArrayList<>(snapshotIndexed());
+        List<RemoveNpcResult> entries = new ArrayList<>(npcSnapshot.size());
+
+        int removedCount = 0;
+        int blockedCount = 0;
+        int removedOwnedMarkerCount = 0;
+
+        for (int i = 0; i < npcSnapshot.size(); i++) {
+            NpcRecord npc = npcSnapshot.get(i);
+            RemoveNpcResult result = removeNpcDetailed(npc == null ? null : npc.npcId(), i);
+            entries.add(result);
+
+            if (result.removed()) {
+                removedCount++;
+                removedOwnedMarkerCount += result.removedOwnedMarkerCount();
+            } else if (result.found()) {
+                blockedCount++;
+            }
+        }
+
+        return new ClearNpcsResult(
+            npcSnapshot.size(),
+            removedCount,
+            blockedCount,
+            removedOwnedMarkerCount,
+            entries
+        );
+    }
+
+    public boolean rollbackClearedNpcs(ClearNpcsResult clearResult) {
+        if (clearResult == null || clearResult.entries() == null || clearResult.entries().isEmpty()) {
+            return true;
+        }
+
+        boolean restored = true;
+        List<RemoveNpcResult> entries = clearResult.entries();
+        for (int i = entries.size() - 1; i >= 0; i--) {
+            RemoveNpcResult entry = entries.get(i);
+            if (entry == null || !entry.removed()) {
+                continue;
+            }
+
+            if (!rollbackRemovedNpc(entry.rollbackSnapshot())) {
+                restored = false;
+            }
+        }
+
+        return restored;
+    }
+
+    public boolean restoreClearSnapshot(ClearNpcsSnapshot snapshot) {
+        if (snapshot == null) {
+            return false;
+        }
+
+        boolean markerStateRestored = true;
+        try {
+            markerRegistry.restore(snapshot.markers(), snapshot.activeMarkerIds());
+        } catch (RuntimeException ex) {
+            markerStateRestored = false;
+        }
+
+        npcs.clear();
+        if (snapshot.npcs() != null) {
+            for (NpcRecord npc : snapshot.npcs()) {
+                if (npc == null || npc.npcId() == null || npc.npcId().isBlank()) {
+                    continue;
+                }
+                npcs.put(npc.npcId(), npc);
+            }
+        }
+
+        markDirty();
+        return markerStateRestored;
+    }
+
+    private RemoveNpcResult removeNpcDetailed(String npcId, int index) {
         NpcRecord npc = npcs.get(npcId);
         if (npc == null) {
-            return false;
+            return new RemoveNpcResult(false, false, index, null, null, null, null, "-", 0,
+                "npc-not-found", null);
         }
 
         EntityRemovalOutcome removalOutcome = removeLiveEntity(npc);
@@ -561,42 +765,201 @@ public final class NpcRoutineRunner {
                 + "npcId=" + npc.npcId()
                 + " npcName=" + quote(npc.npcName())
                 + " outcome=" + removalOutcome.name());
-            return false;
+            return new RemoveNpcResult(true, false, index, npc.npcId(), npc.npcName(), npc.roleId(), npc.entityStatus(),
+                removalOutcome.name(), 0, blockedRemoveMessage(removalOutcome), null);
         }
+
+        RemoveNpcRollbackSnapshot rollbackSnapshot = captureRemoveNpcRollbackSnapshot(npc);
+        boolean cleanupOwnedMarkers = shouldCleanupOwnedMarkersOnRecordDelete(npc);
+        Set<String> ownedMarkerIds = cleanupOwnedMarkers ? collectOwnedMarkerIds(npc) : Set.of();
 
         npcs.remove(npcId);
+        clearRemovedNpcRuntimeState(npc.npcId());
 
-        spawnRequestsInFlight.remove(npc.npcId());
-        clearRespawnFailureState(npc.npcId());
-        nextDoorActionAtMs.remove(npc.npcId());
-        nextDoorCloseActionAtMs.remove(npc.npcId());
-        pendingDoorAttempts.remove(npc.npcId());
-        pendingDoorCloseAttempts.remove(npc.npcId());
-        activeDoorPasses.remove(npc.npcId());
-        restoredNpcIds.remove(npc.npcId());
-        clearRuntimeLogCooldownForNpc(npc.npcId());
+        int removedOwnedMarkerCount = cleanupOwnedMarkers
+            ? cleanupUnusedOwnedMarkers(ownedMarkerIds, npc.npcId())
+            : 0;
+        if (!cleanupOwnedMarkers) {
+            logInfo("REMOVE_NPC_SKIP_OWNED_MARKER_CLEANUP", "Skipped owned marker cleanup for deleted record due to relink/missing safety guard: "
+                + "npcId=" + npc.npcId()
+                + " entityStatus=" + (npc.entityStatus() == null ? "-" : npc.entityStatus().name())
+                + " npcName=" + quote(npc.npcName()));
+        }
         markDirty();
-        return true;
+
+        return new RemoveNpcResult(true, true, index, npc.npcId(), npc.npcName(), npc.roleId(), npc.entityStatus(),
+            removalOutcome.name(), removedOwnedMarkerCount, "removed", rollbackSnapshot);
     }
 
-    public boolean removeNpcByIndex(int index) {
-        var npcList = snapshotIndexed();
-        if (index < 0 || index >= npcList.size()) {
+    private RemoveNpcRollbackSnapshot captureRemoveNpcRollbackSnapshot(NpcRecord npc) {
+        String npcId = npc.npcId();
+        Deque<ActiveDoorPass> existingDoorPasses = activeDoorPasses.get(npcId);
+        Deque<ActiveDoorPass> activeDoorPassSnapshot = existingDoorPasses == null
+            ? null
+            : new ArrayDeque<>(existingDoorPasses);
+
+        Map<String, Long> runtimeCooldownEntries = new HashMap<>();
+        String suffix = "|" + npcId;
+        for (Map.Entry<String, Long> entry : runtimeLogCooldownByNpcEvent.entrySet()) {
+            if (entry.getKey() != null && entry.getKey().endsWith(suffix)) {
+                runtimeCooldownEntries.put(entry.getKey(), entry.getValue());
+            }
+        }
+
+        return new RemoveNpcRollbackSnapshot(
+            npc,
+            markerRegistry.snapshot(),
+            markerRegistry.snapshotActiveMarkerIds(),
+            spawnRequestsInFlight.contains(npcId),
+            respawnRetryAtMs.get(npcId),
+            respawnFailureCounts.get(npcId),
+            nextDoorActionAtMs.get(npcId),
+            nextDoorCloseActionAtMs.get(npcId),
+            pendingDoorAttempts.get(npcId),
+            pendingDoorCloseAttempts.get(npcId),
+            activeDoorPassSnapshot,
+            restoredNpcIds.contains(npcId),
+            runtimeCooldownEntries
+        );
+    }
+
+    private void clearRemovedNpcRuntimeState(String npcId) {
+        spawnRequestsInFlight.remove(npcId);
+        clearRespawnFailureState(npcId);
+        nextDoorActionAtMs.remove(npcId);
+        nextDoorCloseActionAtMs.remove(npcId);
+        pendingDoorAttempts.remove(npcId);
+        pendingDoorCloseAttempts.remove(npcId);
+        activeDoorPasses.remove(npcId);
+        restoredNpcIds.remove(npcId);
+        clearRuntimeLogCooldownForNpc(npcId);
+    }
+
+    private Set<String> collectOwnedMarkerIds(NpcRecord npc) {
+        Set<String> ownedMarkerIds = new HashSet<>();
+        addMarkerIdIfPresent(ownedMarkerIds, npc.bedMarkerId());
+        addMarkerIdIfPresent(ownedMarkerIds, npc.doorMarkerId());
+        addMarkerIdIfPresent(ownedMarkerIds, npc.chestMarkerId());
+        addMarkerIdIfPresent(ownedMarkerIds, npc.foodMarkerId());
+        addMarkerIdIfPresent(ownedMarkerIds, npc.workMarkerId());
+        addMarkerIdIfPresent(ownedMarkerIds, npc.chillMarkerId());
+        // Future markerAssignments can be included here once persisted on NpcRecord.
+        return ownedMarkerIds;
+    }
+
+    private boolean shouldCleanupOwnedMarkersOnRecordDelete(NpcRecord npc) {
+        if (npc == null || npc.entityStatus() == null) {
             return false;
         }
-        NpcRecord npc = npcList.get(index);
-        return removeNpc(npc.npcId());
+
+        return npc.entityStatus() != NpcEntityStatus.MISSING_ENTITY
+            && npc.entityStatus() != NpcEntityStatus.NEEDS_RELINK;
+    }
+
+    private String blockedRemoveMessage(EntityRemovalOutcome outcome) {
+        if (outcome == null) {
+            return "blocked-unsafe-entity-removal";
+        }
+
+        return switch (outcome) {
+            case BLOCKED_ENTITY_UNCONFIRMED -> "blocked-entity-unconfirmed";
+            case REMOVAL_FAILED_REF_INVALID -> "blocked-entity-ref-invalid";
+            case REMOVAL_FAILED_WORLD_MISSING -> "blocked-world-missing";
+            case REMOVAL_FAILED_QUEUE_EXCEPTION -> "blocked-entity-removal-queue-exception";
+            case NO_IDENTITY -> "removed";
+        };
+    }
+
+    private int cleanupUnusedOwnedMarkers(Set<String> ownedMarkerIds, String removedNpcId) {
+        if (ownedMarkerIds == null || ownedMarkerIds.isEmpty()) {
+            return 0;
+        }
+
+        Set<String> stillInUse = collectMarkerIdsUsedByOtherNpcs(removedNpcId);
+        int removed = 0;
+        for (String markerId : ownedMarkerIds) {
+            if (markerId == null || markerId.isBlank() || stillInUse.contains(markerId)) {
+                continue;
+            }
+            if (markerRegistry.removeById(markerId)) {
+                removed++;
+            }
+        }
+        return removed;
+    }
+
+    private Set<String> collectMarkerIdsUsedByOtherNpcs(String removedNpcId) {
+        Set<String> markerIds = new HashSet<>();
+
+        for (NpcRecord npc : npcs.values()) {
+            if (npc == null || sameNpcId(removedNpcId, npc.npcId())) {
+                continue;
+            }
+
+            addMarkerIdIfPresent(markerIds, npc.bedMarkerId());
+            addMarkerIdIfPresent(markerIds, npc.doorMarkerId());
+            addMarkerIdIfPresent(markerIds, npc.chestMarkerId());
+            addMarkerIdIfPresent(markerIds, npc.foodMarkerId());
+            addMarkerIdIfPresent(markerIds, npc.workMarkerId());
+            addMarkerIdIfPresent(markerIds, npc.chillMarkerId());
+            addMarkerIdIfPresent(markerIds, npc.navigationState().getTargetMarkerId());
+        }
+
+        for (Map.Entry<String, PendingDoorAttempt> entry : pendingDoorAttempts.entrySet()) {
+            if (!sameNpcId(removedNpcId, entry.getKey()) && entry.getValue() != null) {
+                addMarkerIdIfPresent(markerIds, entry.getValue().doorMarkerId());
+            }
+        }
+
+        for (Map.Entry<String, PendingDoorAttempt> entry : pendingDoorCloseAttempts.entrySet()) {
+            if (!sameNpcId(removedNpcId, entry.getKey()) && entry.getValue() != null) {
+                addMarkerIdIfPresent(markerIds, entry.getValue().doorMarkerId());
+            }
+        }
+
+        for (Map.Entry<String, Deque<ActiveDoorPass>> entry : activeDoorPasses.entrySet()) {
+            if (sameNpcId(removedNpcId, entry.getKey()) || entry.getValue() == null) {
+                continue;
+            }
+            for (ActiveDoorPass pass : entry.getValue()) {
+                if (pass != null) {
+                    addMarkerIdIfPresent(markerIds, pass.doorMarkerId());
+                }
+            }
+        }
+
+        return markerIds;
+    }
+
+    private void addMarkerIdIfPresent(Set<String> sink, String markerId) {
+        if (sink == null || markerId == null || markerId.isBlank()) {
+            return;
+        }
+        sink.add(markerId);
+    }
+
+    private <T> void restoreMapEntry(Map<String, T> map, String key, T value) {
+        if (map == null || key == null || key.isBlank()) {
+            return;
+        }
+
+        if (value == null) {
+            map.remove(key);
+            return;
+        }
+
+        map.put(key, value);
+    }
+
+    private boolean sameNpcId(String left, String right) {
+        if (left == null || right == null) {
+            return false;
+        }
+        return left.equalsIgnoreCase(right);
     }
 
     public int clearNpcs() {
-        List<String> npcIds = new ArrayList<>(npcs.keySet());
-        int removedCount = 0;
-        for (String npcId : npcIds) {
-            if (removeNpc(npcId)) {
-                removedCount++;
-            }
-        }
-        return removedCount;
+        return clearNpcsDetailed().removedCount();
     }
 
     public record RespawnMissingResult(
@@ -1889,7 +2252,7 @@ public final class NpcRoutineRunner {
 
     private enum EntityRemovalOutcome {
         NO_IDENTITY,
-        REMOVAL_QUEUED_UNCONFIRMED,
+        BLOCKED_ENTITY_UNCONFIRMED,
         REMOVAL_FAILED_REF_INVALID,
         REMOVAL_FAILED_WORLD_MISSING,
         REMOVAL_FAILED_QUEUE_EXCEPTION;
@@ -1922,32 +2285,11 @@ public final class NpcRoutineRunner {
             return EntityRemovalOutcome.REMOVAL_FAILED_WORLD_MISSING;
         }
 
-        try {
-            world.execute(() -> {
-                if (liveRef != null && liveRef.isValid()) {
-                    try {
-                        liveRef.getStore().removeEntity(liveRef, RemoveReason.REMOVE);
-                    } catch (RuntimeException ex) {
-                        logSevere("REMOVE_LIVE_ENTITY_EXECUTE_FAILED", "Entity removal failed during queued world execution: "
-                            + "npcId=" + npc.npcId()
-                            + " npcName=" + quote(npc.npcName())
-                            + " exception=" + ex.getClass().getSimpleName() + ":" + ex.getMessage());
-                    }
-                }
-            });
-        } catch (RuntimeException ex) {
-            logSevere("REMOVE_LIVE_ENTITY_QUEUE_FAILED", "Failed to queue live entity removal in world thread: "
-                + "npcId=" + npc.npcId()
-                + " npcName=" + quote(npc.npcName())
-                + " exception=" + ex.getClass().getSimpleName() + ":" + ex.getMessage());
-            return EntityRemovalOutcome.REMOVAL_FAILED_QUEUE_EXCEPTION;
-        }
-
-        // Queue acceptance does not confirm execution success; keep identity and block record deletion.
-        logSevere("REMOVE_LIVE_ENTITY_UNCONFIRMED", "Live entity removal was queued but not confirmed; keeping record and identity to avoid orphan risk: "
+        // Safety-first: do not start live entity removal when record deletion would still be blocked.
+        logSevere("REMOVE_LIVE_ENTITY_BLOCKED_UNCONFIRMED", "Live entity removal was not started because queue-only removal is unconfirmed and record deletion would stay blocked: "
             + "npcId=" + npc.npcId()
             + " npcName=" + quote(npc.npcName()));
-        return EntityRemovalOutcome.REMOVAL_QUEUED_UNCONFIRMED;
+        return EntityRemovalOutcome.BLOCKED_ENTITY_UNCONFIRMED;
     }
 
     private void rollbackSpawnedEntity(World world, Ref<EntityStore> entityRef, String npcId, String trigger, RuntimeException ex) {

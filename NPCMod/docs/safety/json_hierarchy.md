@@ -909,8 +909,19 @@ Erlaubt / erforderlich:
 
 ```text
 Read-only Kontexte dürfen markerAssignments nur lesen/diagnostizieren.
-Mutierendes Reconcile ist nur in explizitem Admin-Repair/Cleanup/Spawn/Admin-Kontext erlaubt.
+Read-only Kontexte dürfen Legacy-Markerfelder niemals mutieren.
+Mutierende Marker-Zuweisung/Reconcile ist nur in explizitem Spawn/Admin/Repair/Cleanup-Kontext erlaubt (harte Allowlist).
 Kaputte markerAssignments dürfen nicht still in state.json zurückgeschrieben werden.
+```
+
+Methodenstatus (Marker-Audit):
+
+```text
+resolveRequiredMarkerWithFallbackAssigning(...) ist entfernt (nicht mehr aktiv)
+resolveRequiredMarkerWithFallback(...) ist entfernt (nicht mehr aktiv)
+resolveRequiredMarkerReadOnly(...) ist der verbindliche read-only Resolver
+MarkerRegistry.getNextAvailable(...) bleibt deprecated Lookup-Helfer und keine Reconcile-Wahrheit
+MarkerRingTraversal bleibt intern in der Marker-Registry gekapselt
 ```
 
 ---
@@ -1363,6 +1374,9 @@ Persistence Runtime-Anbindung: teilweise aktiv (respawnAfterRestart-Gate), sonst
 [ ] requiredMarkers/markerRoles bleiben strikt?
 [ ] Marker-v2 nicht versehentlich halb eingebaut?
 [ ] Read-only Reconcile überschreibt markerAssignments/state.json nicht still?
+[ ] Marker-Mutation bleibt auf Spawn/Admin/Repair/Cleanup begrenzt?
+[ ] resolveRequiredMarkerWithFallbackAssigning/resolveRequiredMarkerWithFallback bleiben entfernt?
+[ ] getNextAvailable bleibt deprecated und wird nicht in read-only Pfaden verwendet?
 [ ] Runtime-Safety-Gates erhalten?
 [ ] Logs geprüft?
 [ ] Tests ergänzt, falls Verhalten geändert?
