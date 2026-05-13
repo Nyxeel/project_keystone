@@ -894,6 +894,25 @@ Erlaubt / erforderlich:
 Marker-v2 nur in eigenem Plan/Step umsetzen
 ```
 
+## 5.8 Kein stilles Reconcile-Overwrite von markerAssignments
+
+Verboten:
+
+```text
+Load/Restore/Validation/Diagnose/Tick
+-> markerAssignments werden still bereinigt
+-> stateDirty wird durch read-only Reconcile gesetzt
+-> saveStateSafely() wird durch read-only Reconcile ausgelöst
+```
+
+Erlaubt / erforderlich:
+
+```text
+Read-only Kontexte dürfen markerAssignments nur lesen/diagnostizieren.
+Mutierendes Reconcile ist nur in explizitem Admin-Repair/Cleanup/Spawn/Admin-Kontext erlaubt.
+Kaputte markerAssignments dürfen nicht still in state.json zurückgeschrieben werden.
+```
+
 ---
 
 ## 6. Standard Review-Prozess für spätere Patches
@@ -1343,6 +1362,7 @@ Persistence Runtime-Anbindung: teilweise aktiv (respawnAfterRestart-Gate), sonst
 [ ] Duplicate id/role/hytaleRole wird blockiert?
 [ ] requiredMarkers/markerRoles bleiben strikt?
 [ ] Marker-v2 nicht versehentlich halb eingebaut?
+[ ] Read-only Reconcile überschreibt markerAssignments/state.json nicht still?
 [ ] Runtime-Safety-Gates erhalten?
 [ ] Logs geprüft?
 [ ] Tests ergänzt, falls Verhalten geändert?

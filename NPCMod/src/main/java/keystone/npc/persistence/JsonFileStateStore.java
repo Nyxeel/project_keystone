@@ -7,6 +7,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -149,7 +150,29 @@ public final class JsonFileStateStore implements StateStore {
                 }
             }
 
-            Map<MarkerType, String> activeMarkerIds = activeMarkerIdMapper.toActiveMarkerIds(persisted.activeMarkerIds());
+            Map<String, String> persistedActiveMarkerIds = persisted.activeMarkerIds();
+            Map<String, String> sanitizedActiveMarkerIds = persistedActiveMarkerIds;
+            if (persistedActiveMarkerIds != null && !persistedActiveMarkerIds.isEmpty()) {
+                sanitizedActiveMarkerIds = new LinkedHashMap<>();
+                for (var entry : persistedActiveMarkerIds.entrySet()) {
+                    String rawType = entry.getKey();
+                    String markerId = entry.getValue();
+                    if (rawType == null || markerId == null || markerId.isBlank()) {
+                        continue;
+                    }
+
+                    try {
+                        MarkerType.valueOf(rawType);
+                        sanitizedActiveMarkerIds.put(rawType, markerId);
+                    } catch (IllegalArgumentException ex) {
+                        parseFlags.markPartial();
+                        System.err.println("[KeystoneNPC][STATE_LOAD_ACTIVE_MARKER_SKIPPED] Unknown active marker type in state: "
+                            + rawType + " markerId=" + markerId + ". Auto-save will stay blocked until corrected.");
+                    }
+                }
+            }
+
+            Map<MarkerType, String> activeMarkerIds = activeMarkerIdMapper.toActiveMarkerIds(sanitizedActiveMarkerIds);
 
             return LoadResult.success(new PluginState(markers, npcs, activeMarkerIds), false, parseFlags.partialLoad());
         } catch (JsonParseException | IllegalStateException | IllegalArgumentException e) {

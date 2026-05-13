@@ -179,7 +179,7 @@ public final class NpcRoutineRunner {
         this.skillChecks = Objects.requireNonNull(skillChecks);
         this.templateResolver = Objects.requireNonNull(templateResolver);
         this.requiredMarkerResolver = new RequiredMarkerResolver(this.templateResolver, this.roleDefinitions);
-        this.markerResolver = new MarkerResolver(this.markerRegistry, this::logInfo);
+        this.markerResolver = new MarkerResolver(this.markerRegistry);
         this.idleMarkerService = new IdleMarkerService(
             this.markerResolver,
             this.entitySync,
@@ -1392,7 +1392,7 @@ public final class NpcRoutineRunner {
                 continue;
             }
 
-            if (markerResolver.resolveRequiredMarkerWithFallbackAssigning(npc, markerType).isEmpty()) {
+            if (markerResolver.resolveRequiredMarkerReadOnly(npc, markerType).isEmpty()) {
                 missingRequiredMarkers.add(markerType.name());
             }
         }
@@ -1436,8 +1436,6 @@ public final class NpcRoutineRunner {
             npc.entityStatus(NpcEntityStatus.ACTIVE);
             return true;
         }
-
-        reconcileMarkerAssignmentsForSpawnOrAdmin(npc);
 
         SpawnIdentitySnapshot oldIdentity = captureSpawnIdentitySnapshot(npc);
 
@@ -2623,10 +2621,6 @@ public final class NpcRoutineRunner {
 
     private Optional<MarkerRecord> resolveMarkerInNpcWorld(NpcRecord npc, MarkerType markerType, String markerId) {
         return markerResolver.resolveMarkerInNpcWorld(npc, markerType, markerId);
-    }
-
-    private Optional<MarkerRecord> resolveRequiredMarkerWithFallback(NpcRecord npc, MarkerType markerType) {
-        return markerResolver.resolveRequiredMarkerWithFallback(npc, markerType);
     }
 
     private void scheduleRespawnRetry(String npcId, String reason) {

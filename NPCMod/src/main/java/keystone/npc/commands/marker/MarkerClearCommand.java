@@ -34,31 +34,36 @@ public final class MarkerClearCommand extends CommandBase {
     @Override
     protected void executeSync(@Nonnull CommandContext context) {
         List<keystone.npc.markers.MarkerRecord> markersBefore = markerRegistry.snapshot();
-        if (markersBefore.isEmpty()) {
+        Map<MarkerType, String> activeBefore = markerRegistry.snapshotActiveMarkerIds();
+
+        boolean hasPersistedMarkers = !markersBefore.isEmpty();
+        boolean hasActiveSelections = !activeBefore.isEmpty();
+        if (!hasPersistedMarkers && !hasActiveSelections) {
             context.sendMessage(Message.raw("[knpc] No markers to clear."));
             return;
         }
 
-        Set<String> existingMarkerIds = new HashSet<>();
-        for (var marker : markersBefore) {
-            existingMarkerIds.add(marker.markerId());
-        }
+        if (hasPersistedMarkers) {
+            Set<String> existingMarkerIds = new HashSet<>();
+            for (var marker : markersBefore) {
+                existingMarkerIds.add(marker.markerId());
+            }
 
-        List<String> referencingNpcIds = new ArrayList<>();
-        for (NpcRecord npc : scheduler.snapshot()) {
-            if (referencesAnyMarker(npc, existingMarkerIds)) {
-                referencingNpcIds.add(npc.npcId());
+            List<String> referencingNpcIds = new ArrayList<>();
+            for (NpcRecord npc : scheduler.snapshot()) {
+                if (referencesAnyMarker(npc, existingMarkerIds)) {
+                    referencingNpcIds.add(npc.npcId());
+                }
+            }
+
+            if (!referencingNpcIds.isEmpty()) {
+                context.sendMessage(Message.raw("[knpc] Marker clear blocked: " + referencingNpcIds.size()
+                    + " NPC(s) still reference persisted markers."));
+                context.sendMessage(Message.raw("[knpc] Remove marker assignments first (e.g. /knpc status) before clearing markers."));
+                return;
             }
         }
 
-        if (!referencingNpcIds.isEmpty()) {
-            context.sendMessage(Message.raw("[knpc] Marker clear blocked: " + referencingNpcIds.size()
-                + " NPC(s) still reference persisted markers."));
-            context.sendMessage(Message.raw("[knpc] Remove marker assignments first (e.g. /knpc status) before clearing markers."));
-            return;
-        }
-
-        Map<MarkerType, String> activeBefore = markerRegistry.snapshotActiveMarkerIds();
         markerRegistry.clear();
         if (!plugin.saveStateSafely()) {
             markerRegistry.restore(markersBefore, activeBefore);
@@ -66,7 +71,12 @@ public final class MarkerClearCommand extends CommandBase {
             return;
         }
 
-        context.sendMessage(Message.raw("[knpc] Cleared markers (bed/door/chest/food/work/chill) and persisted state."));
+        if (hasPersistedMarkers) {
+            context.sendMessage(Message.raw("[knpc] Cleared markers (bed/door/chest/food/work/chill) and persisted state."));
+            return;
+        }
+
+        context.sendMessage(Message.raw("[knpc] Cleared stale active marker selections and persisted state."));
     }
 
     private boolean referencesAnyMarker(NpcRecord npc, Set<String> existingMarkerIds) {

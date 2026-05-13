@@ -1003,6 +1003,50 @@ AMBIGUOUS => blockiert, kein Blind-Bind
 - [ ] Blockiert cleanup-orphans weiterhin bei offenen Relink-Risiken ohne `--force`?
 - [ ] Wird `entityStatus=ACTIVE` nur nach vollständiger Sicherheitsprüfung gesetzt?
 
+### Reconcile-/Cleanup-Regel für MarkerAssignments (final)
+
+`reconcilePersistedMarkerAssignments(...)` bzw. äquivalente Reconcile-Logik darf in read-only Kontexten niemals persistente MarkerAssignments verändern.
+
+Read-only-Kontexte:
+
+- Load
+- Restore
+- Validation
+- Diagnose
+- Tick
+
+In diesen Kontexten ist erlaubt:
+
+- MarkerAssignments lesen
+- Inkonsistenzen erkennen
+- warnen/loggen
+- sichere Diagnose ausgeben
+
+In diesen Kontexten ist verboten:
+
+- MarkerAssignments automatisch löschen
+- MarkerAssignments automatisch ersetzen
+- `bedMarkerId`/`doorMarkerId`/`chestMarkerId`/`foodMarkerId`/`workMarkerId`/`chillMarkerId` automatisch auf `null` setzen
+- `stateDirty` nur wegen Reconcile setzen
+- `saveStateSafely()` nur wegen Reconcile auslösen
+- kaputte/inkonsistente MarkerAssignments still bereinigen und in `state.json` zurückschreiben
+
+Mutierendes Reconcile ist nur in expliziten Kontexten erlaubt:
+
+- Admin-Repair
+- Cleanup-Command
+- Spawn
+- Admin-Kontext
+
+Safety-Ziel:
+
+```text
+Restart ersetzt keine Marker automatisch.
+Restart löscht keine Marker automatisch.
+Validation und Diagnose mutieren keine MarkerAssignments.
+state.json wird nicht wegen read-only Reconcile überschrieben.
+```
+
 ---
 
 # 4. Nicht registrierte NPCs / MVP-B-Hinweis
@@ -1154,6 +1198,26 @@ active route
 remainingMs als aktive Route
 door pending state
 active action runtime
+```
+
+---
+
+## 5.7 Kein mutierendes Reconcile in read-only Pfaden
+
+Verboten:
+
+```text
+Load/Restore/Validation/Diagnose/Tick
+-> Reconcile löscht oder ersetzt MarkerAssignments
+-> Reconcile setzt stateDirty
+-> Reconcile löst saveStateSafely() aus
+```
+
+Erforderlich:
+
+```text
+Read-only Pfade dürfen nur erkennen/loggen/blockieren.
+Mutationen nur in expliziten Admin-Repair/Cleanup/Spawn/Admin-Kontexten.
 ```
 
 ---
@@ -1598,6 +1662,7 @@ Step 8: Save/Dirty-System mit diff-basierter Dirty-Markierung
 Step 9: Load/Save-Failure blockiert destruktive Overwrites, Dirty-Reset nur nach echtem Save
 Step 10: PENDING stoppt Fallbacks; respawnAfterRestart und Position-Safety sind harte Gates
 Step 11: Marker-Fallback read-only vs mutierend getrennt; Remove/Clear-Orphan und ACTIVE-Bind gehärtet
+Step 12: Reconcile-/Cleanup-Regeln für MarkerAssignments in read-only Pfaden finalisiert
 ```
 
 Wichtigster finaler Architekturentscheid:
@@ -1631,6 +1696,8 @@ Vor Abschluss eines Patches muss beantwortet werden:
 [ ] Save-Failure zählt nie als Erfolg?
 [ ] Dirty wird nur nach echtem Save gelöscht?
 [ ] Marker read-only Pfade mutieren keine Assignments?
+[ ] Reconcile mutiert nicht in Load/Restore/Validation/Diagnose/Tick?
+[ ] Reconcile setzt in read-only Pfaden weder stateDirty noch Save-Trigger?
 [ ] entityRef nicht persistiert?
 [ ] Runtime-Navigation nicht persistiert?
 [ ] state.json kompatibel?

@@ -25,6 +25,7 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import keystone.npc.KeystoneNpcPlugin;
 import keystone.npc.debug.NpcDebugSupport;
 import keystone.npc.domain.NpcRecord;
+import keystone.npc.markers.MarkerRecord;
 import keystone.npc.markers.MarkerRegistry;
 import keystone.npc.markers.MarkerType;
 import keystone.npc.markers.RequiredMarkerResolver;
@@ -83,6 +84,11 @@ public final class MarkerSetCommand extends AbstractPlayerCommand {
         }
 
         Vector3d p = transform.getPosition();
+        if (!isFinitePosition(p)) {
+            context.sendMessage(Message.raw("[knpc] Could not set marker: player position contains non-finite values."));
+            return;
+        }
+
         var worldId = new WorldId(world.getName());
         var pos = new Vec3(p.x(), p.y(), p.z());
 
@@ -105,24 +111,49 @@ public final class MarkerSetCommand extends AbstractPlayerCommand {
             }
         }
 
-        markerRegistry.setActive(type, worldId, pos);
-        String markerId = markerRegistry.getActive(type).map(marker -> marker.markerId()).orElse(null);
+        MarkerRecord activeMarkerBefore = markerRegistry.getActive(type).orElse(null);
+        String markerIdBefore = activeMarkerBefore == null ? null : activeMarkerBefore.markerId();
+        boolean markerSelectionChanged = false;
+
+        String markerId = markerIdBefore;
+        if (activeMarkerBefore == null || !isSameLocation(activeMarkerBefore, worldId, pos)) {
+            markerRegistry.setActive(type, worldId, pos);
+            markerSelectionChanged = true;
+            markerId = markerRegistry.getActive(type).map(MarkerRecord::markerId).orElse(null);
+        }
+
         if (markerId == null || markerId.isBlank()) {
             context.sendMessage(Message.raw("[knpc] Marker konnte nicht gespeichert werden."));
             return;
         }
 
+        boolean npcAssignmentChanged = false;
         if (targetNpc != null) {
-            scheduler.assignMarkerToNpc(targetNpc, type, markerId);
+            String markerBeforeOnNpc = markerIdForType(targetNpc, type);
+            if (!Objects.equals(markerBeforeOnNpc, markerId)) {
+                scheduler.assignMarkerToNpc(targetNpc, type, markerId);
+                npcAssignmentChanged = true;
+            }
+        }
+
+        if (!markerSelectionChanged && !npcAssignmentChanged) {
+            context.sendMessage(Message.raw("[knpc] Keine Änderung: Marker ist bereits aktiv und zugewiesen."));
+            return;
         }
 
         if (!plugin.saveStateSafely()) {
-            context.sendMessage(Message.raw("[knpc] Marker wurde gesetzt, aber konnte nicht sicher persistiert werden."));
+            context.sendMessage(Message.raw("[knpc] Save failed: runtime marker change is active, but state.json was not updated."));
             return;
         }
 
         if (targetNpc != null) {
             int npcIndex = scheduler.indexOfNpc(targetNpc.npcId());
+            if (!markerSelectionChanged && npcAssignmentChanged) {
+                context.sendMessage(Message.raw("[KNPC][Marker] existing " + markerTypeName
+                    + " marker reused and assigned to NPC #" + npcIndex + " ('" + targetNpc.npcName() + "')."));
+                return;
+            }
+
             context.sendMessage(Message.raw("[KNPC][Marker] " + markerTypeName
                 + " gesetzt bei " + NpcDebugSupport.formatPositionForChat(pos)
                 + " und NPC #" + npcIndex + " ('" + targetNpc.npcName() + "') zugewiesen."));
@@ -208,6 +239,28 @@ public final class MarkerSetCommand extends AbstractPlayerCommand {
             case "work" -> MarkerType.WORK;
             case "chill" -> MarkerType.CHILL;
             default -> null;
+        };
+    }
+
+    private static boolean isFinitePosition(Vector3d position) {
+        return position != null
+            && Double.isFinite(position.x())
+            && Double.isFinite(position.y())
+            && Double.isFinite(position.z());
+    }
+
+    private static boolean isSameLocation(MarkerRecord marker, WorldId worldId, Vec3 position) {
+        return marker.worldId().equals(worldId) && marker.position().equals(position);
+    }
+
+    private static String markerIdForType(NpcRecord npc, MarkerType markerType) {
+        return switch (markerType) {
+            case BED -> npc.bedMarkerId();
+            case DOOR -> npc.doorMarkerId();
+            case CHEST -> npc.chestMarkerId();
+            case FOOD -> npc.foodMarkerId();
+            case WORK -> npc.workMarkerId();
+            case CHILL -> npc.chillMarkerId();
         };
     }
 }
