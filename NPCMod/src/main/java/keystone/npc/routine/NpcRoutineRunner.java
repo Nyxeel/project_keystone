@@ -522,6 +522,40 @@ public final class NpcRoutineRunner {
             return false;
         }
 
+        MarkerRecord requestedMarker = markerRegistry.getById(markerId).orElse(null);
+        if (requestedMarker == null) {
+            logSevere("MARKER_ASSIGN_BLOCKED_MARKER_NOT_FOUND", "Skipped marker assignment because markerId was not found in registry: "
+                + "npcId=" + npc.npcId()
+                + " npcName=" + quote(npc.npcName())
+                + " roleId=" + npc.roleId()
+                + " markerType=" + markerType.name()
+                + " markerId=" + markerId);
+            return false;
+        }
+
+        if (requestedMarker.type() != markerType) {
+            logSevere("MARKER_ASSIGN_BLOCKED_TYPE_MISMATCH", "Skipped marker assignment because marker type does not match requested type: "
+                + "npcId=" + npc.npcId()
+                + " npcName=" + quote(npc.npcName())
+                + " roleId=" + npc.roleId()
+                + " requestedType=" + markerType.name()
+                + " markerType=" + requestedMarker.type().name()
+                + " markerId=" + markerId);
+            return false;
+        }
+
+        if (!requestedMarker.worldId().equals(npc.worldId())) {
+            logSevere("MARKER_ASSIGN_BLOCKED_WORLD_MISMATCH", "Skipped marker assignment because marker world does not match npc world: "
+                + "npcId=" + npc.npcId()
+                + " npcName=" + quote(npc.npcName())
+                + " roleId=" + npc.roleId()
+                + " markerType=" + markerType.name()
+                + " markerId=" + markerId
+                + " markerWorld=" + quote(requestedMarker.worldId().value())
+                + " npcWorld=" + quote(npc.worldId().value()));
+            return false;
+        }
+
         String previousMarkerId = markerResolver.markerIdForType(npc, markerType);
         MarkerRecord previousMarker = markerResolver.resolveMarkerInNpcWorld(npc, markerType, previousMarkerId).orElse(null);
 
@@ -611,6 +645,10 @@ public final class NpcRoutineRunner {
 
     public boolean removeNpc(String npcId) {
         return removeNpcDetailed(npcId, -1).removed();
+    }
+
+    public RemoveNpcResult removeNpcDetailedById(String npcId) {
+        return removeNpcDetailed(npcId, -1);
     }
 
     public boolean removeNpcByIndex(int index) {

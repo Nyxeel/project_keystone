@@ -1,671 +1,741 @@
 # Phase 0 — Sofortige Stabilitätsfixes vor Marker-v2
 
-**Projekt:** NPCMod / KeystoneNPC  
-**Ziel:** Kleine, sichere P1-Fixes vor Marker-v2  
-**Modus:** Immer nur ein kleiner Step, danach Review, dann erst nächster Step  
-**Status:** Prompt-Arbeitsset für Coder / Agent
+MODUS:
+Enger Safety-Fix-Plan für NPCMod / KeystoneNPC.
 
----
+ZIEL:
+Phase 0 schließt nur die kleinen offenen P1-Failchecks vor Marker-v2.
 
-# 0. Grundregel für den Coder
+Phase 0 darf NICHT:
+- Marker-v2 implementieren
+- neue markerAssignments-Hauptarchitektur bauen
+- NpcRoutineRunner groß refactoren
+- Door/Navigation umbauen
+- Respawn-Policy neu designen
+- Role-System ändern
+- Legacy-Felder löschen
+- alte erledigte Fehler erneut öffnen
 
-Du arbeitest an meiner Hytale-Mod **NPCMod / KeystoneNPC**.
+GRUNDREGEL:
+Ein Step = ein kleines Problem.
+Nach jedem Step = Review.
+Bei FAIL = nur diesen Step fixen.
+Erst nach PASS = nächster Step.
 
-Diese Phase ist **Pflicht vor Marker-v2**.
+QUELLEN-PRIORITÄT:
+1. aktueller Codezustand
+2. neueste Patchreports
+3. aktuelle docs/safety-Dateien
+4. NPCMod_Lagebericht
+5. ältere TODOs / alte Prompts
 
-Die bisherigen Patches waren lang dokumentiert, wurden aber in kleinen Steps mit Review umgesetzt. Genau so soll es weitergehen:
+ANTI-KREIS-REGEL:
+Vor jeder Änderung prüfen:
+- Existiert der Fehler im aktuellen Code wirklich noch?
+- Wurde er laut Patchreport bereits gefixt?
+- Ist es echter Codefehler oder nur alte Doku?
+- Wenn bereits erledigt: NOOP melden, keine Datei ändern.
 
-```text
-1 kleiner Step
-→ Compile
-→ Review
-→ bei FAIL nur diesen Step fixen
-→ erst bei PASS nächster Step
-```
+PFLICHTQUELLEN:
+- /home/pj/projects/hytale/project_keystone/NPCMod/AGENTS.md
+- /home/pj/projects/hytale/project_keystone/NPCMod/docs/safety/npc_restart_relink_control.md
+- /home/pj/projects/hytale/project_keystone/NPCMod/docs/safety/json_hierarchy.md
 
-Wichtig:
+COMPILE-GATE:
+Nach jedem Java-/Ressourcen-Step:
 
-- Nicht alles auf einmal ändern.
-- Keine großen Refactors.
-- Keine neuen Features.
-- Kein Marker-v2 in Phase 0.
-- Keine neue markerAssignments-Hauptarchitektur.
-- Keine Legacy-Felder löschen.
-- Keine Door-/Navigation-/Animation-/Role-Refactors.
-- Keine Respawn-/Relink-Policy umbauen.
-- Keine neue Engine-Identity über roleName.
-- Kein `setRoleName("KeystoneNPC_...")`.
-- Kein Role-Prefix-Fallback.
-- Kein Blind-Respawn.
-- Kein Erfolg melden, wenn Save oder Rollback fehlgeschlagen ist.
-
-Wenn ein Problem schon behoben ist:
-
-```text
-Keine Datei ändern.
-Nur begründet PASS / already fixed melden.
-```
-
-Wenn etwas unklar ist:
-
-```text
-nicht löschen
-nicht spawnen
-nicht relinken
-nicht überschreiben
-nur warnen / blockieren / melden
-```
-
-Pflicht nach jeder Java-Änderung:
-
-```bash
 mvn -q -DskipTests test-compile
-```
 
----
+Markdown-only Steps brauchen kein Maven-Compile, aber eine Doku-Konsistenzprüfung.
 
-# 1. Phase-0-Ziel
+============================================================
+A) Kurzurteil zu Phase 0
+============================================================
 
-Phase 0 ist keine Feature-Phase.
+Phase 0 ist geeignet und notwendig.
 
-Phase 0 räumt die letzten kleinen Safety-Lücken auf, damit Marker-v2 später nicht auf wackeligem Fundament gebaut wird.
+Echte offene P1-Punkte:
 
-Marker-v2 darf erst starten, wenn diese Punkte PASS sind:
+1. NpcRespawnMissingCommand prüft saveStateSafely() noch nicht hart genug.
+2. Marker-Zuweisung braucht ein hartes markerId/type/worldId-Gate.
+3. SpawnNpcCommand soll bei Save-Failure detailed RemoveResult statt boolean removeNpc(...) auswerten.
+4. Safety-Doku darf keine alten Marker-Fallback-Methoden mehr als erlaubten Mutationspfad darstellen.
 
-```text
-[ ] NpcRespawnMissingCommand meldet keinen Erfolg bei Save-Failure.
-[ ] Marker-Zuweisung prüft markerId, MarkerType und worldId hart.
-[ ] SpawnNpcCommand wertet Save-Failure-Rollback sauber aus.
-[ ] Safety-Doku widerspricht dem aktuellen Marker-Resolver-Stand nicht.
-[ ] mvn -q -DskipTests test-compile ist grün.
-```
+Kreisarbeitsgefahr:
+Mittel, wenn alte Marker-Fallback-Prompts wiederverwendet werden.
+Niedrig, wenn jeder Step vorher Codezustand prüft und bei erledigten Punkten NOOP meldet.
 
----
+Marker-v2:
+Darf in Phase 0 nicht implementiert werden.
+Nach PASS aller Phase-0-Steps darf Marker-v2 im PLAN Mode gestartet werden.
 
-# 2. Arbeitsweise pro Step
+============================================================
+B) Widerspruchs- und Logic-Error-Analyse
+============================================================
 
-Jeder Step besteht aus drei Teilen:
+1. Problem:
+NpcRespawnMissingCommand kann Save-Failure übersehen.
 
-```text
-A) Agent-/Coder-Prompt
-B) Review-Prompt
-C) Fix-Prompt bei FAIL
-```
+Risiko:
+Runtime ändert sich, state.json speichert nicht, Command meldet trotzdem Erfolg.
 
-Regel:
+Status:
+Offen / Codeprüfung erforderlich.
 
-```text
-Nach A immer B ausführen.
-Wenn B FAIL meldet, nur C für diesen Step ausführen.
-Danach denselben Review nochmal.
-```
+Empfehlung:
+saveStateSafely() Ergebnis prüfen.
+Bei false keine normale Erfolgsmeldung.
 
----
+------------------------------------------------------------
 
-# Step 0.1 — NpcRespawnMissingCommand Save-Failure prüfen
+2. Problem:
+Marker-Zuweisung prüft markerId/type/worldId nicht hart genug.
 
-**Block:** 8 Command-System + 3 Persistence + 4 NPC-Lebenszyklus  
-**Priorität:** P1  
-**Scope:** sehr klein
+Risiko:
+NPC kann Marker aus falscher Welt bekommen.
+Marker-v2 würde diesen Fehler später nur sauberer speichern, aber nicht lösen.
 
-## A) Agent-/Coder-Prompt
+Status:
+Offen / Codeprüfung erforderlich.
 
-```text
-Du arbeitest an meiner Hytale-Mod „NPCMod / KeystoneNPC“.
+Empfehlung:
+assignMarkerToNpc(...) muss prüfen:
+- Marker existiert in MarkerRegistry
+- MarkerType passt
+- marker.worldId == npc.worldId
+- MarkerType ist für roleId erlaubt
+
+------------------------------------------------------------
+
+3. Problem:
+SpawnNpcCommand nutzt nach Save-Failure noch boolean removeNpc(...).
+
+Risiko:
+Command kann nicht unterscheiden:
+- Rollback wirklich fertig
+- Removal blockiert
+- Save fehlgeschlagen
+- Entity-Removal unsicher
+
+Status:
+Offen / Codeprüfung erforderlich.
+
+Empfehlung:
+Detailed RemoveNpcResult auswerten und ehrlich melden.
+
+------------------------------------------------------------
+
+4. Problem:
+Safety-Doku kann Versionsdrift haben.
+
+Risiko:
+Spätere AI reaktiviert entfernte Marker-Fallbacks.
+
+Status:
+Doku-Drift möglich.
+
+Empfehlung:
+Safety-Doku muss einheitlich sagen:
+- resolveRequiredMarkerWithFallbackAssigning(...) entfernt
+- resolveRequiredMarkerWithFallback(...) entfernt
+- resolveRequiredMarkerReadOnly(...) verbindlich
+- getNextAvailable(...) deprecated und nicht in read-only Pfaden
+
+============================================================
+C) Offene Punkte nach Priorität
+============================================================
+
+| Priorität | Block | Thema | Status | Warum wichtig | Nächster Schritt |
+|---|---|---|---|---|---|
+| P1 | 8 + 3 + 4 | NpcRespawnMissingCommand Save-Failure | Codeprüfung nötig | verhindert Runtime/state.json-Drift | Step 0.1 |
+| P1 | 7 + 3 + 8 | Marker worldId/type/id Gate | Codeprüfung nötig | verhindert falsche Markerbindung | Step 0.2 |
+| P1 | 4 + 8 | SpawnNpcCommand Rollback-Ergebnis | Codeprüfung nötig | verhindert falsche Rollback-Erfolgsmeldung | Step 0.3 |
+| P1/P2 | 9 | Safety-Doku Versionsdrift | Dokuprüfung nötig | verhindert Reaktivierung alter Fallbacks | Step 0.4 |
+| P2 | 7 | Marker-v2 Plan Mode | erst nach Phase 0 | neues Feature braucht stabile Basis | nach Phase 0 |
+
+============================================================
+D) Phasenplan
+============================================================
+
+## Phase 0 — Safety-Fixes vor Marker-v2
+
+Ziel:
+Kleine P1-Failchecks schließen.
+
+Startbedingung:
+Aktueller Code und Safety-Dokumente liegen vor.
+
+Nicht ändern:
+Marker-v2, Navigation, Door, Role-System, große Lifecycle-Refactors.
+
+Ende-Bedingung:
+- Step 0.1 PASS
+- Step 0.2 PASS
+- Step 0.3 PASS
+- Step 0.4 PASS
+- Compile grün bei Java-Steps
+- Patchreport geschrieben
+- Safety-Doku geprüft/aktualisiert
+
+Review-Gate:
+Nach jedem Step eigener Review.
+
+------------------------------------------------------------
+
+## Phase 1 — Marker-v2 PLAN Mode
+
+Startbedingung:
+Phase 0 vollständig PASS.
+
+Ziel:
+Marker-v2 nur planen.
+
+Nicht ändern:
+Keine Java-Umsetzung, keine Migration, keine Legacy-Löschung.
+
+Ende-Bedingung:
+Marker-v2-Plan enthält:
+- Schema
+- Migration
+- Legacy-Kompatibilität
+- Commands
+- Resolver
+- Remove/Clear Cleanup
+- Tests
+- Rollback
+
+============================================================
+E) Agent-Step-Liste
+============================================================
+
+# Agent Step 0.1 — NpcRespawnMissingCommand Save-Failure prüfen
 
 MODUS:
 Enger Safety-Fix.
-Nur Step 0.1.
 
-Ziel:
-Härte NpcRespawnMissingCommand gegen Save-Failure.
+KONTEXT:
+Phase 0 vor Marker-v2. Commands dürfen keinen Erfolg melden, wenn Persistenz fehlschlägt.
 
-Problem:
-Wenn ein Respawn-/Recovery-Command den Runtime- oder Record-State ändert, aber saveStateSafely() fehlschlägt, darf der Command keinen normalen Erfolg melden.
+BLOCK / PRIORITÄT:
+Block 8 + 3 + 4 / P1.
 
-Prüfe:
-- NpcRespawnMissingCommand
-- alle Stellen, an denen nach result.stateChanged() und !dryRun gespeichert wird
-- alle direkten oder indirekten Aufrufe von plugin.saveStateSafely()
+ZIEL:
+NpcRespawnMissingCommand prüft saveStateSafely() Ergebnis.
 
-Fix-Ziel:
-Wenn result.stateChanged() und !dryRun:
-- saveStateSafely() muss geprüft werden
-- bei false: klare Fehlermeldung ausgeben
-- keine normale Erfolgsmeldung wie „Respawn complete“ / „done“ / „success“
-- wenn Runtime geändert wurde, aber Save fehlschlug: ehrlich melden, dass Runtime und state.json auseinanderlaufen können
+ERLAUBTE DATEIEN / BEREICHE:
+- NpcRespawnMissingCommand.java
+- nur falls absolut nötig: kleine Hilfsmethode für Command-Fehlermeldung
 
-Nicht ändern:
+PFLICHTPRÜFUNG VOR ÄNDERUNG:
+1. Suche die Stelle:
+   result.stateChanged() && !dryRun
+2. Prüfe, ob plugin.saveStateSafely() Ergebnis aktuell ignoriert wird.
+3. Wenn Ergebnis bereits geprüft wird:
+   NOOP melden, keine Datei ändern.
+4. Wenn Ergebnis nicht geprüft wird:
+   nur diesen Fehler fixen.
+
+KONKRETE AUFGABEN:
+- saveStateSafely() Rückgabe speichern.
+- Wenn false:
+  - keine normale Erfolgsmeldung
+  - klare Fehlermeldung: Runtime geändert, state.json konnte nicht gespeichert werden
+  - keine weiteren Recovery-/Respawn-Policy-Änderungen
+- Wenn true:
+  - bisherige Erfolgsmeldung bleibt erlaubt.
+
+NICHT ÄNDERN:
+- kein Marker-v2
 - keine Respawn-Policy ändern
 - kein Relink-Refactor
-- kein Marker-v2
-- keine Marker-Architektur ändern
 - kein Command-Redesign
-- kein neues Recovery-System
-- kein Auto-Respawn-Verhalten ändern
-- kein Role-Prefix-Fallback
-- kein dynamisches setRoleName("KeystoneNPC_...")
+- kein NpcRoutineRunner-Refactor
+- keine Safety-Doku in diesem Step, außer Review fordert es ausdrücklich
 
-Wenn der Code bereits sicher ist:
-- keine Datei ändern
-- begründet melden, welche Prüfung schon vorhanden ist
+SAFETY-REGELN:
+- Save-Failure zählt nie als Erfolg.
+- Dry-run darf nichts speichern.
+- Keine Runtime/state.json-Drift verstecken.
 
-Pflicht:
-- mvn -q -DskipTests test-compile
+COMPILE:
+mvn -q -DskipTests test-compile
 
-Abschlussbericht:
-- PASS / FAIL / PARTIAL
-- geänderte Dateien
-- wo saveStateSafely() geprüft wird
-- ob Save-Failure noch Erfolg melden kann
-- ob Marker-v2 unangetastet blieb
-- Compile-Ergebnis
-```
+ABSCHLUSSBERICHT:
+- Geänderte Dateien
+- Ob Fehler noch existierte
+- Was geändert wurde
+- Wie Save-Failure jetzt gemeldet wird
+- Ob Compile erfolgreich war
+- Restgefahren
 
-## B) Review-Prompt
+------------------------------------------------------------
 
-```text
-Reviewe ausschließlich Step 0.1 — NpcRespawnMissingCommand Save-Failure.
+# Review Step 0.1 — NpcRespawnMissingCommand Save-Failure
 
-Nicht implementieren.
-Keine neuen Features.
+REVIEW MODUS:
+Nur prüfen, nicht implementieren.
 
-Prüfe:
-1. Wird saveStateSafely() geprüft, wenn result.stateChanged() und !dryRun?
-2. Meldet der Command bei Save-Failure keine normale Erfolgsmeldung?
-3. Gibt es eine klare Fehlermeldung bei Save-Failure?
-4. Wird ehrlich gemeldet, falls Runtime geändert wurde, aber state.json nicht gespeichert werden konnte?
-5. Wurde keine Respawn-Policy geändert?
-6. Wurde kein Relink-Refactor gemacht?
-7. Wurde kein Marker-v2 eingebaut?
-8. Wurde kein Command-Redesign gemacht?
-9. War mvn -q -DskipTests test-compile erfolgreich?
+PRÜFE:
+1. Wurde nur NpcRespawnMissingCommand geändert?
+2. Wird saveStateSafely() Ergebnis geprüft?
+3. Kann der Command nach Save-Failure noch normal Erfolg melden?
+4. Bleibt dryRun read-only?
+5. Wurde Respawn-Policy nicht verändert?
+6. Wurde Marker-v2 nicht berührt?
+7. Gibt es neue Logic Errors?
+8. War mvn -q -DskipTests test-compile erfolgreich?
 
-Harte FAIL-Frage:
-Kann der Command nach Save-Failure noch normal „Respawn complete“ oder vergleichbaren Erfolg melden?
-Wenn ja: FAIL.
+ENTSCHEIDUNG:
+- PASS, wenn Save-Failure nicht mehr als Erfolg erscheinen kann.
+- FAIL, wenn Save-Failure noch ignoriert wird.
+- Nächster Step nur bei PASS erlaubt.
 
-Ergebnisformat:
-- PASS / FAIL / PARTIAL
-- Probleme
-- Fix nötig: ja/nein
-- nächster Step erlaubt: ja/nein
-```
+------------------------------------------------------------
 
-## C) Fix-Prompt bei FAIL
+# Fix Prompt Step 0.1 — falls FAIL
 
-```text
-Fixe ausschließlich Step 0.1.
+Fixe ausschließlich Review-Fails aus Step 0.1.
 
-Problem aus Review:
-NpcRespawnMissingCommand kann nach Save-Failure noch Erfolg melden oder prüft saveStateSafely() nicht sauber.
-
-Erlaubter Fix:
-- saveStateSafely() Rückgabe prüfen
-- bei false: Fehler melden und normalen Erfolgsfluss abbrechen
-- keine Policy ändern
-- keine anderen Commands ändern, außer direkt nötig für denselben Save-Failure-Pfad
-
-Nicht ändern:
+NICHT:
+- keinen nächsten Step anfangen
 - kein Marker-v2
-- kein Relink-/Respawn-Policy-Umbau
-- kein Command-Redesign
+- keine Respawn-Policy ändern
+- kein Refactor
 
-Danach:
-- mvn -q -DskipTests test-compile
-- kurzen Fixbericht ausgeben
-```
+AUFGABE:
+- saveStateSafely() Ergebnis korrekt prüfen
+- bei false normale Erfolgsmeldung blockieren
+- Fehlermeldung klar machen
+- Compile erneut ausführen
 
----
+Danach erneut Review Step 0.1.
 
-# Step 0.2 — Marker-Zuweisung mit worldId/type/id-Gate härten
+============================================================
 
-**Block:** 7 Marker-System + 3 Persistence + 8 Command-System  
-**Priorität:** P1  
-**Scope:** klein
-
-## A) Agent-/Coder-Prompt
-
-```text
-Du arbeitest an meiner Hytale-Mod „NPCMod / KeystoneNPC“.
+# Agent Step 0.2 — Marker-Zuweisung mit markerId/type/worldId-Gate härten
 
 MODUS:
 Enger Safety-Fix.
-Nur Step 0.2.
 
-Ziel:
-Härte Marker-Zuweisung, damit ein NPC keinen falschen Marker bekommt.
+KONTEXT:
+Vor Marker-v2 muss garantiert sein, dass ein NPC keinen Marker aus falscher Welt oder falschem Typ bekommt.
 
-Problem:
-MarkerSetCommand setzt Marker in der Spieler-Welt. Der Ziel-NPC könnte aber theoretisch in einer anderen worldId sein. Außerdem muss assignMarkerToNpc(...) hart prüfen, ob markerId, MarkerType und worldId passen.
+BLOCK / PRIORITÄT:
+Block 7 + 3 + 8 / P1.
 
-Prüfe:
-- MarkerSetCommand
-- NpcRoutineRunner.assignMarkerToNpc(...)
-- MarkerRegistry Lookup
-- NpcRecord worldId
-- MarkerRecord worldId
-- Role-/Definition-Regeln für erlaubte MarkerTypes
+ZIEL:
+assignMarkerToNpc(...) schreibt nur, wenn markerId, MarkerType und worldId sicher passen.
 
-Fix-Ziel:
-assignMarkerToNpc(...) darf nur schreiben, wenn:
-- markerId existiert wirklich in MarkerRegistry
-- marker.type passt zum gewünschten MarkerType
-- marker.worldId == npc.worldId
-- MarkerType ist für diese roleId laut requiredMarkers/markerRoles erlaubt
-- No-Op wird sauber erkannt
-- keine kaputte markerId in NPC-State geschrieben wird
-- Save-Failure wird nicht als Erfolg gemeldet
+ERLAUBTE DATEIEN / BEREICHE:
+- NpcRoutineRunner.java oder die Datei, in der assignMarkerToNpc(...) aktuell liegt
+- MarkerRegistry.java nur falls reine Lookup-Methode fehlt
+- MarkerSetCommand.java nur falls Command-Ergebnis angepasst werden muss
 
-Wichtig:
-Die Methode darf nicht „Reroute gestartet“ mit „Assignment erfolgreich“ verwechseln.
-Trenne logisch:
-- Assignment erfolgreich?
-- Marker wirklich geändert?
-- Reroute gestartet?
-- Save erfolgreich?
+PFLICHTPRÜFUNG VOR ÄNDERUNG:
+1. Suche assignMarkerToNpc(...).
+2. Prüfe, ob markerId in MarkerRegistry validiert wird.
+3. Prüfe, ob marker.type gegen gewünschten MarkerType geprüft wird.
+4. Prüfe, ob marker.worldId gegen npc.worldId geprüft wird.
+5. Wenn alles bereits vorhanden ist:
+   NOOP melden, keine Datei ändern.
+6. Wenn etwas fehlt:
+   nur fehlendes Gate ergänzen.
 
-Nicht ändern:
+KONKRETE AUFGABEN:
+- MarkerRecord per markerId aus Registry lesen.
+- Wenn markerId nicht existiert: blockieren.
+- Wenn MarkerType nicht passt: blockieren.
+- Wenn marker.worldId != npc.worldId: blockieren.
+- Bestehende Prüfung „MarkerType ist für roleId erlaubt“ erhalten.
+- No-Op weiterhin sauber behandeln.
+- Keine kaputte MarkerId in NPC-State schreiben.
+- Command muss Fehler ehrlich melden.
+
+NICHT ÄNDERN:
 - kein Marker-v2
-- keine neue markerAssignments-Map als Hauptarchitektur
+- keine neue markerAssignments-Map
 - keine Legacy-Felder löschen
 - keine Reconcile-Änderung
+- keine Marker-Migration
 - keine Door-/Navigation-Änderung
-- keine Respawn-/Relink-Änderung
 
-Wenn der Code bereits sicher ist:
-- keine Datei ändern
-- begründet melden, wo die Gates bereits geprüft werden
+SAFETY-REGELN:
+- NPC darf keinen Marker aus anderer Welt bekommen.
+- Read-only Pfade bleiben read-only.
+- Keine automatische Marker-Reparatur.
+- Kein getNextAvailable(...) als Fallback.
 
-Pflicht:
-- mvn -q -DskipTests test-compile
+COMPILE:
+mvn -q -DskipTests test-compile
 
-Abschlussbericht:
-- PASS / FAIL / PARTIAL
-- geänderte Dateien
-- geprüfte Marker-Gates
-- ob worldId-Mismatch blockiert wird
-- ob Marker-v2 unangetastet blieb
-- Compile-Ergebnis
-```
+ABSCHLUSSBERICHT:
+- Geänderte Dateien
+- Welche Gates ergänzt wurden
+- Verhalten bei falscher markerId
+- Verhalten bei falschem MarkerType
+- Verhalten bei falscher worldId
+- Ob Compile erfolgreich war
+- Restgefahren
 
-## B) Review-Prompt
+------------------------------------------------------------
 
-```text
-Reviewe ausschließlich Step 0.2 — Marker-Zuweisung worldId/type/id-Gate.
+# Review Step 0.2 — Marker worldId/type/id Gate
 
-Nicht implementieren.
-Keine neuen Features.
+REVIEW MODUS:
+Nur prüfen, nicht implementieren.
 
-Prüfe:
-1. Wird markerId gegen MarkerRegistry geprüft?
-2. Wird MarkerType geprüft?
-3. Wird marker.worldId == npc.worldId geprüft?
-4. Wird geprüft, ob der MarkerType für die roleId erlaubt ist?
-5. Wird No-Op erkannt?
-6. Kann keine kaputte markerId in den NPC-State geschrieben werden?
-7. Werden Assignment-Erfolg, Reroute und Save-Erfolg logisch getrennt?
-8. Wird Save-Failure nicht als Erfolg gemeldet?
-9. Wurde kein Marker-v2 eingebaut?
-10. Wurden keine Legacy-Felder gelöscht?
-11. Wurde Reconcile nicht geändert?
-12. War mvn -q -DskipTests test-compile erfolgreich?
+PRÜFE:
+1. Wurde nur erlaubter Scope geändert?
+2. Existiert ein hartes markerId-Existenz-Gate?
+3. Existiert ein hartes MarkerType-Gate?
+4. Existiert ein hartes worldId-Gate?
+5. Bleibt roleId/MarkerType-Erlaubnisprüfung erhalten?
+6. Kann ein NPC noch Marker aus anderer Welt bekommen?
+7. Wurde Marker-v2 nicht eingebaut?
+8. Wurden Legacy-Felder nicht gelöscht?
+9. Wurde Reconcile nicht verändert?
+10. War mvn -q -DskipTests test-compile erfolgreich?
 
-Harte FAIL-Frage:
-Kann ein NPC einen Marker aus einer anderen Welt bekommen?
-Wenn ja: FAIL.
+ENTSCHEIDUNG:
+- PASS, wenn markerId/type/worldId sicher blockieren.
+- FAIL, wenn falsche Welt oder falscher Typ noch möglich ist.
+- Nächster Step nur bei PASS erlaubt.
 
-Ergebnisformat:
-- PASS / FAIL / PARTIAL
-- Probleme
-- Fix nötig: ja/nein
-- nächster Step erlaubt: ja/nein
-```
+------------------------------------------------------------
 
-## C) Fix-Prompt bei FAIL
+# Fix Prompt Step 0.2 — falls FAIL
 
-```text
-Fixe ausschließlich Step 0.2.
+Fixe ausschließlich Review-Fails aus Step 0.2.
 
-Problem aus Review:
-Marker-Zuweisung erlaubt noch falsche markerId, falschen MarkerType oder falsche worldId.
-
-Erlaubter Fix:
-- harte Validierung in assignMarkerToNpc(...) oder direkt davor ergänzen
-- MarkerRegistry Lookup prüfen
-- MarkerType prüfen
-- worldId prüfen
-- roleId/markerRoles prüfen
-- Fehler sauber an Command melden
-
-Nicht ändern:
+NICHT:
 - kein Marker-v2
-- keine markerAssignments-Hauptarchitektur
-- keine Legacy-Migration
+- keine markerAssignments-Hauptstruktur
+- keine Legacy-Löschung
 - keine Reconcile-Änderung
 
-Danach:
-- mvn -q -DskipTests test-compile
-- kurzen Fixbericht ausgeben
-```
+AUFGABE:
+- fehlendes markerId/type/worldId-Gate ergänzen
+- Fehler klar melden
+- Compile erneut ausführen
 
----
+Danach erneut Review Step 0.2.
 
-# Step 0.3 — SpawnNpcCommand Save-Failure-Rollback detaillieren
+============================================================
 
-**Block:** 4 NPC-Lebenszyklus + 8 Command-System  
-**Priorität:** P1  
-**Scope:** klein
-
-## A) Agent-/Coder-Prompt
-
-```text
-Du arbeitest an meiner Hytale-Mod „NPCMod / KeystoneNPC“.
+# Agent Step 0.3 — SpawnNpcCommand Save-Failure-Rollback detaillieren
 
 MODUS:
 Enger Safety-Fix.
-Nur Step 0.3.
 
-Ziel:
-SpawnNpcCommand soll bei Save-Failure den Rollback ehrlich und detailliert auswerten.
+KONTEXT:
+Wenn Spawn erfolgreich war, aber state.json nicht gespeichert werden kann, muss Rollback ehrlich gemeldet werden.
 
-Problem:
-Wenn Spawn erfolgreich eine Live-Entity erzeugt, aber saveStateSafely() fehlschlägt, wird ein Rollback über scheduler.removeNpc(...) versucht. Boolean reicht dafür nicht aus, weil man nicht unterscheiden kann:
-- wirklich entfernt
-- blockiert
-- Entity-Removal unsicher
-- Save fehlgeschlagen
-- Rollback fehlgeschlagen
+BLOCK / PRIORITÄT:
+Block 4 + 8 / P1.
 
-Prüfe:
-- SpawnNpcCommand
-- NpcRoutineRunner.removeNpc(...)
-- removeNpcByIndex(...), falls betroffen
-- RemoveNpcResult / vorhandene Result-Struktur
-- Command-Erfolgsmeldungen nach Save-Failure
+ZIEL:
+SpawnNpcCommand nutzt bei Save-Failure nicht nur boolean removeNpc(...), sondern wertet detailed RemoveNpcResult aus.
 
-Fix-Ziel:
-SpawnNpcCommand darf bei Save-Failure nicht behaupten, Rollback sei fertig, wenn removeNpc(...) blockiert oder unsicher war.
+ERLAUBTE DATEIEN / BEREICHE:
+- SpawnNpcCommand.java
+- NpcRoutineRunner.java nur, falls vorhandener detailed Remove-Pfad nicht erreichbar ist
+- keine neue Removal-Architektur
 
-Besser:
-- RemoveNpcResult auswerten
-- removed / blocked / save failed / rollback failed / unsafe outcome klar melden
-- bei unsicherem Rollback keine Erfolgsmeldung
-- keine Runtime/state.json-Entkopplung verstecken
+PFLICHTPRÜFUNG VOR ÄNDERUNG:
+1. Suche Save-Failure-Pfad in SpawnNpcCommand.
+2. Prüfe, ob scheduler.removeNpc(npc.npcId()) boolean genutzt wird.
+3. Prüfe, ob removeNpcDetailed(...) oder RemoveNpcResult bereits existiert.
+4. Wenn detailed Result bereits genutzt wird:
+   NOOP melden, keine Datei ändern.
+5. Wenn boolean genutzt wird:
+   auf detailed Result umstellen.
 
-Nicht ändern:
-- kein Spawn-System komplett umbauen
+KONKRETE AUFGABEN:
+- Bei saveStateSafely() false:
+  - detailed RemoveNpcResult abrufen
+  - Ergebnis unterscheiden:
+    - removed
+    - blocked
+    - unsafe entity removal
+    - save failed
+    - rollback failed
+  - keine falsche Erfolgsmeldung
+  - klare Admin-Meldung ausgeben
+- Kein Entity-Removal-Redesign bauen.
+
+NICHT ÄNDERN:
+- kein Spawn-System umbauen
 - kein Respawn-System umbauen
 - kein Entity-Removal-Redesign
 - kein Marker-v2
-- keine neue Death-Policy
-- keine Dedupe-Policy ändern
-- kein Role-Prefix-Fallback
+- keine Remove/Clear UX-Entscheidung
+- kein Admin-Force-Pfad
 
-Wenn RemoveNpcResult noch nicht existiert:
-- nur minimal einführen oder bestehende Result-Struktur nutzen
-- kein großes Removal-Framework bauen
+SAFETY-REGELN:
+- Rollback-Failure zählt nie als Erfolg.
+- Unsicheres Entity-Removal darf nicht verschleiert werden.
+- Kein Record löschen, wenn Entity-Removal unsicher ist.
 
-Wenn der Code bereits sicher ist:
-- keine Datei ändern
-- begründet melden, welches Result geprüft wird
+COMPILE:
+mvn -q -DskipTests test-compile
 
-Pflicht:
-- mvn -q -DskipTests test-compile
+ABSCHLUSSBERICHT:
+- Geänderte Dateien
+- Ob boolean-Pfad existierte
+- Welcher detailed Result-Pfad genutzt wird
+- Welche Meldungen bei blocked/failed kommen
+- Ob Compile erfolgreich war
+- Restgefahren
 
-Abschlussbericht:
-- PASS / FAIL / PARTIAL
-- geänderte Dateien
-- wie Save-Failure behandelt wird
-- wie Rollback-Ergebnis geprüft wird
-- ob unsicherer Rollback noch Erfolg melden kann
-- ob Marker-v2 unangetastet blieb
-- Compile-Ergebnis
-```
+------------------------------------------------------------
 
-## B) Review-Prompt
+# Review Step 0.3 — Spawn rollback detailed Result
 
-```text
-Reviewe ausschließlich Step 0.3 — SpawnNpcCommand Save-Failure-Rollback.
+REVIEW MODUS:
+Nur prüfen, nicht implementieren.
 
-Nicht implementieren.
-Keine neuen Features.
+PRÜFE:
+1. Wurde nur SpawnNpcCommand / notwendiger Minimal-Scope geändert?
+2. Wird boolean removeNpc(...) im Save-Failure-Rollback nicht mehr blind genutzt?
+3. Wird detailed RemoveNpcResult ausgewertet?
+4. Kann Command noch behaupten, Rollback sei fertig, obwohl Remove blockiert war?
+5. Wurde Entity-Removal-Design nicht umgebaut?
+6. Wurde kein Admin-Force-Pfad eingebaut?
+7. Wurde Marker-v2 nicht berührt?
+8. War mvn -q -DskipTests test-compile erfolgreich?
 
-Prüfe:
-1. Wird nach Save-Failure das Rollback-Ergebnis detailliert geprüft?
-2. Wird nicht nur ein unklarer boolean als sichere Wahrheit behandelt?
-3. Meldet der Command removed / blocked / rollback failed / unsafe outcome unterscheidbar?
-4. Gibt es keine normale Erfolgsmeldung bei blockiertem oder unsicherem Rollback?
-5. Wird kein Spawn-/Respawn-System groß umgebaut?
-6. Wurde kein Entity-Removal-Redesign gemacht?
-7. Wurde kein Marker-v2 eingebaut?
-8. Wurde keine Dedupe-/Role-/Relink-Policy geändert?
-9. War mvn -q -DskipTests test-compile erfolgreich?
+ENTSCHEIDUNG:
+- PASS, wenn Rollback-Ergebnis ehrlich gemeldet wird.
+- FAIL, wenn boolean oder falsche Erfolgsmeldung bleibt.
+- Nächster Step nur bei PASS erlaubt.
 
-Harte FAIL-Frage:
-Kann Spawn bei Save-Failure noch behaupten, Rollback sei fertig, obwohl removeNpc(...) blockiert oder unsicher war?
-Wenn ja: FAIL.
+------------------------------------------------------------
 
-Ergebnisformat:
-- PASS / FAIL / PARTIAL
-- Probleme
-- Fix nötig: ja/nein
-- nächster Step erlaubt: ja/nein
-```
+# Fix Prompt Step 0.3 — falls FAIL
 
-## C) Fix-Prompt bei FAIL
+Fixe ausschließlich Review-Fails aus Step 0.3.
 
-```text
-Fixe ausschließlich Step 0.3.
-
-Problem aus Review:
-SpawnNpcCommand wertet Rollback nach Save-Failure nicht ehrlich genug aus.
-
-Erlaubter Fix:
-- RemoveNpcResult oder vorhandenes Ergebnis sauber auswerten
-- keine Erfolgsmeldung bei BLOCKED / UNSAFE / SAVE_FAILED / ROLLBACK_FAILED
-- klare Admin-Fehlermeldung ausgeben
-
-Nicht ändern:
-- kein Spawn-/Respawn-Redesign
+NICHT:
+- kein Entity-Removal-Redesign
+- kein Admin-Force-Pfad
 - kein Marker-v2
-- keine Removal-Architektur groß umbauen
+- keinen nächsten Step anfangen
 
-Danach:
-- mvn -q -DskipTests test-compile
-- kurzen Fixbericht ausgeben
-```
+AUFGABE:
+- detailed RemoveNpcResult korrekt auswerten
+- falsche Erfolgsmeldung entfernen
+- Compile erneut ausführen
 
----
+Danach erneut Review Step 0.3.
 
-# Step 0.4 — Safety-Doku Versionsdrift bereinigen
+============================================================
 
-**Block:** 9 Safety / Kontrollregeln  
-**Priorität:** P1/P2  
-**Scope:** Markdown-only
-
-## A) Agent-/Coder-Prompt
-
-```text
-Du arbeitest an meiner Hytale-Mod „NPCMod / KeystoneNPC“.
+# Agent Step 0.4 — Safety-Doku Versionsdrift bereinigen
 
 MODUS:
-Markdown-only Safety-Doku-Abgleich.
-Nur Step 0.4.
+Markdown-only Safety-Doku-Sync.
 
-Ziel:
-Prüfe, ob die Safety-Dokumente denselben Marker-Resolver-Stand wie der aktuelle Code sagen.
+KONTEXT:
+Alte Doku darf entfernte Marker-Fallback-Methoden nicht mehr als erlaubten Mutationspfad darstellen.
 
-Wichtig:
-Dieser Step ist Markdown-only.
-Kein Java-Code ändern.
-Kein Marker-v2.
+BLOCK / PRIORITÄT:
+Block 9 / P1/P2.
 
-Prüfe:
-- docs/safety/npc_restart_relink_control.md
-- docs/safety/json_hierarchy.md
-- AGENTS.md, falls dort widersprüchliche alte Regeln stehen
+ZIEL:
+Safety-Dokumente sagen einheitlich den aktuellen Marker-Resolver-Stand.
 
-Aktueller Zielstand:
-- resolveRequiredMarkerWithFallbackAssigning(...) ist entfernt
-- resolveRequiredMarkerWithFallback(...) ist entfernt
-- resolveRequiredMarkerReadOnly(...) ist verbindlicher Read-only-Resolver
-- MarkerRegistry.getNextAvailable(...) ist deprecated Lookup-Helfer
-- getNextAvailable(...) darf nicht in read-only Restore/Tick/Diagnose/Validation/Respawn-Policy-Pfaden genutzt werden
-- mutierende Marker-Zuweisung/Reconcile nur in explizitem Spawn/Admin/Repair/Cleanup-Kontext
-- read-only Kontexte dürfen markerAssignments und Legacy-Markerfelder niemals mutieren
+ERLAUBTE DATEIEN:
+- /home/pj/projects/hytale/project_keystone/NPCMod/docs/safety/npc_restart_relink_control.md
+- /home/pj/projects/hytale/project_keystone/NPCMod/docs/safety/json_hierarchy.md
+- optional AGENTS.md nur, wenn dort direkter Widerspruch steht
 
-Aufgabe:
-- suche alte Formulierungen, die entfernte Methoden noch als erlaubten Mutationspfad nennen
-- suche widersprüchliche Regeln zwischen Safety-Dateien
-- falls alles bereits aktuell ist: keine Änderung, PASS melden
-- falls Drift existiert: nur Markdown korrigieren
+PFLICHTPRÜFUNG VOR ÄNDERUNG:
+1. Suche in docs/safety nach:
+   - resolveRequiredMarkerWithFallbackAssigning
+   - resolveRequiredMarkerWithFallback
+   - getNextAvailable
+   - MarkerRegistry.getNextAvailable
+2. Prüfe, ob alte entfernte Methoden als erlaubter Mutationspfad beschrieben werden.
+3. Wenn keine Doku-Drift existiert:
+   NOOP melden, keine Datei ändern.
+4. Wenn Doku-Drift existiert:
+   nur Doku korrigieren.
 
-Nicht ändern:
+KONKRETE AUFGABEN:
+Safety-Doku muss sagen:
+
+- resolveRequiredMarkerWithFallbackAssigning(...) ist entfernt.
+- resolveRequiredMarkerWithFallback(...) ist entfernt.
+- resolveRequiredMarkerReadOnly(...) ist verbindlich für read-only Pfade.
+- Mutierende Marker-Zuweisung ist nur in expliziten Spawn/Admin/Repair/Cleanup-Kontexten erlaubt.
+- getNextAvailable(...) ist deprecated und darf nicht in Restore/Tick/Diagnose/Relink/Respawn-Policy genutzt werden.
+- Marker-v2 ist nicht Teil von Phase 0.
+
+NICHT ÄNDERN:
 - kein Java-Code
 - kein Marker-v2
 - keine neuen Regeln ohne Codebezug
-- keine Architekturentscheidung neu erfinden
+- keine alten Safety-Regeln still löschen
+- keine widersprüchliche Regel selbst entscheiden
 
-Compile:
-- Bei Markdown-only ist Maven-Compile nicht nötig.
-- Trotzdem melden: „Markdown-only, kein Compile erforderlich“.
+DOKU-KONSISTENZPRÜFUNG:
+- rg "resolveRequiredMarkerWithFallback" docs/safety
+- rg "getNextAvailable" docs/safety
+- prüfen, ob alle Treffer korrekt als entfernt/deprecated/No-Go beschrieben sind
 
-Abschlussbericht:
-- PASS / FAIL / PARTIAL
-- geänderte Dateien
-- gefundene alte Formulierungen
-- ob Regelkonflikte gefunden wurden
-- ob Java unangetastet blieb
-```
+ABSCHLUSSBERICHT:
+- Geänderte Dateien
+- Gefundene alte Formulierungen
+- Neue Formulierungen
+- Ob Java-Code unangetastet blieb
+- Ob Doku-Konsistenzprüfung bestanden hat
+- Ob Regelkonflikte gefunden wurden
 
-## B) Review-Prompt
+------------------------------------------------------------
 
-```text
-Reviewe ausschließlich Step 0.4 — Safety-Doku Versionsdrift.
+# Review Step 0.4 — Safety-Doku Sync
 
-Nicht implementieren.
-Keine Java-Änderung.
-Kein Marker-v2.
+REVIEW MODUS:
+Nur prüfen, nicht implementieren.
 
-Prüfe:
-1. Stimmen npc_restart_relink_control.md und json_hierarchy.md beim Marker-Resolver-Stand überein?
-2. Werden resolveRequiredMarkerWithFallbackAssigning(...) und resolveRequiredMarkerWithFallback(...) nicht mehr als erlaubte aktive Mutationspfade beschrieben?
-3. Ist resolveRequiredMarkerReadOnly(...) als verbindlicher Read-only-Resolver beschrieben?
-4. Ist getNextAvailable(...) als deprecated / nicht read-only-fähiger Fallback beschrieben?
-5. Ist klar, dass read-only Pfade nicht mutieren dürfen?
-6. Ist klar, dass mutierende Marker-Zuweisung nur in Spawn/Admin/Repair/Cleanup erlaubt ist?
-7. Wurde kein Java-Code geändert?
-8. Wurde kein Marker-v2 geplant oder eingebaut?
+PRÜFE:
+1. Wurde nur Markdown/Safety-Doku geändert?
+2. Gibt es noch alte Formulierungen, die removed Methoden als erlaubten Mutationspfad nennen?
+3. Wird getNextAvailable(...) klar als deprecated / nicht read-only-tauglich beschrieben?
+4. Bleibt Marker-v2 klar als späteres Feature abgegrenzt?
+5. Wurden keine neuen Code-Regeln ohne Codebezug erfunden?
+6. Gibt es Widersprüche zwischen safety-Dateien?
+7. Ist kein Java-Code geändert?
 
-Harte FAIL-Frage:
-Gibt es noch alte Formulierungen, die entfernte Methoden als erlaubten Mutationspfad nennen?
-Wenn ja: FAIL.
+ENTSCHEIDUNG:
+- PASS, wenn Safety-Doku konsistent ist.
+- FAIL, wenn alte Fallback-Formulierungen bleiben.
+- Nächster Step nur bei PASS erlaubt.
 
-Ergebnisformat:
-- PASS / FAIL / PARTIAL
-- Probleme
-- Fix nötig: ja/nein
-- nächster Step erlaubt: ja/nein
-```
+------------------------------------------------------------
 
-## C) Fix-Prompt bei FAIL
+# Fix Prompt Step 0.4 — falls FAIL
 
-```text
-Fixe ausschließlich Step 0.4.
+Fixe ausschließlich Review-Fails aus Step 0.4.
 
-Problem aus Review:
-Safety-Doku enthält alte oder widersprüchliche Marker-Resolver-Regeln.
-
-Erlaubter Fix:
-- nur Markdown anpassen
-- entfernte Methoden als entfernt dokumentieren
-- read-only Resolver klar als verbindlich dokumentieren
-- getNextAvailable(...) klar als deprecated/nicht für read-only Pfade dokumentieren
-- keine neue Architektur erfinden
-
-Nicht ändern:
+NICHT:
 - kein Java-Code
 - kein Marker-v2
+- keine neue Architekturregel ohne Codebezug
 
-Danach:
-- kurzen Markdown-Fixbericht ausgeben
-```
+AUFGABE:
+- alte widersprüchliche Formulierungen korrigieren
+- Doku-Konsistenzprüfung erneut durchführen
+- danach wieder Review Step 0.4
 
----
+============================================================
 
-# 3. Marker-v2 Startfreigabe
+# Agent Step 0.5 — Finaler Phase-0-Abschluss: Safety-Doku und Patchreport
 
-Marker-v2 darf erst begonnen werden, wenn Phase 0 vollständig PASS ist.
+MODUS:
+Finaler Doku-/Patchreport-Step.
 
-## Marker-v2 darf starten, wenn:
+STARTBEDINGUNG:
+Nur starten, wenn Step 0.1 bis 0.4 jeweils PASS sind.
 
-```text
-[ ] Step 0.1 PASS
-[ ] Step 0.2 PASS
-[ ] Step 0.3 PASS
-[ ] Step 0.4 PASS oder bereits aktuell bestätigt
-[ ] keine Regelkonflikte zwischen AGENTS.md und safety/*.md
-[ ] kein Save-Failure wird als Erfolg gemeldet
-[ ] kein NPC kann Marker aus anderer Welt bekommen
-[ ] Spawn-Rollback nach Save-Failure wird ehrlich gemeldet
-[ ] Safety-Doku beschreibt den aktuellen Resolver-Stand korrekt
-[ ] mvn -q -DskipTests test-compile ist nach Java-Steps erfolgreich
-```
+ZIEL:
+Phase 0 sauber abschließen und dokumentieren.
 
-## Marker-v2 darf noch NICHT starten, wenn:
+ERLAUBTE DATEIEN:
+- docs/safety/* nur falls durch Steps geändert oder bewusst geprüft
+- /home/pj/projects/hytale/project_keystone/NPCMod/docs/patch_reports/YYYY-MM-DD_HH-MM_Phase-0-Stability-Fixes-Before-Marker-v2-Patch.md
 
-```text
-[ ] irgendein Phase-0-Step FAIL oder PARTIAL ist
-[ ] Commands noch falsche Erfolge melden können
-[ ] assignMarkerToNpc(...) noch falsche worldId/type/id akzeptiert
-[ ] Save-Failure noch ignoriert wird
-[ ] Safety-Doku alte entfernte Resolver als erlaubt beschreibt
-[ ] ein Review unklare Runtime/state.json-Drift meldet
-```
+KONKRETE AUFGABEN:
+1. Prüfen, ob Safety-Dateien final konsistent sind.
+2. Patchreport erstellen.
+3. Patchreport speichern unter:
 
----
+/home/pj/projects/hytale/project_keystone/NPCMod/docs/patch_reports
 
-# 4. Was nach Phase 0 kommt
+Namensformat:
 
-Erst nach Phase 0 beginnt Marker-v2 als eigene Phase.
+YYYY-MM-DD_HH-MM_Phase-0-Stability-Fixes-Before-Marker-v2-Patch.md
 
-Marker-v2 sollte dann nicht direkt alles ändern, sondern wieder klein:
+Patchreport muss enthalten:
+- Ziel von Phase 0
+- geänderte Dateien pro Step
+- PASS/FAIL pro Step
+- Compile-Ergebnisse
+- Safety-Dateien geprüft/aktualisiert
+- Regelkonflikte ja/nein
+- Marker-v2 nicht implementiert
+- Marker-v2 Startfreigabe ja/nein
+- Restgefahren
+- Nächster erlaubter Step: Marker-v2 PLAN Mode
 
-```text
-Marker-v2 Phase 1: Datenmodell planen, keine Migration
-Marker-v2 Phase 2: markerAssignments parallel lesbar machen
-Marker-v2 Phase 3: Schreibpfad kontrolliert umstellen
-Marker-v2 Phase 4: Legacy-Felder nur kompatibel halten, nicht sofort löschen
-Marker-v2 Phase 5: Migration mit Backup/Partial-Load/Save-Failure-Schutz
-```
+NICHT ÄNDERN:
+- kein Java-Code
+- kein Marker-v2
+- keine neuen Features
 
-Wichtig:
+DOKU-CHECK:
+Markdown-only, kein Maven nötig.
+Wenn Java in Step 0.1–0.3 geändert wurde, muss deren Compile-Ergebnis im Patchreport stehen.
 
-```text
-Marker-v2 ist eine Feature-Migration.
-Phase 0 ist eine Safety-Stabilisierung.
-Diese beiden Dinge nicht vermischen.
-```
+ABSCHLUSSBERICHT:
+- Patchreport-Pfad
+- Safety-Doku-Status
+- Marker-v2-Freigabe:
+  - nur PLAN Mode erlaubt
+  - Implementierung erst nach Marker-v2 Plan-Review
 
----
+============================================================
+F) Fortschritts-Checkliste
+============================================================
 
-# 5. Kurze End-Checkliste für den Coder
+[ ] Phase-0-Plan geprüft
+[ ] Step 0.1 umgesetzt oder NOOP begründet
+[ ] Step 0.1 reviewed
+[ ] Step 0.1 final PASS
+[ ] Step 0.2 umgesetzt oder NOOP begründet
+[ ] Step 0.2 reviewed
+[ ] Step 0.2 final PASS
+[ ] Step 0.3 umgesetzt oder NOOP begründet
+[ ] Step 0.3 reviewed
+[ ] Step 0.3 final PASS
+[ ] Step 0.4 umgesetzt oder NOOP begründet
+[ ] Step 0.4 reviewed
+[ ] Step 0.4 final PASS
+[ ] Step 0.5 Patchreport geschrieben
+[ ] Safety-Doku geprüft/aktualisiert
+[ ] Marker-v2 nicht implementiert
+[ ] Marker-v2 PLAN Mode freigegeben
 
-Vor Abschluss von Phase 0 beantworten:
+============================================================
+G) Marker-v2-Einordnung nach Phase 0
+============================================================
 
-```text
-[ ] Wurde wirklich nur Phase 0 geändert?
-[ ] Wurde Marker-v2 nicht eingebaut?
-[ ] Wurden keine Legacy-Markerfelder gelöscht?
-[ ] Prüft NpcRespawnMissingCommand Save-Failure?
-[ ] Prüft assignMarkerToNpc markerId/type/worldId/role-Erlaubnis?
-[ ] Meldet SpawnNpcCommand Rollback-Ergebnisse ehrlich?
-[ ] Ist Safety-Doku konsistent?
-[ ] Gibt es keine neue Runtime/state.json-Drift ohne Warnung?
-[ ] Gibt es keine falsche Erfolgsmeldung bei Save-Failure?
-[ ] Gibt es keinen neuen Role-Prefix-Fallback?
-[ ] Gibt es kein dynamisches setRoleName("KeystoneNPC_...")?
-[ ] War Compile nach Java-Steps erfolgreich?
-[ ] Ist Marker-v2 jetzt freigegeben: ja/nein?
-```
+Marker-v2 darf NICHT in Phase 0 implementiert werden.
+
+Marker-v2 PLAN Mode darf erst starten, wenn:
+
+[ ] NpcRespawnMissingCommand Save-Failure sicher behandelt
+[ ] assignMarkerToNpc markerId/type/worldId prüft
+[ ] SpawnNpcCommand Rollback-Ergebnis ehrlich meldet
+[ ] Safety-Doku keine alten Fallback-Widersprüche enthält
+[ ] Compile grün ist
+[ ] Patchreport geschrieben ist
+
+Marker-v2 Implementierung darf erst starten, wenn zusätzlich der Marker-v2 PLAN reviewed und PASS ist.
+
+Legacy-Felder bleiben bis dahin erhalten:
+
+- bedMarkerId
+- workMarkerId
+- doorMarkerId
+- foodMarkerId
+- chestMarkerId
+- chillMarkerId
+
+Verboten vor Marker-v2:
+
+- Legacy-Felder löschen
+- automatische Load-Migration
+- markerAssignments als Hauptstruktur erzwingen
+- getNextAvailable(...) als Fallback reaktivieren
+- resolveRequiredMarkerWithFallback(...) zurückbringen

@@ -195,15 +195,28 @@ public final class SpawnNpcCommand extends AbstractPlayerCommand {
         }
 
         if (!plugin.saveStateSafely()) {
-            boolean rolledBack = scheduler.removeNpc(npc.npcId());
-            if (rolledBack) {
+            NpcRoutineRunner.RemoveNpcResult removeResult = scheduler.removeNpcDetailedById(npc.npcId());
+            if (removeResult.removed()) {
                 System.err.println("[KeystoneNPC][SPAWN_ROLLBACK_COMPLETED_AFTER_SAVE_FAILURE] Spawn rollback completed after save failure: "
-                    + "npcId=" + npc.npcId());
-                context.sendMessage(Message.raw("[knpc] Spawn aborted: state persistence failed. Runtime rollback completed."));
+                    + "npcId=" + npc.npcId()
+                    + " entityRemovalOutcome=" + removeResult.entityRemovalOutcome());
+                context.sendMessage(Message.raw("[knpc] Spawn aborted: state persistence failed. Runtime rollback completed."
+                    + " (entityRemovalOutcome=" + removeResult.entityRemovalOutcome() + ")"));
+            } else if (removeResult.found()) {
+                System.err.println("[KeystoneNPC][SPAWN_ROLLBACK_BLOCKED_AFTER_SAVE_FAILURE] Spawn rollback was blocked after save failure: "
+                    + "npcId=" + npc.npcId()
+                    + " entityRemovalOutcome=" + removeResult.entityRemovalOutcome()
+                    + " message=" + removeResult.message());
+                context.sendMessage(Message.raw("[knpc] Spawn aborted: state persistence failed and rollback was blocked."
+                    + " (entityRemovalOutcome=" + removeResult.entityRemovalOutcome()
+                    + ", reason=" + removeResult.message() + ")"));
+                context.sendMessage(Message.raw("[knpc] Orphan risk: spawned entity may still exist without persisted NPC record."));
             } else {
-                System.err.println("[KeystoneNPC][SPAWN_ROLLBACK_FAILED_AFTER_SAVE_FAILURE] Spawn rollback failed after save failure; orphan risk possible: "
-                    + "npcId=" + npc.npcId());
-                context.sendMessage(Message.raw("[knpc] Spawn aborted: state persistence failed and rollback did not complete."));
+                System.err.println("[KeystoneNPC][SPAWN_ROLLBACK_UNKNOWN_AFTER_SAVE_FAILURE] Spawn rollback status unknown after save failure: "
+                    + "npcId=" + npc.npcId()
+                    + " message=" + removeResult.message());
+                context.sendMessage(Message.raw("[knpc] Spawn aborted: state persistence failed and rollback status is unknown."
+                    + " (reason=" + removeResult.message() + ")"));
                 context.sendMessage(Message.raw("[knpc] Orphan risk: spawned entity may still exist without persisted NPC record."));
             }
             return;
