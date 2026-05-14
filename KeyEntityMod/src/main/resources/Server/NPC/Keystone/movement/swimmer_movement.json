@@ -1,0 +1,14 @@
+{
+	"id": "swimmer_movement",
+	"version": 1,
+	"motionControllerList": [
+		{
+			"type": "Swim",
+			"maxWalkSpeed": 1.4,
+			"gravity": 1,
+			"maxFallSpeed": 2,
+			"acceleration": 5
+		}
+	],
+	"instructions": []
+}

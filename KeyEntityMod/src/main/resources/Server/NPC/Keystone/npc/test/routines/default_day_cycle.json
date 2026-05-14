@@ -1,0 +1,34 @@
+{
+  "id": "test_default_day_cycle",
+  "version": 1,
+  "schedule": [
+    {
+      "time": "01:00",
+      "targetMarker": "chest",
+      "state": "USING_CHEST",
+      "action": "open_chest",
+      "durationMinutes": 60
+    },
+    {
+      "time": "02:00",
+      "targetMarker": "food",
+      "state": "EATING",
+      "action": "eat_meal",
+      "durationMinutes": 60
+    },
+    {
+      "time": "03:00",
+      "targetMarker": "work",
+      "state": "WORKING",
+      "action": "test_work",
+      "durationMinutes": 120
+    },
+    {
+      "time": "07:00",
+      "targetMarker": "bed",
+      "state": "SLEEPING",
+      "action": "sleep",
+      "durationMinutes": 1080
+    }
+  ]
+}

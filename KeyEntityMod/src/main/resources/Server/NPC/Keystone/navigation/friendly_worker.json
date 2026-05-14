@@ -1,0 +1,10 @@
+{
+  "id": "friendly_worker",
+  "version": 1,
+  "pathStyle": "practical",
+  "doorPolicy": "use_if_needed",
+  "dangerPolicy": "avoid",
+  "targetPolicy": "routine_only",
+  "shortcutPolicy": "allow_small_shortcuts",
+  "climbPolicy": "never"
+}

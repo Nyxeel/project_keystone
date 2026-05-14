@@ -1,0 +1,10 @@
+{
+  "id": "friendly_civilian",
+  "version": 1,
+  "pathStyle": "safe",
+  "doorPolicy": "use_if_needed",
+  "dangerPolicy": "avoid",
+  "targetPolicy": "routine_only",
+  "shortcutPolicy": "avoid",
+  "climbPolicy": "never"
+}
