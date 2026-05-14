@@ -1,0 +1,30 @@
+{
+  "id": "test_actions",
+  "version": 1,
+  "actions": {
+    "test_work": {
+      "animation": "human.relax",
+      "loop": true,
+      "sound": null,
+      "requiresCapability": "USE_TOOLS"
+    },
+    "open_chest": {
+      "animation": "human.open_chest",
+      "loop": false,
+      "sound": "block.chest.open",
+      "requiresCapability": "USE_CHEST"
+    },
+    "eat_meal": {
+      "animation": "human.eat",
+      "loop": true,
+      "sound": "npc.human.eat",
+      "requiresCapability": null
+    },
+    "sleep": {
+      "animation": "human.sleep",
+      "loop": true,
+      "sound": null,
+      "requiresCapability": "USE_BED"
+    }
+  }
+}

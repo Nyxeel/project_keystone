@@ -1,0 +1,9 @@
+{
+  "Type": "Variant",
+  "Reference": "Template_Human_Friendly",
+  "Modify": {
+    "Appearance": "Player",
+    "MaxHealth": 100,
+    "NameTranslationKey": "server.npcRoles.LumberjackOldman.name"
+  }
+}
