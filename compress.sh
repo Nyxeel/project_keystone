@@ -1,18 +1,21 @@
 #!/usr/bin/env bash
+set -euo pipefail
 
-set -e
+MOD_DIR="NPCMod"
+OUT_ZIP="NPCMod.zip"
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-FOLDER="$SCRIPT_DIR/KeyEntityMod"
-ZIP_FILE="$SCRIPT_DIR/KeyEntityMod.zip"
-
-if [ ! -d "$FOLDER" ]; then
-  echo "Fehler: Ordner nicht gefunden: $FOLDER"
-  exit 1
+if [ ! -d "$MOD_DIR" ]; then
+    echo "Fehler: Ordner '$MOD_DIR' nicht gefunden."
+    exit 1
 fi
 
-cd "$SCRIPT_DIR"
+rm -f "$OUT_ZIP"
 
-zip -r "$ZIP_FILE" "KeyEntityMod" -x "*.jar"
+zip -r "$OUT_ZIP" "$MOD_DIR" \
+    -x "*.jar" \
+    -x "*/target/*" \
+    -x "*/.git/*" \
+    -x "*/.idea/*" \
+    -x "*/.vscode/*"
 
-echo "Fertig: $ZIP_FILE"
+echo "Fertig: $OUT_ZIP wurde erstellt, ohne .jar-Dateien."
