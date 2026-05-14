@@ -145,7 +145,6 @@
     // (Editor, Terminal, Panel)
     // =========================================================
     "workbench.colorCustomizations":
-
 	{
         // 🔥 AKTIVE EDITOR-GRUPPE / TAB
         //"tab.activeBorderTop": "#09ff00",
@@ -159,8 +158,8 @@
         "editor.lineHighlightBackground": "#011544",
         "editor.lineHighlightBorder": "#6a0269",
 
-        "activityBar.background": "#2b0107",
-        "titleBar.activeBackground": "#000d2a",
+        "activityBar.background": "#270207",
+        "titleBar.activeBackground": "#270207",
         "titleBar.activeForeground": "#FDFBF7"
     },
 
