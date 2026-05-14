@@ -1,32 +1,28 @@
 package keystone.npc.navigation;
 
-import keystone.npc.world.Vec3;
+import keystone.npc.marker.MarkerAssignment;
 
-/**
- * Utility for NPC navigation calculations.
- */
 public final class NpcNavigation {
 
-    private NpcNavigation() {
+    private final MarkerAssignment markerAssignment;
+
+    public NpcNavigation(MarkerAssignment markerAssignment) {
+        this.markerAssignment = markerAssignment;
     }
 
-    /**
-     * Calculate distance between two positions.
-     */
-    public static double distance(Vec3 a, Vec3 b) {
-        double dx = a.x() - b.x();
-        double dy = a.y() - b.y();
-        double dz = a.z() - b.z();
-        return Math.sqrt(dx * dx + dy * dy + dz * dz);
+    public void startNavigation(String npcId, String markerName) {
+        // TODO: Navigation starten.
     }
 
-    /**
-     * Calculate travel time (duration in ms) based on distance.
-     * MVP A: 1 block per ~500ms (slow walking)
-     */
-    public static long calculateDurationMs(Vec3 from, Vec3 to) {
-        double dist = distance(from, to);
-        // ~2 blocks per second = 500ms per block
-        return (long) (dist * 500);
+    public void stopNavigation(String npcId) {
+        // TODO: Navigation stoppen.
+    }
+
+    public void updateNavigation(String npcId) {
+        // TODO: Navigation aktualisieren.
+    }
+
+    public void clearRuntimeNavigation() {
+        // TODO: Runtime-Navigation leeren.
     }
 }

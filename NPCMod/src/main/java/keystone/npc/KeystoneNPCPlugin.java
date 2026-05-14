@@ -1,92 +1,76 @@
 package keystone.npc;
 
+import javax.annotation.Nonnull;
+
 import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
-import com.hypixel.hytale.server.core.universe.world.events.AllWorldsLoadedEvent;
-import com.hypixel.hytale.server.npc.AllNPCsLoadedEvent;
 
-import keystone.npc.commands.NpcCommands;
-import keystone.npc.persist.JsonFileStateStore;
-import keystone.npc.persist.StateStore;
-import keystone.npc.role.RoleDefinitionRegistry;
-import keystone.npc.schedule.NpcScheduler;
-import keystone.npc.schedule.NpcSchedulerTickSystem;
-import keystone.npc.world.MarkerRegistry;
+import keystone.npc.bootstrap.NpcPluginBootstrap;
+import keystone.npc.service.NpcServices;
 
 /**
- * MVP A: server-first, 1 NPC (Lumberjack), 3 Marker (bed/door/work), Save/Load, einfacher Tagesablauf.
+ * Main plugin entrypoint for NPCMod / KeystoneNPC.
+ *
+ * Aufgabe dieser Klasse:
+ * - Services erstellen
+ * - Definitionen laden
+ * - State laden
+ * - Commands registrieren
+ * - Runtime starten
+ * - Shutdown sauber speichern
+ *
+ * WICHTIG:
+ * Keine große NPC-Fachlogik hier einbauen.
+ * Fachlogik gehört in NpcServices und die einzelnen NPC-Abteilungen.
  */
 public class KeystoneNPCPlugin extends JavaPlugin {
 
-    private final MarkerRegistry markerRegistry = new MarkerRegistry();
-    private final RoleDefinitionRegistry roleDefinitions = new RoleDefinitionRegistry("keystone-npc/roles.json");
-    private final StateStore stateStore = new JsonFileStateStore("keystone-npc/state.json");
-    private final NpcScheduler scheduler = new NpcScheduler(markerRegistry, roleDefinitions);
+    private NpcServices service;
     private boolean initialRespawnQueued;
 
-    private NpcCommands commands;
 
-    public KeystoneNPCPlugin(JavaPluginInit init) {
+    public KeystoneNPCPlugin(@Nonnull JavaPluginInit init) {
         super(init);
     }
 
     /**
-     * Called once while the plugin is being constructed/registered.
-     * Use this for wiring, loading state, and registering commands.
+     * Wird beim Registrieren/Konstruieren des Plugins aufgerufen.
+     * Hier nur Grundsysteme vorbereiten.
      */
-    @Override
-    protected void setup() {
-        // TODO: Logger aus Hytale-API verwenden
-        System.out.println("[KeystoneNPC] setup...");
+	@Override
+	protected void setup() {
+	    this.service = new NpcPluginBootstrap(
+	            this,
+	            this::queueInitialRespawnIfNeeded
+	    ).setupNpcMod();
+	}
 
-        // 1) Load persisted state
-        // TODO: Pfad in server/mod data dir auflösen (z.B. über getFile()/server data dir)
-        roleDefinitions.ensureExampleFileExists();
-        roleDefinitions.load();
-        System.out.println("[KeystoneNPC] Loaded role definitions: " + String.join(", ", roleDefinitions.roleIds()));
-
-        var loaded = stateStore.load();
-        markerRegistry.restore(loaded.markers(), loaded.activeMarkerIds());
-        scheduler.restore(loaded.npcs());
-
-        // Run scheduler in the native ECS tick pipeline.
-        getEntityStoreRegistry().registerSystem(new NpcSchedulerTickSystem(scheduler));
-
-        // Restore saved NPC entities once all worlds are available.
-        getEventRegistry().registerGlobal(AllWorldsLoadedEvent.class, event -> {
-            queueInitialRespawnIfNeeded("all-worlds-loaded-event");
-        });
-        getEventRegistry().registerGlobal(AllNPCsLoadedEvent.class, event -> {
-            queueInitialRespawnIfNeeded("all-npcs-loaded-event");
-        });
-
-        // 2) Register commands
-        commands = new NpcCommands(this, markerRegistry, roleDefinitions, scheduler);
-        commands.registerAll();
-    }
-
-    public void saveState() {
-        try {
-            stateStore.save(markerRegistry.snapshot(), scheduler.snapshot(), markerRegistry.snapshotActiveMarkerIds());
-        } catch (RuntimeException e) {
-            System.err.println("[KeystoneNPC][PLUGIN_SAVE_RUNTIME_ERROR] Failed to persist plugin state: "
-                + e.getClass().getSimpleName() + ": " + e.getMessage());
-        } catch (LinkageError e) {
-            System.err.println("[KeystoneNPC][PLUGIN_SAVE_LINKAGE_ERROR] Persist skipped due to classloader/linkage issue: "
-                + e.getClass().getSimpleName() + ": " + e.getMessage());
-        }
-    }
-
-    /** Called after setup(), when the server is ready and the plugin should start running. */
+    /**
+     * Wird aufgerufen, wenn der Server bereit ist.
+     * Hier Runtime-Systeme starten.
+     */
     @Override
     protected void start() {
         System.out.println("[KeystoneNPC] start...");
 
+        NpcServices services = requireServices();
+
+        // 1) Tick / Runtime starten
+        services.tick().start();
+
+        // 2) Restore/Relink vorbereiten
+        services.relink().prepareRelinkAfterStartup();
+
+        // 3) Initialer Respawn/Relink-Check als Sicherheitsnetz
         queueInitialRespawnIfNeeded("plugin-start");
 
         System.out.println("[KeystoneNPC] started.");
     }
 
+    /**
+     * Initialen Respawn nur einmal auslösen.
+     * Mehrere Events dürfen nicht mehrfach Ersatzspawns starten.
+     */
     private synchronized void queueInitialRespawnIfNeeded(String trigger) {
         if (initialRespawnQueued) {
             System.out.println("[KeystoneNPC] Initial respawn already queued; skipping duplicate trigger " + trigger + ".");
@@ -94,26 +78,42 @@ public class KeystoneNPCPlugin extends JavaPlugin {
         }
 
         initialRespawnQueued = true;
-        int queued = scheduler.spawnRestoredNpcs(trigger);
-        System.out.println("[KeystoneNPC] Initial respawn trigger=" + trigger + " queued " + queued + " NPC(s).");
+
+        NpcServices services = requireServices();
+        services.respawn().queueInitialRespawnCheck();
+
+        System.out.println("[KeystoneNPC] Initial respawn trigger queued by " + trigger + ".");
     }
 
-    /** Called during server shutdown / plugin unload. */
+    /**
+     * Wird beim Server-Shutdown / Plugin-Unload aufgerufen.
+     */
     @Override
     protected void shutdown() {
         System.out.println("[KeystoneNPC] shutdown...");
 
-        // Save state
+        if (service == null) {
+            System.out.println("[KeystoneNPC] shutdown skipped: services were not initialized.");
+            return;
+        }
+
         try {
-            saveState();
+            service.shutdown();
         } catch (RuntimeException e) {
-            System.err.println("[KeystoneNPC][PLUGIN_SHUTDOWN_RUNTIME_ERROR] Unexpected runtime error during shutdown save: "
-                + e.getClass().getSimpleName() + ": " + e.getMessage());
+            System.err.println("[KeystoneNPC][PLUGIN_SHUTDOWN_RUNTIME_ERROR] "
+                    + e.getClass().getSimpleName() + ": " + e.getMessage());
         } catch (LinkageError e) {
-            System.err.println("[KeystoneNPC][PLUGIN_SHUTDOWN_LINKAGE_ERROR] Unexpected linkage error during shutdown save: "
-                + e.getClass().getSimpleName() + ": " + e.getMessage());
+            System.err.println("[KeystoneNPC][PLUGIN_SHUTDOWN_LINKAGE_ERROR] "
+                    + e.getClass().getSimpleName() + ": " + e.getMessage());
         }
 
         System.out.println("[KeystoneNPC] stopped.");
+    }
+
+    private NpcServices requireServices() {
+        if (service == null) {
+            throw new IllegalStateException("NpcServices not initialized");
+        }
+        return service;
     }
 }

@@ -2,8 +2,8 @@
   "Type": "Variant",
   "Reference": "Template_Human_Friendly",
   "Modify": {
-    "Appearance": "Temple_Mithril_Guard",
+    "Appearance": "Player",
     "MaxHealth": 100,
-    "NameTranslationKey": "server.npcRoles.Lumberjack.name"
+    "NameTranslationKey": "server.npcRoles.Test.name"
   }
 }

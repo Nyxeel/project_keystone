@@ -1,0 +1,39 @@
+{
+	"id": "human_run",
+	"version": 1,
+	"motionControllerList": [
+		{
+			"type": "Walk",
+			"maxWalkSpeed": 2,
+			"gravity": 10,
+			"maxFallSpeed": 8,
+			"acceleration": 10
+		}
+	],
+	"instructions": [
+		{
+			"sensor": {
+				"type": "Leash",
+				"range": 0.5
+			},
+			"bodyMotion": {
+				"type": "Seek",
+				"reachable": false,
+				"relativeSpeed": 1.0,
+				"slowDownDistance": 1.5,
+				"stopDistance": 0.5,
+				"switchToSteeringDistance": 2.0,
+				"useSteering": true,
+				"usePathfinder": true
+			}
+		},
+		{
+			"sensor": {
+				"type": "Any"
+			},
+			"bodyMotion": {
+				"type": "Nothing"
+			}
+		}
+	]
+}
