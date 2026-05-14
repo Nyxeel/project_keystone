@@ -1,5 +1,7 @@
 package keystone.npc;
 
+import java.util.Objects;
+
 import javax.annotation.Nonnull;
 
 import com.hypixel.hytale.server.core.plugin.JavaPlugin;
@@ -23,31 +25,37 @@ import keystone.npc.service.NpcServices;
  * Keine große NPC-Fachlogik hier einbauen.
  * Fachlogik gehört in NpcServices und die einzelnen NPC-Abteilungen.
  */
-public class KeystoneNPCPlugin extends JavaPlugin {
+public class KeystoneNpcPlugin extends JavaPlugin {
 
     private NpcServices service;
     private boolean initialRespawnQueued;
 
-
-    public KeystoneNPCPlugin(@Nonnull JavaPluginInit init) {
-        super(init);
+    /*
+     * Erstellt das Plugin mit Hytale-Init-Daten.
+     */
+    public KeystoneNpcPlugin(@Nonnull JavaPluginInit init) {
+        super(Objects.requireNonNull(init, "init must not be null"));
     }
 
-    /**
+    /*
      * Wird beim Registrieren/Konstruieren des Plugins aufgerufen.
-     * Hier nur Grundsysteme vorbereiten.
+     * Hier werden nur Services vorbereitet und Events registriert.
      */
-	@Override
-	protected void setup() {
-	    this.service = new NpcPluginBootstrap(
-	            this,
-	            this::queueInitialRespawnIfNeeded
-	    ).setupNpcMod();
-	}
+    @Override
+    protected void setup() {
+        if (service != null) {
+            throw new IllegalStateException("KeystoneNPC setup() was already called.");
+        }
 
-    /**
+        this.service = new NpcPluginBootstrap(
+                this,
+                this::queueInitialRespawnIfNeeded
+        ).setupNpcMod();
+    }
+
+    /*
      * Wird aufgerufen, wenn der Server bereit ist.
-     * Hier Runtime-Systeme starten.
+     * Hier werden Runtime-Systeme gestartet.
      */
     @Override
     protected void start() {
@@ -55,25 +63,29 @@ public class KeystoneNPCPlugin extends JavaPlugin {
 
         NpcServices services = requireServices();
 
-        // 1) Tick / Runtime starten
         services.tick().start();
-
-        // 2) Restore/Relink vorbereiten
         services.relink().prepareRelinkAfterStartup();
 
-        // 3) Initialer Respawn/Relink-Check als Sicherheitsnetz
-        queueInitialRespawnIfNeeded("plugin-start");
+        /*
+         * Wichtig:
+         * Initialer Relink/Respawn wird nicht blind bei plugin-start gestartet.
+         * Er soll über AllWorldsLoadedEvent / AllNPCsLoadedEvent kommen,
+         * damit Welten und NPC-Daten der Engine wirklich geladen sind.
+         */
 
         System.out.println("[KeystoneNPC] started.");
     }
 
-    /**
+    /*
      * Initialen Respawn nur einmal auslösen.
      * Mehrere Events dürfen nicht mehrfach Ersatzspawns starten.
      */
     private synchronized void queueInitialRespawnIfNeeded(String trigger) {
+        String checkedTrigger = requireText(trigger, "trigger");
+
         if (initialRespawnQueued) {
-            System.out.println("[KeystoneNPC] Initial respawn already queued; skipping duplicate trigger " + trigger + ".");
+            System.out.println("[KeystoneNPC] Initial respawn already queued; skipping duplicate trigger "
+                    + checkedTrigger + ".");
             return;
         }
 
@@ -82,10 +94,10 @@ public class KeystoneNPCPlugin extends JavaPlugin {
         NpcServices services = requireServices();
         services.respawn().queueInitialRespawnCheck();
 
-        System.out.println("[KeystoneNPC] Initial respawn trigger queued by " + trigger + ".");
+        System.out.println("[KeystoneNPC] Initial respawn trigger queued by " + checkedTrigger + ".");
     }
 
-    /**
+    /*
      * Wird beim Server-Shutdown / Plugin-Unload aufgerufen.
      */
     @Override
@@ -110,10 +122,25 @@ public class KeystoneNPCPlugin extends JavaPlugin {
         System.out.println("[KeystoneNPC] stopped.");
     }
 
+    /*
+     * Gibt die Services zurück oder bricht klar ab, wenn setup() noch nicht gelaufen ist.
+     */
     private NpcServices requireServices() {
         if (service == null) {
-            throw new IllegalStateException("NpcServices not initialized");
+            throw new IllegalStateException("NpcServices not initialized.");
         }
+
         return service;
+    }
+
+    /*
+     * Prüft, ob ein Pflicht-Text vorhanden ist.
+     */
+    private static String requireText(String value, String fieldName) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(fieldName + " must not be null or blank.");
+        }
+
+        return value;
     }
 }

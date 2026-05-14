@@ -1136,3 +1136,232 @@ Java bleibt generisch.
 JSON erzeugt die Vielfalt.
 
 Das ist der gewünschte Zielzustand.
+
+
+###
+
+
+UPDATE Kurzer Bericht: typische Fehler-Muster, die sich gezeigt haben
+
+Das Hauptschema ist:
+
+Nicht erst handeln, dann prüfen.
+Sondern immer:
+
+erst prüfen → dann ändern → dann Erfolg ehrlich melden
+
+1. Erst löschen, dann prüfen
+
+Typischer Fehler:
+
+Man macht zuerst clear() oder überschreibt eine Map und prüft danach erst, ob die neuen Daten gültig sind.
+
+Warum gefährlich:
+Wenn die neuen Daten kaputt sind, sind die alten Daten schon weg.
+
+Besser:
+
+erst neue Daten komplett prüfen, in temporäre Maps legen, doppelte IDs erkennen, dann erst alten Zustand ersetzen.
+
+Name dafür:
+
+atomic replace / transaktionales Ersetzen
+
+Einfach gesagt:
+Alles klappt oder nichts wird geändert.
+
+2. Stille Ersetzung
+
+Typischer Fehler:
+
+Eine Map bekommt einfach:
+
+put(id, value)
+
+Wenn die ID schon existiert, wird der alte Wert still überschrieben.
+
+Warum gefährlich:
+Ein NPC, Marker oder Record kann heimlich ersetzt werden.
+
+Besser:
+
+Vorher prüfen:
+
+existiert die ID schon?
+wenn ja: Fehler werfen oder false zurückgeben
+3. Null oder leere Strings nicht prüfen
+
+Typischer Fehler:
+
+Methoden nehmen npcId, worldId, markerId, roleId, npcName, aber prüfen sie nicht.
+
+Warum gefährlich:
+Später entstehen komische Fehler an anderer Stelle.
+
+Besser:
+
+Bei IDs fast immer prüfen:
+
+nicht null
+nicht blank
+
+isBlank() ist besser als isEmpty(), weil " " auch ungültig ist.
+
+4. void bei Methoden, die fehlschlagen können
+
+Typischer Fehler:
+
+Eine Methode verändert State, gibt aber nichts zurück.
+
+Warum gefährlich:
+Der Aufrufer weiß nicht, ob es geklappt hat.
+
+Besser:
+
+Bei wichtigen Aktionen ein Ergebnis zurückgeben, z. B.:
+
+Erfolg
+Fehlergrund
+nichts geändert
+
+Für Skeleton reicht manchmal boolean, später besser ein eigenes Result-Objekt.
+
+5. return null als Platzhalter
+
+Typischer Fehler:
+
+Eine nicht fertige Methode gibt null zurück.
+
+Warum gefährlich:
+Andere Systeme könnten denken: „Okay, Ergebnis ist halt null“, und weiterlaufen.
+
+Besser:
+
+Bei noch nicht implementierter Logik lieber klar abbrechen:
+
+UnsupportedOperationException + TODO
+
+Dann ist sichtbar: Diese Logik existiert noch nicht.
+
+6. Runtime ohne persistenten Record erzeugen
+
+Typischer Fehler:
+
+RuntimeNpc wird erstellt, obwohl kein NpcRecord existiert.
+
+Warum gefährlich:
+Dann gibt es Live-/Runtime-Daten ohne echte persistente Wahrheit.
+
+Besser:
+
+Runtime nur erzeugen, wenn der persistente Record existiert.
+
+Merksatz:
+
+Persistence ist die Wahrheit. Runtime ist nur die laufende Kopie.
+
+7. Save-/Load-Ergebnisse ignorieren
+
+Typischer Fehler:
+
+saveStateSafely() oder loadState() wird aufgerufen, aber das Ergebnis wird nicht geprüft.
+
+Warum gefährlich:
+Ein Save kann fehlschlagen, aber das System tut so, als wäre alles okay.
+
+Besser:
+
+Jedes Save-/Load-Ergebnis sichtbar behandeln.
+
+8. Skeleton tut so, als wäre es echte Logik
+
+Typischer Fehler:
+
+Eine Methode ist noch TODO, gibt aber scheinbar gültige Werte zurück.
+
+Beispiel: false, null oder leerer Default-State kann okay sein, aber nur wenn klar ist, dass es Skeleton ist.
+
+Warum gefährlich:
+Später glaubt ein anderer Teil des Codes, das System sei schon fertig.
+
+Besser:
+
+Kommentare klar halten:
+
+„Skeleton“
+„noch nicht implementiert“
+„verändert noch nichts“
+„darf später erst mit Safety-Gates aktiv werden“
+9. Read-only und mutierende Methoden vermischen
+
+Typischer Fehler:
+
+Eine Methode heißt „resolve“ oder „read“, verändert aber heimlich State.
+
+Warum gefährlich:
+Beim bloßen Lesen können Marker oder state.json verändert werden.
+
+Besser:
+
+Klare Trennung:
+
+resolve/read = nur lesen
+assign/clear/repair = darf ändern, aber nur mit Checks
+10. Doppelte Klassen oder doppelte Systeme
+
+Typischer Fehler:
+
+Ähnliche Klassen existieren zweimal, z. B. eine alte und eine neue State-Schicht.
+
+Warum gefährlich:
+Man fixt später die falsche Datei.
+
+Besser:
+
+Früh entscheiden:
+
+welche Klasse ist aktiv?
+welche ist Legacy?
+welche darf gelöscht oder ignoriert werden?
+11. Konstruktoren ohne requireNonNull
+
+Typischer Fehler:
+
+Services werden im Konstruktor gespeichert, aber nicht geprüft.
+
+Warum gefährlich:
+Der Fehler kommt später irgendwo anders und ist schwerer zu finden.
+
+Besser:
+
+Direkt im Konstruktor prüfen.
+Dann weiß man sofort: Dieser Service wurde falsch gebaut.
+
+12. Direkte Map-/Collection-Mutation von außen
+
+Typischer Fehler:
+
+Eine Klasse gibt ihre interne Map oder Collection direkt heraus.
+
+Warum gefährlich:
+Außenstehender Code kann die Daten ändern, ohne Checks auszulösen.
+
+Besser:
+
+Nur unveränderbare Kopien oder read-only Views herausgeben.
+
+Merksatz für dein Projekt
+
+Für NPCMod gilt fast immer:
+
+Keine stille Änderung. Keine stille Reparatur. Kein stiller Erfolg.
+
+Sicheres Muster:
+
+Eingaben prüfen
+Existenz prüfen
+Duplikate prüfen
+temporär vorbereiten
+erst dann übernehmen
+Fehler ehrlich zurückgeben oder sichtbar abbrechen
+Runtime nie als persistente Wahrheit behandeln

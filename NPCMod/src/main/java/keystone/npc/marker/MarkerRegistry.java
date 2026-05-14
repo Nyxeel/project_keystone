@@ -6,22 +6,48 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 
+/*
+ * MarkerRegistry ist die zentrale RAM-Liste für alle bekannten Marker.
+ *
+ * Diese Klasse speichert Marker nicht direkt in state.json.
+ * Sie merkt nur während der Laufzeit:
+ * - markerId
+ * - markerName
+ * - markerType
+ * - worldId
+ * - position
+ *
+ * Wichtig:
+ * Marker dürfen nicht still überschrieben werden.
+ * Beim Restore wird erst alles geprüft und erst danach ersetzt.
+ */
 public final class MarkerRegistry {
 
     private final Map<String, MarkerRecord> markersById = new LinkedHashMap<>();
 
+    /*
+     * Registriert einen neuen Marker.
+     * Ungültige Marker oder doppelte markerIds werden abgelehnt.
+     */
     public boolean register(MarkerRecord marker) {
         if (!isValidMarker(marker)) {
             return false;
         }
 
-        markersById.put(marker.markerId(), marker);
+        String markerId = marker.markerId();
+        if (markersById.containsKey(markerId)) {
+            return false;
+        }
+
+        markersById.put(markerId, marker);
         return true;
     }
 
+    /*
+     * Sucht einen Marker über seine eindeutige markerId.
+     */
     public Optional<MarkerRecord> findById(String markerId) {
         if (markerId == null || markerId.isBlank()) {
             return Optional.empty();
@@ -30,10 +56,17 @@ public final class MarkerRegistry {
         return Optional.ofNullable(markersById.get(markerId));
     }
 
+    /*
+     * Prüft, ob ein Marker mit dieser markerId existiert.
+     */
     public boolean exists(String markerId) {
         return findById(markerId).isPresent();
     }
 
+    /*
+     * Entfernt einen Marker aus der RAM-Registry.
+     * Diese Methode verändert nicht direkt state.json.
+     */
     public boolean remove(String markerId) {
         if (markerId == null || markerId.isBlank()) {
             return false;
@@ -42,9 +75,12 @@ public final class MarkerRegistry {
         return markersById.remove(markerId) != null;
     }
 
+    /*
+     * Findet alle Marker in einer bestimmten Welt.
+     */
     public List<MarkerRecord> findByWorld(String worldId) {
         if (worldId == null || worldId.isBlank()) {
-            return List.of();
+            return Collections.emptyList();
         }
 
         List<MarkerRecord> result = new ArrayList<>();
@@ -58,9 +94,12 @@ public final class MarkerRegistry {
         return Collections.unmodifiableList(result);
     }
 
+    /*
+     * Findet alle Marker in einer bestimmten Welt mit einem bestimmten MarkerType.
+     */
     public List<MarkerRecord> findByWorldAndType(String worldId, MarkerType markerType) {
         if (worldId == null || worldId.isBlank() || markerType == null) {
-            return List.of();
+            return Collections.emptyList();
         }
 
         List<MarkerRecord> result = new ArrayList<>();
@@ -74,27 +113,51 @@ public final class MarkerRegistry {
         return Collections.unmodifiableList(result);
     }
 
+    /*
+     * Gibt eine sichere Kopie aller Marker zurück.
+     * Außenstehender Code kann die Registry dadurch nicht direkt verändern.
+     */
     public Collection<MarkerRecord> snapshot() {
         return Collections.unmodifiableCollection(new ArrayList<>(markersById.values()));
     }
 
+    /*
+     * Lädt mehrere Marker in die Registry.
+     * Erst wird alles geprüft, dann wird der alte RAM-Zustand ersetzt.
+     */
     public void restore(Collection<MarkerRecord> markers) {
-        markersById.clear();
-
         if (markers == null) {
-            return;
+            throw new IllegalArgumentException("markers must not be null.");
         }
+
+        Map<String, MarkerRecord> newMarkersById = new LinkedHashMap<>();
 
         for (MarkerRecord marker : markers) {
-            register(marker);
+            String markerId = requireValidMarker(marker);
+
+            if (newMarkersById.containsKey(markerId)) {
+                throw new IllegalStateException("Duplicate markerId in restore data: " + markerId);
+            }
+
+            newMarkersById.put(markerId, marker);
         }
+
+        markersById.clear();
+        markersById.putAll(newMarkersById);
     }
 
+    /*
+     * Leert die Registry im RAM.
+     * Diese Methode sollte später nur in sicheren Admin-/Reload-Kontexten genutzt werden.
+     */
     public void clear() {
         markersById.clear();
     }
 
-    private boolean isValidMarker(MarkerRecord marker) {
+    /*
+     * Prüft, ob ein Marker gültig ist.
+     */
+    private static boolean isValidMarker(MarkerRecord marker) {
         if (marker == null) {
             return false;
         }
@@ -118,43 +181,15 @@ public final class MarkerRegistry {
         return marker.position() != null && marker.position().isFinite();
     }
 
-    public enum MarkerType {
-        BED,
-        DOOR,
-        WORK,
-        FOOD,
-        CHEST,
-        CHILL,
-        GUARD,
-        PATROL,
-        SPAWN
-    }
-
-    public record MarkerRecord(
-            String markerId,
-            String markerName,
-            MarkerType markerType,
-            String worldId,
-            MarkerPosition position
-    ) {
-        public MarkerRecord {
-            Objects.requireNonNull(markerId, "markerId");
-            Objects.requireNonNull(markerName, "markerName");
-            Objects.requireNonNull(markerType, "markerType");
-            Objects.requireNonNull(worldId, "worldId");
-            Objects.requireNonNull(position, "position");
+    /*
+     * Prüft einen Marker streng und gibt seine markerId zurück.
+     * Wird beim Restore genutzt, damit kein kaputter Zwischenzustand entsteht.
+     */
+    private static String requireValidMarker(MarkerRecord marker) {
+        if (!isValidMarker(marker)) {
+            throw new IllegalArgumentException("marker must be valid.");
         }
-    }
 
-    public record MarkerPosition(
-            double x,
-            double y,
-            double z
-    ) {
-        public boolean isFinite() {
-            return Double.isFinite(x)
-                    && Double.isFinite(y)
-                    && Double.isFinite(z);
-        }
+        return marker.markerId();
     }
 }

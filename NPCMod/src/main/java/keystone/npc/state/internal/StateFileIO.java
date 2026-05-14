@@ -1,4 +1,4 @@
-package keystone.npc.state;
+package keystone.npc.state.internal;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;

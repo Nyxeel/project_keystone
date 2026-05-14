@@ -1,10 +1,11 @@
-package keystone.npc.state;
+package keystone.npc.state.internal;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Objects;
 
-import keystone.npc.KeystoneNPCPlugin;
+import keystone.npc.KeystoneNpcPlugin;
 
 /*
  * StatePathResolver ist nur für Pfade und Ordner zuständig.
@@ -14,10 +15,14 @@ import keystone.npc.KeystoneNPCPlugin;
  * - Weltordner vorbereiten
  * - Pfad zu state.json pro Welt erzeugen
  * - worldId sicher für Dateipfade machen
+ *
+ * Wichtig:
+ * Diese Klasse kennt keine NPC-Logik.
+ * Sie entscheidet nur, wo Dateien liegen.
  */
 public final class StatePathResolver {
 
-    private final KeystoneNPCPlugin plugin;
+    private final KeystoneNpcPlugin plugin;
 
     private final Path baseDir;
     private final Path worldsDir;
@@ -27,8 +32,8 @@ public final class StatePathResolver {
      * Erstellt den Resolver.
      * Der Plugin-Parameter bleibt erhalten, falls später ein echter Hytale-Datenpfad genutzt wird.
      */
-    public StatePathResolver(KeystoneNPCPlugin plugin) {
-        this.plugin = plugin;
+    public StatePathResolver(KeystoneNpcPlugin plugin) {
+        this.plugin = Objects.requireNonNull(plugin, "plugin must not be null");
 
         this.baseDir = Path.of("keystone-npc");
         this.worldsDir = baseDir.resolve("worlds");
@@ -55,7 +60,11 @@ public final class StatePathResolver {
         prepareBaseDirectories();
 
         String safeWorldId = sanitizeWorldId(worldId);
-        Path worldDir = worldsDir.resolve(safeWorldId);
+        Path worldDir = worldsDir.resolve(safeWorldId).normalize();
+
+        if (!worldDir.startsWith(worldsDir.normalize())) {
+            throw new IllegalArgumentException("Resolved world directory escaped worldsDir: " + worldId);
+        }
 
         try {
             Files.createDirectories(worldDir);
@@ -85,21 +94,29 @@ public final class StatePathResolver {
      */
     public String sanitizeWorldId(String worldId) {
         if (worldId == null || worldId.isBlank()) {
-            throw new IllegalArgumentException("worldId must not be empty.");
+            throw new IllegalArgumentException("worldId must not be null or blank.");
         }
 
-        return worldId
-                .replace("\\", "_")
-                .replace("/", "_")
-                .replace("..", "_")
-                .replace(":", "_")
-                .trim();
+        String safeWorldId = worldId.trim()
+                .replace('\\', '_')
+                .replace('/', '_')
+                .replace(':', '_')
+                .replaceAll("[^A-Za-z0-9._-]", "_")
+                .replaceAll("\\.{2,}", "_")
+                .replaceAll("^\\.+", "_")
+                .replaceAll("_+", "_");
+
+        if (safeWorldId.isBlank() || ".".equals(safeWorldId) || "..".equals(safeWorldId)) {
+            throw new IllegalArgumentException("worldId cannot be converted to a safe path name.");
+        }
+
+        return safeWorldId;
     }
 
     /*
      * Gibt das Plugin zurück, falls später Hytale-Pfade darüber ermittelt werden.
      */
-    public KeystoneNPCPlugin plugin() {
+    public KeystoneNpcPlugin plugin() {
         return plugin;
     }
 }

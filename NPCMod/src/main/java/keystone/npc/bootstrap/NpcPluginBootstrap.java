@@ -1,25 +1,26 @@
 package keystone.npc.bootstrap;
 
+import java.util.Objects;
 import java.util.function.Consumer;
 
 import com.hypixel.hytale.server.core.universe.world.events.AllWorldsLoadedEvent;
 import com.hypixel.hytale.server.npc.AllNPCsLoadedEvent;
 
-import keystone.npc.KeystoneNPCPlugin;
+import keystone.npc.KeystoneNpcPlugin;
 import keystone.npc.service.NpcServices;
 
 public final class NpcPluginBootstrap {
 
-    private final KeystoneNPCPlugin plugin;
+    private final KeystoneNpcPlugin plugin;
     private final Consumer<String> queueInitialRespawn;
 
     private NpcServices service;
 
 
-    public NpcPluginBootstrap(KeystoneNPCPlugin plugin, Consumer<String> queueInitialRespawn)
+    public NpcPluginBootstrap(KeystoneNpcPlugin plugin, Consumer<String> queueInitialRespawn)
 	{
-        this.plugin = plugin;
-        this.queueInitialRespawn = queueInitialRespawn;
+     	this.plugin = Objects.requireNonNull(plugin, "plugin must not be null");
+		this.queueInitialRespawn = Objects.requireNonNull(queueInitialRespawn, "queueInitialRespawn must not be null");
     }
 
 
@@ -27,6 +28,9 @@ public final class NpcPluginBootstrap {
 
     public NpcServices setupNpcMod()
 	{
+		if (service != null) {
+    		throw new IllegalStateException("NpcPluginBootstrap setupNpcMod() was already called.");
+		}
         System.out.println("[KeystoneNPC] setup...");
 
 		// 1) Services bauen
@@ -43,6 +47,13 @@ public final class NpcPluginBootstrap {
 		// In der Plugin-Main soll keine große NPC-Logik stehen.
 		// Die Main startet nur die Abteilungen.
         createServices();
+
+
+		/*
+ 		* Bereitet das World-System vor.
+ 		* Aktuell ist das nur Skeleton-Setup, später werden hier Hytale-Welten geprüft.
+ 		*/
+		prepareWorldSystem();
 
 
 
@@ -113,10 +124,6 @@ public final class NpcPluginBootstrap {
     }
 
 
-
-
-
-
     private void createServices()
 	{
         this.service = NpcServices.create(plugin);
@@ -137,14 +144,28 @@ public final class NpcPluginBootstrap {
         service.commands().registerCommands();
     }
 
-    private void registerStartupEvents()
-	{
-        plugin.getEventRegistry().registerGlobal(AllWorldsLoadedEvent.class, event -> {
-            queueInitialRespawn.accept("all-worlds-loaded-event");
-        });
 
-        plugin.getEventRegistry().registerGlobal(AllNPCsLoadedEvent.class, event -> {
-            queueInitialRespawn.accept("all-npcs-loaded-event");
-        });
-    }
+	private void prepareWorldSystem() {
+    	service.worldManager().prepare();
+	}
+
+	private void registerStartupEvents()
+	{
+    	var worldsRegistration = plugin.getEventRegistry().registerGlobal(AllWorldsLoadedEvent.class, event -> {
+        queueInitialRespawn.accept("all-worlds-loaded-event");
+    	});
+
+    	if (worldsRegistration == null) {
+    	    throw new IllegalStateException("Failed to register AllWorldsLoadedEvent.");
+    	}
+
+    	var npcsRegistration = plugin.getEventRegistry().registerGlobal(AllNPCsLoadedEvent.class, event -> {
+    	    queueInitialRespawn.accept("all-npcs-loaded-event");
+    	});
+
+    	if (npcsRegistration == null) {
+    	    worldsRegistration.unregister();
+    	    throw new IllegalStateException("Failed to register AllNPCsLoadedEvent.");
+    	}
+	}
 }
