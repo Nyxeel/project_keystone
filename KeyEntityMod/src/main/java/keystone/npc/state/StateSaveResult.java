@@ -13,6 +13,18 @@ public record StateSaveResult(
         String message
 ) {
 
+	public StateSaveResult {
+        message = requireText(message, "message");
+    }
+
+    private static String requireText(String value, String fieldName) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(fieldName + " must not be null or blank.");
+        }
+
+        return value;
+    }
+
     /*
      * Erstellt ein erfolgreiches Save-Ergebnis.
      */

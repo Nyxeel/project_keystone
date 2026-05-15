@@ -35,7 +35,7 @@ public final class StatePathResolver {
     public StatePathResolver(KeystoneNpcPlugin plugin) {
         this.plugin = Objects.requireNonNull(plugin, "plugin must not be null");
 
-        this.baseDir = Path.of("keystone-npc");
+        this.baseDir = Path.of("key-entity-mod");
         this.worldsDir = baseDir.resolve("worlds");
         this.backupsDir = baseDir.resolve("backups");
     }
@@ -58,6 +58,11 @@ public final class StatePathResolver {
      */
     public Path worldDirectory(String worldId) {
         prepareBaseDirectories();
+
+		if (worldId == null || worldId.isBlank()) {
+			throw new IllegalArgumentException("worldId must not be null or blank.");
+		}
+
 
         String safeWorldId = sanitizeWorldId(worldId);
         Path worldDir = worldsDir.resolve(safeWorldId).normalize();

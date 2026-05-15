@@ -1,0 +1,1 @@
+Aber vor Phase 3 (wenn Hytale-API wirklich angebunden wird) auf worldKey umbenennen — das ist der einzige Name, der dann technisch korrekt ist. AGENTS.md sagt schon: „worldKey ist der zentrale Welt-Schlüssel". Das ist die richtige Zielrichtung.

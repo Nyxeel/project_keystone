@@ -129,21 +129,11 @@ public final class NpcRecord {
         this.state = Objects.requireNonNull(state, "state must not be null");
     }
 
-/*
-    Gibt den stabilen Welt-Key zurück.
+    //Gibt den stabilen Welt-Key zurück.
 
     public String worldKey() {
-        return worldBinding.worldKey();
-    }
-
-
-    Setzt den stabilen Welt-Key.
-
-    public void setWorldKey(String worldKey) {
-        worldBinding.setWorldKey(worldKey);
-    }
- */
-
+		return worldBinding.worldKey();
+	}
 
     /*
      * Gibt die letzte bekannte Position zurück.

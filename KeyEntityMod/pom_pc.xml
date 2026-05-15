@@ -64,9 +64,9 @@
                         <configuration>
                             <target>
                                 <copy file="${project.build.directory}/${project.build.finalName}.jar"
-                                      todir="project_keystone/KeyEntityMod/pom.xml"
+                                      todir="/home/pj/.var/app/com.hypixel.HytaleLauncher/data/Hytale/UserData/Mods"
                                       overwrite="true"/>
-                            </target>/home/netrunner/.var/app/com.hypixel.HytaleLauncher/data/Hytale/UserData/Mods
+                            </target>
                         </configuration>
                     </execution>
                 </executions>

@@ -1,15 +1,18 @@
 package keystone.npc.model;
 
 /*
- * NpcState beschreibt den fachlichen Zustand eines NPCs.
+ * NpcState beschreibt den groben fachlichen Zustand eines NPCs.
  *
- * Das ist etwas anderes als NpcEntityStatus.
+ * Diese Werte sagen, was der NPC inhaltlich gerade macht,
+ * zum Beispiel warten, arbeiten oder schlafen.
  *
- * Beispiel:
- * EntityStatus ACTIVE sagt: Die Live-Entity ist gültig.
- * NpcState WORKING sagt: Der NPC arbeitet gerade.
+ * NpcState beweist NICHT, dass eine gültige Live-Entity existiert.
+ * Die technische Entity-Verfügbarkeit wird getrennt über NpcEntityStatus,
+ * RuntimeNpc.hasLiveEntity() und später über ein LiveEntityGate geprüft.
  *
- * HIER MUSS NOCH ERWEITERT WERDEN ABER NUR GROB
+ * Wichtig:
+ * Ein NpcState allein darf niemals Tick-, Routine-, Navigation-
+ * oder Action-Logik erlauben.
  */
 public enum NpcState {
 

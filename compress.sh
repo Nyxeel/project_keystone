@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-MOD_DIR="NPCMod"
-OUT_ZIP="NPCMod.zip"
+MOD_DIR="KeyEntityMod"
+OUT_ZIP="KeyEntity.zip"
 
 if [ ! -d "$MOD_DIR" ]; then
     echo "Fehler: Ordner '$MOD_DIR' nicht gefunden."
