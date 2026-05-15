@@ -16,7 +16,6 @@ import java.util.Optional;
  * - markerId
  * - markerName
  * - markerType
- * - worldId
  * - position
  *
  * Wichtig:
@@ -78,15 +77,15 @@ public final class MarkerRegistry {
     /*
      * Findet alle Marker in einer bestimmten Welt.
      */
-    public List<MarkerRecord> findByWorld(String worldId) {
-        if (worldId == null || worldId.isBlank()) {
+    public List<MarkerRecord> findByWorld(String worldKey) {
+        if (worldKey == null || worldKey.isBlank()) {
             return Collections.emptyList();
         }
 
         List<MarkerRecord> result = new ArrayList<>();
 
         for (MarkerRecord marker : markersById.values()) {
-            if (worldId.equals(marker.worldId())) {
+            if (worldKey.equals(marker.worldId())) {
                 result.add(marker);
             }
         }
@@ -97,15 +96,15 @@ public final class MarkerRegistry {
     /*
      * Findet alle Marker in einer bestimmten Welt mit einem bestimmten MarkerType.
      */
-    public List<MarkerRecord> findByWorldAndType(String worldId, MarkerType markerType) {
-        if (worldId == null || worldId.isBlank() || markerType == null) {
+    public List<MarkerRecord> findByWorldAndType(String worldKey, MarkerType markerType) {
+        if (worldKey == null || worldKey.isBlank() || markerType == null) {
             return Collections.emptyList();
         }
 
         List<MarkerRecord> result = new ArrayList<>();
 
         for (MarkerRecord marker : markersById.values()) {
-            if (worldId.equals(marker.worldId()) && markerType == marker.markerType()) {
+            if (worldKey.equals(marker.worldId()) && markerType == marker.markerType()) {
                 result.add(marker);
             }
         }

@@ -1,4 +1,334 @@
 # Phase 2 — Detailplan zur Umsetzung
+
+
+PHASE 2 / MOD-START-LOAD — KOMPLETTER ÜBERBLICK
+
+ZIEL:
+Beim Start soll state.json sicher gelesen werden.
+Aus der Datei soll kein roher String bleiben, sondern ein PersistedWorldState entstehen.
+
+WICHTIG:
+Phase 2 macht noch KEINEN Spawn.
+Phase 2 macht noch KEIN Relink.
+Phase 2 macht noch KEINE Routine.
+Phase 2 macht nur:
+lesen → prüfen → Java-State bauen → Ergebnis ehrlich zurückgeben.
+
+
+1) KeystoneNpcPlugin.java
+   Aufgabe:
+   - Hytale startet die Mod.
+   - setup() ruft den Bootstrap auf.
+
+   Verbindung:
+   KeystoneNpcPlugin
+   → NpcPluginBootstrap
+
+   Wichtige Variablen:
+   - noch keine state.json-Variable direkt
+
+
+2) NpcPluginBootstrap.java
+   Aufgabe:
+   - Start-Reihenfolge kontrollieren.
+   - Services holen.
+   - State-System starten.
+
+   Verbindung:
+   NpcPluginBootstrap
+   → NpcServices
+   → NpcStateStore.loadState() oder später loadWorldState(worldKey)
+
+   Wichtige Variablen:
+   - worldKey / keyWorldKey später wichtig
+   - StateLoadResult als Rückgabe wichtig
+
+
+3) NpcServices.java
+   Aufgabe:
+   - Baut/verbindet die Services.
+   - Gibt Zugriff auf NpcStateStore, WorldManager, NpcManager usw.
+
+   Verbindung:
+   NpcServices
+   → NpcStateStore
+   → WorldStateStore
+
+   Wichtige Variablen:
+   - keine Fachvariable, eher Service-Verkabelung
+
+
+4) WorldManager.java
+   Aufgabe:
+   - Später echte Hytale-Welten erkennen.
+   - Später aus Hytale World UUID einen stabilen worldKey bauen.
+
+   Verbindung:
+   WorldManager
+   → WorldKey
+
+   Wichtige Variablen:
+   - worldKey / keyWorldKey
+   - später: world.getWorldConfig().getUuid().toString()
+
+
+5) WorldKey.java
+   Aufgabe:
+   - Stabilen Welt-Schlüssel bauen.
+   - Dieser Key entscheidet, welche state.json zu welcher Welt gehört.
+
+   Verbindung:
+   WorldKey
+   → StatePathResolver
+   → worlds/<worldKey>/state.json
+
+   Wichtige Variablen:
+   - worldKey
+   - empfohlen: keyWorldKey
+
+
+6) NpcStateStore.java
+   Aufgabe:
+   - Öffentliche State-Tür.
+   - Bootstrap redet mit dieser Klasse, nicht direkt mit FileIO.
+   - Ruft WorldStateStore auf.
+   - Verwaltet dirty.
+
+   Verbindung:
+   NpcStateStore.loadWorldState(worldKey)
+   → WorldStateStore.loadWorld(worldKey)
+
+   Wichtige Variablen:
+   - dirty
+   - worldKey / keyWorldKey
+   - StateLoadResult
+   - StateSaveResult
+
+
+7) WorldStateStore.java
+   Aufgabe:
+   - Herzstück für State pro Welt.
+   - Prüft: gibt es state.json?
+   - Wenn nein: neuen PersistedWorldState(worldKey) bauen, aber NICHT sofort speichern.
+   - Wenn ja: Datei lesen, JSON prüfen lassen, PersistedWorldState merken.
+
+   Verbindung:
+   WorldStateStore
+   → StatePathResolver.stateFile(worldKey)
+   → StateFileIO.exists/readString(...)
+   → StateJsonCodec.decodeWorldState(worldKey, json)
+   → loadedWorldStates.put(worldKey, persistedWorldState)
+   → StateLoadResult.success(...)
+
+   Wichtige Variablen:
+   - worldKey / keyWorldKey
+   - loadedWorldJson              = ALT / schlecht
+   - loadedWorldStates            = Ziel
+   - PersistedWorldState
+   - StateLoadResult
+
+   Wichtig:
+   - Kaputte state.json darf NICHT als leerer State gespeichert werden.
+   - Load-Failure darf state.json NICHT überschreiben.
+
+
+8) StatePathResolver.java
+   Aufgabe:
+   - Baut nur Pfade.
+   - Prüft worldKey gegen null/blank.
+   - Sanitized worldKey.
+   - Verhindert Pfad-Ausbruch wie ../test.
+   - Baut z. B. worlds/<worldKey>/state.json.
+
+   Verbindung:
+   WorldStateStore
+   → StatePathResolver
+   → Path stateFile
+
+   Wichtige Variablen:
+   - worldKey / keyWorldKey
+   - baseDir
+   - worldsDir
+   - backupsDir
+
+   Wichtig:
+   - Existenz der Datei ist NICHT seine Hauptaufgabe.
+   - Er baut die Adresse, er liest nicht den Inhalt.
+
+
+9) StateFileIO.java
+   Aufgabe:
+   - Reine Dateioperationen.
+   - exists(path)
+   - readString(path)
+   - writeAtomic(path, content)
+
+   Verbindung:
+   WorldStateStore
+   → StateFileIO.exists(stateFile)
+   → StateFileIO.readString(stateFile)
+
+   Wichtige Variablen:
+   - Path file
+   - String content/json
+
+   Wichtig:
+   - Keine NPC-Logik.
+   - Kein JSON prüfen.
+   - Kein PersistedWorldState kennen.
+
+
+10) StateJsonCodec.java
+    Aufgabe:
+    - JSON prüfen.
+    - JSON in PersistedWorldState umwandeln.
+    - Später PersistedWorldState wieder in JSON schreiben.
+
+    Verbindung:
+    StateFileIO.readString(...)
+    → String json
+    → StateJsonCodec.decodeWorldState(worldKey, json)
+    → PersistedWorldState
+
+    Muss prüfen:
+    - json nicht null
+    - json nicht blank
+    - JSON-Grundsyntax gültig
+    - version existiert
+    - npcs existiert
+    - markers optional / erstmal leer erlaubt
+
+    Wichtige Variablen:
+    - version
+    - npcs
+    - markers
+    - worldKey / keyWorldKey
+    - npcId / keyNpcId
+    - roleId / keyRoleId
+    - entityUuid / hyEntityUuid
+    - entityStatus / keyEntityStatus
+    - state / keyNpcState
+    - currentPosition / keyCurrentPosition
+    - markerAssignments / keyMarkerAssignments
+
+    Wichtig:
+    - Kaputtes JSON darf niemals zu leerem PersistedWorldState werden.
+    - entityRef darf nie geschrieben oder gelesen werden.
+
+
+11) PersistedWorldState.java
+    Aufgabe:
+    - Java-Modell für den Inhalt einer Welt-state.json.
+    - Enthält die geladenen NPC-Records pro Welt.
+
+    Verbindung:
+    StateJsonCodec
+    → PersistedWorldState
+    → WorldStateStore.loadedWorldStates
+
+    Wichtige Variablen:
+    - worldKey / keyWorldKey
+    - npcRecordsById / keyNpcRecordsById
+    - markerRecords später
+    - structureInstances später
+
+
+12) NpcRecord.java
+    Aufgabe:
+    - Ein gespeicherter NPC.
+    - Persistente Wahrheit eines NPCs.
+    - Keine Runtime-Daten.
+
+    Verbindung:
+    PersistedWorldState
+    → enthält viele NpcRecord
+
+    Wichtige Variablen:
+    - npcId / keyNpcId
+    - npcName / keyNpcName
+    - roleId / keyRoleId
+    - entityUuid / hyEntityUuid
+    - entityStatus / keyEntityStatus
+    - state / keyNpcState
+    - currentPosition / keyCurrentPosition
+    - markerAssignments / keyMarkerAssignments
+    - structureInstanceId / keyStructureInstanceId
+    - slotId / keySlotId
+    - selectedAppearanceId / keySelectedAppearanceId
+    - selectedCompositionId / keySelectedCompositionId
+    - selectedPrefabId / keySelectedPrefabId
+
+    Darf NICHT enthalten:
+    - entityRef
+    - Entity object
+    - aktive Navigation
+    - Action Runtime
+    - Door Runtime
+
+
+13) StateLoadResult.java
+    Aufgabe:
+    - Ehrliches Ergebnis vom Laden.
+    - Sagt: success, partial oder failed.
+    - Enthält geladene worldStates.
+
+    Verbindung:
+    WorldStateStore.loadWorld(...)
+    → StateLoadResult
+    → NpcStateStore
+    → Bootstrap
+
+    Wichtige Variablen:
+    - success
+    - partial
+    - loadFailed
+    - message
+    - worldStates
+
+
+GESAMT-FLOW:
+
+KeystoneNpcPlugin.setup()
+→ NpcPluginBootstrap startet
+→ NpcServices gibt NpcStateStore
+→ NpcStateStore.loadWorldState(worldKey)
+→ WorldStateStore.loadWorld(worldKey)
+→ StatePathResolver baut Pfad
+→ StateFileIO prüft, ob state.json existiert
+
+FALL A: state.json existiert NICHT
+→ neuer PersistedWorldState(worldKey)
+→ in loadedWorldStates merken
+→ StateLoadResult.success(...)
+→ NICHT automatisch speichern
+
+FALL B: state.json existiert
+→ StateFileIO.readString(stateFile)
+→ StateJsonCodec.decodeWorldState(worldKey, json)
+→ JSON wird geprüft
+→ PersistedWorldState wird gebaut
+→ loadedWorldStates.put(worldKey, persistedWorldState)
+→ StateLoadResult.success(...)
+
+FALL C: state.json kaputt
+→ StateJsonCodec meldet Fehler
+→ StateLoadResult.failed(...)
+→ loadedWorldStates NICHT überschreiben
+→ state.json NICHT überschreiben
+→ kein Default-State speichern
+
+
+MERKSATZ:
+StatePathResolver findet die Adresse.
+StateFileIO holt den Brief.
+StateJsonCodec liest und prüft den Inhalt.
+PersistedWorldState ist der sortierte Inhalt im RAM.
+StateLoadResult sagt ehrlich, ob alles geklappt hat.
+
+
+
+
+
 # Thema: State-System stabilisieren
 
 ## Kurzantwort
@@ -206,10 +536,10 @@ Wo liegt state.json?
 
 Umsetzen:
 
-1. worldId/worldKey darf nicht null/blank sein.
-2. sanitizeWorldId bleibt streng.
+1. worldKey darf nicht null/blank sein.
+2. sanitizeWorldKey bleibt streng.
 3. Pfad darf nicht aus worldsDir ausbrechen.
-4. baseDir = Path.of("keystone-npc") bleibt erlaubt, aber klarer TODO-Kommentar:
+4. baseDir = Path.of("key-entity-mod") bleibt erlaubt, aber klarer TODO-Kommentar:
    "Skeleton-Pfad. Später durch echten Plugin-Datenpfad ersetzen."
 5. prepareBaseDirectories darf Fehler nicht still schlucken.
 6. worldDirectory darf bei Fehler nicht fake-erfolgreich sein.
@@ -226,13 +556,13 @@ Nicht tun:
 
 Failchecks:
 
-- worldId leer -> Fehler
+- worldKey leer -> Fehler
 - "../test" darf nicht ausbrechen
-- Pfad bleibt unter keystone-npc/worlds/
+- Pfad bleibt unter key-entity-mod/worlds/
 - harter Pfad ist als Skeleton-TODO markiert
 
 Review-Frage:
-Kann eine falsche worldId außerhalb des State-Ordners schreiben?
+Kann eine falsche worldKey außerhalb des State-Ordners schreiben?
 
 ────────────────────────────────────────
 STEP 2.3 — StateFileIO.java härten
@@ -302,7 +632,7 @@ StateBackupStore erstellt Sicherungskopien.
 
 Umsetzen:
 
-1. backupBeforeSave(worldId, stateFile) bleibt Pflicht vor Save.
+1. backupBeforeSave(worldKey, stateFile) bleibt Pflicht vor Save.
 2. Wenn keine state.json existiert:
    - success: Backup skipped
 3. Wenn stateFile existiert, aber keine reguläre Datei ist:
@@ -311,7 +641,7 @@ Umsetzen:
    - failed
 5. Backup-Fehler blockiert Save.
 6. Backup-Dateinamen dürfen sich nicht überschreiben.
-7. worldId wird sanitized.
+7. worldKey wird sanitized.
 
 Warum wichtig?
 Wenn Save kaputtgeht, soll alte state.json nicht verloren sein.
@@ -442,10 +772,10 @@ Umsetzen:
    Zu:
    loadedWorldStates
 
-2. loadWorld(worldId):
+2. loadWorld(worldKey):
 
    Fall A: state.json existiert nicht
-   - neuen PersistedWorldState(worldId) erstellen
+   - neuen PersistedWorldState(worldKey) erstellen
    - in loadedWorldStates merken
    - StateLoadResult.success(message, worldState) zurückgeben
    - Noch NICHT automatisch speichern
@@ -454,7 +784,7 @@ Umsetzen:
    "Kein state.json gefunden" ist kein Load-Failure.
    Aber es darf nicht sofort ungefragt state.json geschrieben werden.
 
-3. loadWorld(worldId):
+3. loadWorld(worldKey):
 
    Fall B: state.json existiert
    - Datei lesen
@@ -466,10 +796,10 @@ Umsetzen:
    - bei Erfolg loadedWorldStates.put(...)
    - StateLoadResult.success(message, worldState)
 
-4. saveWorld(worldId):
+4. saveWorld(worldKey):
 
-   - worldId prüfen
-   - nur speichern, wenn worldId in loadedWorldStates existiert
+   - worldKey prüfen
+   - nur speichern, wenn worldKey in loadedWorldStates existiert
    - wenn nicht geladen -> failed
    - PersistedWorldState aus Map holen
    - jsonCodec.encodeWorldState(...)
@@ -483,12 +813,12 @@ Umsetzen:
 
 5. saveAllLoadedWorlds():
 
-   - über Kopie der worldIds laufen
+   - über Kopie der worldKeys laufen
    - bei erstem Fehler abbrechen
    - failed Result zurückgeben
    - nur wenn alle Save erfolgreich: success
 
-6. putRawWorldJson(worldId, json):
+6. putRawWorldJson(worldKey, json):
 
    Entscheidung:
    Entweder entfernen/entschärfen oder intern decodeWorldState nutzen.
@@ -547,9 +877,9 @@ Umsetzen / prüfen:
    - kein Spawn
    - kein Relink
 
-2. loadWorldState(worldId):
+2. loadWorldState(worldKey):
 
-   - ruft worldStateStore.loadWorld(worldId)
+   - ruft worldStateStore.loadWorld(worldKey)
    - bei Fehler dirty=false
    - kein Save
    - kein Spawn
@@ -564,9 +894,9 @@ Umsetzen / prüfen:
    - Fehler sichtbar loggen
    - false zurückgeben
 
-4. saveWorldState(worldId):
+4. saveWorldState(worldKey):
 
-   - ruft saveWorld(worldId)
+   - ruft saveWorld(worldKey)
    - bei failure dirty=true
    - bei success nicht automatisch global dirty=false, außer bewusst begründet
    - Fehler sichtbar loggen
@@ -677,9 +1007,9 @@ Muss können:
 
 - prepareBaseDirectories()
 - loadState()
-- loadWorldState(worldId)
+- loadWorldState(worldKey)
 - saveStateSafely()
-- saveWorldState(worldId)
+- saveWorldState(worldKey)
 - markDirty()
 - isDirty()
 
@@ -764,10 +1094,10 @@ State pro Welt verwalten.
 Muss können:
 
 - loadAllKnownWorlds()
-- loadWorld(worldId)
-- saveWorld(worldId)
+- loadWorld(worldKey)
+- saveWorld(worldKey)
 - saveAllLoadedWorlds()
-- optional putRawWorldJson(worldId, json), aber sicher
+- optional putRawWorldJson(worldKey, json), aber sicher
 
 Wichtigste Änderung:
 Nicht mehr Map<String, String>.
@@ -799,13 +1129,13 @@ Muss können:
 - baseDir vorbereiten
 - worldsDir vorbereiten
 - backupsDir vorbereiten
-- worldDirectory(worldId)
-- stateFile(worldId)
+- worldDirectory(worldKey)
+- stateFile(worldKey)
 - backupsDir()
-- sanitizeWorldId(worldId)
+- sanitizeWorldKey(worldKey)
 
 Wichtigste Regel:
-worldId darf nicht aus dem State-Ordner ausbrechen.
+worldKey darf nicht aus dem State-Ordner ausbrechen.
 
 Nicht rein:
 
@@ -816,7 +1146,7 @@ Nicht rein:
 
 PASS wenn:
 
-- worldId wird validiert
+- worldKey wird validiert
 - Pfad bleibt unter worldsDir
 - harter Skeleton-Pfad ist als TODO markiert
 
@@ -886,7 +1216,7 @@ Backups vor Save.
 
 Muss können:
 
-- backupBeforeSave(worldId, stateFile)
+- backupBeforeSave(worldKey, stateFile)
 - eindeutigen Backup-Dateinamen erzeugen
 - Backup-Fehler als StateSaveResult.failed melden
 

@@ -74,8 +74,18 @@ public final class StateFileIO {
             }
 
             return true;
-        } catch (IOException | RuntimeException e) {
+        }
+		catch (IOException | RuntimeException e) {
             System.err.println("[KeystoneNPC][STATE_WRITE_FAILED] " + e.getMessage());
+
+            // Best-effort: liegen gebliebene .tmp-Datei aufräumen.
+            // Ein Fehler hier darf den eigentlichen Schreibfehler nicht verstecken.
+            try {
+                Files.deleteIfExists(tempFile);
+            } catch (IOException cleanupError) {
+                System.err.println("[KeystoneNPC][STATE_WRITE_CLEANUP_FAILED] " + cleanupError.getMessage());
+            }
+
             return false;
         }
     }

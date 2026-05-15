@@ -37,6 +37,13 @@ public final class WorldManager {
      */
     public void prepare() {
         // TODO: Später Hytale-Welten / Save-Infos prüfen, wenn API final klar ist.
+		/////API fuer worldkey ist bekannt!!
+		///
+		///
+		/// WorldKey.fromAPI() !!!
+
+
+
         // TODO: Keine Welt scannen, keine Chunks laden und keine NPCs spawnen.
     }
 

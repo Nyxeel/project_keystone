@@ -65,11 +65,11 @@ public final class WorldStateStore {
     /*
      * Lädt den State für genau eine Server-Spielwelt.
      */
-    public StateLoadResult loadWorld(String worldId) {
-        String checkedWorldId;
+    public StateLoadResult loadWorld(String worldKey) {
+        String checkedWorldKey;
 
         try {
-            checkedWorldId = requireWorldId(worldId);
+            checkedWorldKey = requireWorldKey(worldKey);
         } catch (IllegalArgumentException e) {
             return StateLoadResult.failed("Cannot load world state: " + e.getMessage());
         }
@@ -77,9 +77,9 @@ public final class WorldStateStore {
         Path stateFile;
 
         try {
-            stateFile = pathResolver.stateFile(checkedWorldId);
+            stateFile = pathResolver.stateFile(checkedWorldKey);
         } catch (RuntimeException e) {
-            return StateLoadResult.failed("Failed to resolve state.json path for world " + checkedWorldId + ": " + e.getMessage());
+            return StateLoadResult.failed("Failed to resolve state.json path for world " + checkedWorldKey + ": " + e.getMessage());
         }
 
         if (!fileIO.exists(stateFile)) {
@@ -89,61 +89,61 @@ public final class WorldStateStore {
                 return StateLoadResult.failed("Internal error: default world state JSON is invalid.");
             }
 
-            loadedWorldJson.put(checkedWorldId, defaultJson);
-            return StateLoadResult.success("No state.json found. Empty world state prepared for world: " + checkedWorldId);
+            loadedWorldJson.put(checkedWorldKey, defaultJson);
+            return StateLoadResult.success("No state.json found. Empty world state prepared for world: " + checkedWorldKey);
         }
 
         String json = fileIO.readString(stateFile);
         if (json == null) {
-            return StateLoadResult.failed("Failed to read state.json for world: " + checkedWorldId);
+            return StateLoadResult.failed("Failed to read state.json for world: " + checkedWorldKey);
         }
 
         String decodedJson = jsonCodec.decodeRaw(json);
         if (decodedJson == null) {
-            return StateLoadResult.failed("Invalid state.json for world: " + checkedWorldId);
+            return StateLoadResult.failed("Invalid state.json for world: " + checkedWorldKey);
         }
 
-        loadedWorldJson.put(checkedWorldId, decodedJson);
-        return StateLoadResult.success("Loaded state.json for world: " + checkedWorldId);
+        loadedWorldJson.put(checkedWorldKey, decodedJson);
+        return StateLoadResult.success("Loaded state.json for world: " + checkedWorldKey);
     }
 
     /*
      * Speichert den State für genau eine Server-Spielwelt.
      */
-    public StateSaveResult saveWorld(String worldId) {
-        String checkedWorldId;
+    public StateSaveResult saveWorld(String worldKey) {
+        String checkedWorldKey;
 
         try {
-            checkedWorldId = requireWorldId(worldId);
+            checkedWorldKey = requireWorldKey(worldKey);
         } catch (IllegalArgumentException e) {
             return StateSaveResult.failed("Cannot save world state: " + e.getMessage());
         }
 
-        if (!loadedWorldJson.containsKey(checkedWorldId)) {
-            return StateSaveResult.failed("Cannot save world state: world not loaded: " + checkedWorldId);
+        if (!loadedWorldJson.containsKey(checkedWorldKey)) {
+            return StateSaveResult.failed("Cannot save world state: world not loaded: " + checkedWorldKey);
         }
 
-        String rawJson = loadedWorldJson.get(checkedWorldId);
+        String rawJson = loadedWorldJson.get(checkedWorldKey);
         String encodedJson = jsonCodec.encodeRaw(rawJson);
 
         if (encodedJson == null) {
-            return StateSaveResult.failed("Cannot save world state: loaded JSON is invalid for world: " + checkedWorldId);
+            return StateSaveResult.failed("Cannot save world state: loaded JSON is invalid for world: " + checkedWorldKey);
         }
 
         Path stateFile;
 
         try {
-            stateFile = pathResolver.stateFile(checkedWorldId);
+            stateFile = pathResolver.stateFile(checkedWorldKey);
         } catch (RuntimeException e) {
-            return StateSaveResult.failed("Failed to resolve state.json path for world " + checkedWorldId + ": " + e.getMessage());
+            return StateSaveResult.failed("Failed to resolve state.json path for world " + checkedWorldKey + ": " + e.getMessage());
         }
 
         StateSaveResult backupResult;
 
         try {
-            backupResult = backupStore.backupBeforeSave(checkedWorldId, stateFile);
+            backupResult = backupStore.backupBeforeSave(checkedWorldKey, stateFile);
         } catch (RuntimeException e) {
-            return StateSaveResult.failed("Failed to create backup for world " + checkedWorldId + ": " + e.getMessage());
+            return StateSaveResult.failed("Failed to create backup for world " + checkedWorldKey + ": " + e.getMessage());
         }
 
         if (!backupResult.success()) {
@@ -152,19 +152,19 @@ public final class WorldStateStore {
 
         boolean saved = fileIO.writeAtomic(stateFile, encodedJson);
         if (!saved) {
-            return StateSaveResult.failed("Failed to save state.json for world: " + checkedWorldId);
+            return StateSaveResult.failed("Failed to save state.json for world: " + checkedWorldKey);
         }
 
-        loadedWorldJson.put(checkedWorldId, encodedJson);
-        return StateSaveResult.success("Saved state.json for world: " + checkedWorldId);
+        loadedWorldJson.put(checkedWorldKey, encodedJson);
+        return StateSaveResult.success("Saved state.json for world: " + checkedWorldKey);
     }
 
     /*
      * Speichert alle Welten, die aktuell im Speicher geladen sind.
      */
     public StateSaveResult saveAllLoadedWorlds() {
-        for (String worldId : new ArrayList<>(loadedWorldJson.keySet())) {
-            StateSaveResult result = saveWorld(worldId);
+        for (String worldKey : new ArrayList<>(loadedWorldJson.keySet())) {
+            StateSaveResult result = saveWorld(worldKey);
 
             if (!result.success()) {
                 return result;
@@ -178,32 +178,32 @@ public final class WorldStateStore {
      * Merkt rohen JSON-State für eine Welt.
      * Gibt ehrlich zurück, ob der JSON-State angenommen wurde.
      */
-    public StateLoadResult putRawWorldJson(String worldId, String json) {
-        String checkedWorldId;
+    public StateLoadResult putRawWorldJson(String worldKey, String json) {
+        String checkedWorldKey;
 
         try {
-            checkedWorldId = requireWorldId(worldId);
+            checkedWorldKey = requireWorldKey(worldKey);
         } catch (IllegalArgumentException e) {
             return StateLoadResult.failed("Cannot put raw world JSON: " + e.getMessage());
         }
 
         String decodedJson = jsonCodec.decodeRaw(json);
         if (decodedJson == null) {
-            return StateLoadResult.failed("Cannot put raw world JSON: json is invalid for world: " + checkedWorldId);
+            return StateLoadResult.failed("Cannot put raw world JSON: json is invalid for world: " + checkedWorldKey);
         }
 
-        loadedWorldJson.put(checkedWorldId, decodedJson);
-        return StateLoadResult.success("Raw world JSON accepted for world: " + checkedWorldId);
+        loadedWorldJson.put(checkedWorldKey, decodedJson);
+        return StateLoadResult.success("Raw world JSON accepted for world: " + checkedWorldKey);
     }
 
     /*
-     * Prüft, ob eine worldId vorhanden ist.
+     * Prüft, ob ein worldKey vorhanden ist.
      */
-    private static String requireWorldId(String worldId) {
-        if (worldId == null || worldId.isBlank()) {
-            throw new IllegalArgumentException("worldId must not be null or blank.");
+    private static String requireWorldKey(String worldKey) {
+        if (worldKey == null || worldKey.isBlank()) {
+            throw new IllegalArgumentException("worldKey must not be null or blank.");
         }
 
-        return worldId.trim();
+        return worldKey.trim();
     }
 }

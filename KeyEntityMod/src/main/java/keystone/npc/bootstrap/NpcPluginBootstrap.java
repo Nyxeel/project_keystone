@@ -88,7 +88,7 @@ public final class NpcPluginBootstrap {
 		//
 		// Später bei deinem World-System:
 		// state.json sollte pro Server-Welt geladen werden,
-		// z. B. keystone-npc/worlds/<worldId>/state.json.
+		// z. B. key-entity-mod/worlds/<worldKey>/state.json.
 		loadState();
 
 

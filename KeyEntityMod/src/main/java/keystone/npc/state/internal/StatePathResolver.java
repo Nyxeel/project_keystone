@@ -14,7 +14,7 @@ import keystone.npc.KeystoneNpcPlugin;
  * - Basisordner vorbereiten
  * - Weltordner vorbereiten
  * - Pfad zu state.json pro Welt erzeugen
- * - worldId sicher für Dateipfade machen
+ * - worldKey sicher für Dateipfade machen
  *
  * Wichtig:
  * Diese Klasse kennt keine NPC-Logik.
@@ -35,7 +35,24 @@ public final class StatePathResolver {
     public StatePathResolver(KeystoneNpcPlugin plugin) {
         this.plugin = Objects.requireNonNull(plugin, "plugin must not be null");
 
+
+
+		/*
+ 		* TODO Hytale-API:
+ 		* Dieser Pfad ist aktuell nur ein Skeleton-/Entwicklungspfad.
+ 		*
+ 		* Später darf die Mod den Speicherordner nicht selbst raten.
+ 		* Stattdessen soll der offizielle Plugin-Datenordner von Hytale benutzt werden,
+ 		* z. B. über plugin.getDataDirectory().
+ 		*
+ 		* Grund:
+ 		* Hytale soll entscheiden, wo Mod-Daten sicher gespeichert werden.
+ 		* Dadurch landen state.json und Backups später am richtigen Server-Ort.
+ 		*/
+
         this.baseDir = Path.of("key-entity-mod");
+
+
         this.worldsDir = baseDir.resolve("worlds");
         this.backupsDir = baseDir.resolve("backups");
     }
@@ -56,34 +73,34 @@ public final class StatePathResolver {
     /*
      * Gibt den Ordner für eine konkrete Server-Spielwelt zurück.
      */
-    public Path worldDirectory(String worldId) {
+    public Path worldDirectory(String worldKey) {
         prepareBaseDirectories();
 
-		if (worldId == null || worldId.isBlank()) {
-			throw new IllegalArgumentException("worldId must not be null or blank.");
+		if (worldKey == null || worldKey.isBlank()) {
+			throw new IllegalArgumentException("worldKey must not be null or blank.");
 		}
 
 
-        String safeWorldId = sanitizeWorldId(worldId);
-        Path worldDir = worldsDir.resolve(safeWorldId).normalize();
+        String safeWorldKey = sanitizeWorldKey(worldKey);
+        Path worldDir = worldsDir.resolve(safeWorldKey).normalize();
 
         if (!worldDir.startsWith(worldsDir.normalize())) {
-            throw new IllegalArgumentException("Resolved world directory escaped worldsDir: " + worldId);
+            throw new IllegalArgumentException("Resolved world directory escaped worldsDir: " + worldKey);
         }
 
         try {
             Files.createDirectories(worldDir);
             return worldDir;
         } catch (IOException e) {
-            throw new IllegalStateException("Failed to prepare world directory: " + safeWorldId, e);
+            throw new IllegalStateException("Failed to prepare world directory: " + safeWorldKey, e);
         }
     }
 
     /*
      * Gibt den Pfad zur state.json einer konkreten Server-Spielwelt zurück.
      */
-    public Path stateFile(String worldId) {
-        return worldDirectory(worldId).resolve("state.json");
+    public Path stateFile(String worldKey) {
+        return worldDirectory(worldKey).resolve("state.json");
     }
 
     /*
@@ -95,14 +112,14 @@ public final class StatePathResolver {
     }
 
     /*
-     * Macht eine worldId sicher für Dateipfade.
+     * Macht einen worldKey sicher für Dateipfade.
      */
-    public String sanitizeWorldId(String worldId) {
-        if (worldId == null || worldId.isBlank()) {
-            throw new IllegalArgumentException("worldId must not be null or blank.");
+    public String sanitizeWorldKey(String worldKey) {
+        if (worldKey == null || worldKey.isBlank()) {
+            throw new IllegalArgumentException("worldKey must not be null or blank.");
         }
 
-        String safeWorldId = worldId.trim()
+        String safeWorldKey = worldKey.trim()
                 .replace('\\', '_')
                 .replace('/', '_')
                 .replace(':', '_')
@@ -111,11 +128,11 @@ public final class StatePathResolver {
                 .replaceAll("^\\.+", "_")
                 .replaceAll("_+", "_");
 
-        if (safeWorldId.isBlank() || ".".equals(safeWorldId) || "..".equals(safeWorldId)) {
-            throw new IllegalArgumentException("worldId cannot be converted to a safe path name.");
+        if (safeWorldKey.isBlank() || ".".equals(safeWorldKey) || "..".equals(safeWorldKey)) {
+            throw new IllegalArgumentException("worldKey cannot be converted to a safe path name.");
         }
 
-        return safeWorldId;
+        return safeWorldKey;
     }
 
     /*

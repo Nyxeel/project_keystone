@@ -38,9 +38,9 @@ public final class StateBackupStore {
     /*
      * Legt vor dem Speichern ein Backup an, falls schon eine state.json existiert.
      */
-    public StateSaveResult backupBeforeSave(String worldId, Path stateFile) {
-        if (worldId == null || worldId.isBlank()) {
-            return StateSaveResult.failed("Cannot create backup: worldId is null or blank.");
+    public StateSaveResult backupBeforeSave(String worldKey, Path stateFile) {
+        if (worldKey == null || worldKey.isBlank()) {
+            return StateSaveResult.failed("Cannot create backup: worldKey is null or blank.");
         }
 
         if (stateFile == null) {
@@ -55,20 +55,22 @@ public final class StateBackupStore {
             return StateSaveResult.failed("Cannot create backup: stateFile is not a regular file: " + stateFile);
         }
 
-        String safeWorldId = pathResolver.sanitizeWorldId(worldId);
-        String timestamp = LocalDateTime.now().format(BACKUP_TIMESTAMP_FORMAT);
+		try {
+		    String safeWorldKey = pathResolver.sanitizeWorldKey(worldKey);
+		    String timestamp = LocalDateTime.now().format(BACKUP_TIMESTAMP_FORMAT);
 
-        Path worldBackupDir = pathResolver.backupsDir().resolve(safeWorldId);
-        Path backupFile = uniqueBackupFile(worldBackupDir, timestamp);
+		    Path worldBackupDir = pathResolver.backupsDir().resolve(safeWorldKey);
+		    Path backupFile = uniqueBackupFile(worldBackupDir, timestamp);
 
-        try {
-            Files.createDirectories(worldBackupDir);
-            Files.copy(stateFile, backupFile, StandardCopyOption.COPY_ATTRIBUTES);
-            return StateSaveResult.success("Backup created: " + backupFile);
-        } catch (IOException e) {
-            return StateSaveResult.failed("Failed to create backup for world " + worldId + ": " + e.getMessage());
-        }
-    }
+		    Files.createDirectories(worldBackupDir);
+		    Files.copy(stateFile, backupFile, StandardCopyOption.COPY_ATTRIBUTES);
+
+		    return StateSaveResult.success("Backup created: " + backupFile);
+		}
+		catch (IOException | RuntimeException e) {
+		    return StateSaveResult.failed("Failed to create backup for world " + worldKey + ": " + e.getMessage());
+		}
+	}
 
     /*
      * Erzeugt einen Backup-Dateinamen, der vorhandene Backups nicht überschreibt.

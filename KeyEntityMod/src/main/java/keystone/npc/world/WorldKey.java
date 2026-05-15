@@ -9,6 +9,9 @@ package keystone.npc.world;
  *
  * Später kann WorldKey aus Hytale-Daten wie World-Name, SavePath oder stabiler World-ID gebaut werden.
  *
+ * Kanonische Quelle für den key ist die Hytale-World-UUID:
+ *   world.getWorldConfig().getUuid().toString()
+ *
  * Wichtig:
  * Der key muss sicher für Dateipfade sein.
  * displayName und savePath sind nur Zusatzinformationen.

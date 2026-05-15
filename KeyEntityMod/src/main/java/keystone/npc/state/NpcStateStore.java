@@ -78,8 +78,8 @@ public final class NpcStateStore {
     /*
      * Lädt den NPC-State für genau eine Welt.
      */
-    public StateLoadResult loadWorldState(String worldId) {
-        StateLoadResult result = worldStateStore.loadWorld(worldId);
+    public StateLoadResult loadWorldState(String worldKey) {
+        StateLoadResult result = worldStateStore.loadWorld(worldKey);
 
         if (!result.success()) {
             dirty = false;
@@ -113,8 +113,8 @@ public final class NpcStateStore {
      * Speichert den State einer einzelnen Welt.
      * Ein Fehler bleibt sichtbar und setzt dirty auf true.
      */
-    public StateSaveResult saveWorldState(String worldId) {
-        StateSaveResult result = worldStateStore.saveWorld(worldId);
+    public StateSaveResult saveWorldState(String worldKey) {
+        StateSaveResult result = worldStateStore.saveWorld(worldKey);
 
         if (!result.success()) {
             dirty = true;

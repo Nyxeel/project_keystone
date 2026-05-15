@@ -2,6 +2,11 @@ package keystone.npc.state.internal;
 
 import java.util.regex.Pattern;
 
+import keystone.npc.model.PersistedWorldState;
+
+
+
+
 /*
  * StateJsonCodec ist nur für JSON-Umwandlung zuständig.
  *
@@ -35,6 +40,49 @@ public final class StateJsonCodec {
                 }
                 """;
     }
+
+
+	private static String escapeJson(String value) {
+   		return value
+        	.replace("\\", "\\\\")
+            .replace("\"", "\\\"");
+	}
+
+
+	public String encodeWorldState(PersistedWorldState worldState) {
+		if (worldState == null)
+			return null;
+
+		String worldKey = worldState.worldKey();
+
+		if (worldKey == null || worldKey.isBlank())
+			return null;
+
+		return """
+           {
+             "version": 1,
+             "worldKey": "%s",
+             "npcs": [],
+             "markers": []
+           }
+           """.formatted(escapeJson(worldKey));
+	}
+
+
+
+/* 	public PersistedWorldState decodeWorldState(String worldKey, String json) {
+
+		if ( )
+
+		if (json == null || json.isBlank())
+			return null;
+
+		return
+
+
+
+
+	} */
 
     /*
      * Prüft, ob ein JSON-Text als Skeleton-state.json verwendbar ist.

@@ -39,7 +39,7 @@ public final class NpcServices {
 	private final WorldManager worldManager;              // Erkennt Server-Spielwelten und erzeugt sichere WorldKeys.
 	private final NpcManager npcManager;                  // Verwaltet alle NPC-Records und RuntimeNpc-Daten im RAM.
 	private final MarkerRegistry markerRegistry;          // Speichert/kennt alle Marker: markerId, Typ, Welt, Position.
-	private final NpcStateStore stateStore;               // Lädt und speichert NPC-State, später pro Welt: state.json.
+	private final NpcStateStore stateStore;               // Lädt und speichert NPC-State, pro Welt: state.json.
 	private final NpcDefinition definition;               // Lädt und prüft NPC-Baupläne aus JSON: Rollen, Marker, Profile.
 	private final MarkerAssignment markerAssignment;      // Weist Marker sicher konkreten NPCs zu und prüft Typ/Welt/Erlaubnis.
 	private final NpcSpawn spawn;                         // Erstellt neue NPCs kontrolliert und mit Save-/Rollback-Schutz.
