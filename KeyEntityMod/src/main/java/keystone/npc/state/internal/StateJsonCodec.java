@@ -63,6 +63,9 @@ public final class StateJsonCodec {
 		if (worldKey == null || worldKey.isBlank())
 			return null;
 
+
+		// TODO: FORMAT NPC RECORDS TO JSON and RETURN JSON
+
 		return """
            {
              "version": 1,
@@ -71,10 +74,9 @@ public final class StateJsonCodec {
              "markers": []
            }
            """.formatted(escapeJson(worldKey));
-		// TODO: Nur ne Skelet nachricht
+		// TODO: Nur ne Skelet nachricht, nicht die echte state.json
 		// Muss spaeter die NPC Record eintraege rauslesen und dann als json returnen!
 	}
-
 
 
 	/*

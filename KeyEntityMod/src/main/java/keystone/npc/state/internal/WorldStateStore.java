@@ -103,8 +103,9 @@ public final class WorldStateStore {
 
 
 		// Wenn Server schon ne state.json hat, dann auslesen um NPC laden zu koennen!
-		//TODO: es ist wichtig das NPC auck korrekt gefunden werden, wenn in deren role.json
-		//		aenderungen gab die nicht mehr der state.json entsprechen!
+		//TODO: es ist wichtig das NPC auck korrekt gefunden werden, wenn in
+		// resources/Server/NPC/Roles in deren role.json aenderungen gab die
+		// nicht mehr der state.json entsprechen!
 
 
         String stateJson = fileIO.readString(stateFile);
@@ -125,9 +126,10 @@ public final class WorldStateStore {
     /*
      * Speichert den State für genau eine Server-Spielwelt.
      */
+	// saveWorld nur fuer shutdown() , zwischen saves nur bei saveStatSafeley()
     public StateSaveResult saveWorld(String worldKey) {
-        String checkedWorldKey;
 
+		String checkedWorldKey;
         try {
             checkedWorldKey = requireWorldKey(worldKey);
         } catch (IllegalArgumentException e) {
@@ -149,7 +151,6 @@ public final class WorldStateStore {
         }
 
         Path stateFile;
-
         try {
             stateFile = pathResolver.stateFile(checkedWorldKey);
         } catch (RuntimeException e) {
@@ -157,7 +158,6 @@ public final class WorldStateStore {
         }
 
         StateSaveResult backupResult;
-
         try {
             backupResult = backupStore.backupBeforeSave(checkedWorldKey, stateFile);
         } catch (RuntimeException e) {

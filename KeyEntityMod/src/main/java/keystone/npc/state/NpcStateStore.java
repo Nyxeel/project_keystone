@@ -74,16 +74,27 @@ public final class NpcStateStore {
 
 		String worldKey = worldManager.getWorldKey();
 		StateLoadResult result = worldStateStore.loadWorld(worldKey);
-        if (!result.success()) {
-            dirty = false;
-        }
-	    return result;
-    }
+
+		return result;
+	}
+	
+		/*
+		 * dirty = true bedeutet: Speicher hat Änderungen, die noch nicht in state.json stehen.
+		 * dirty = false bedeutet: Speicher und Disk sind synchron.
+		 *
+		 * Wird nur von markDirty() auf true gesetzt.
+		 * Wird nur von saveStateSafely() auf false gesetzt — nach erfolgreichem Save.
+		 * Load darf dirty niemals auf true setzen.
+		*/
+
+
+
 
     /*
      * Speichert alle geladenen Welt-States sicher.
      * Nur ein erfolgreicher Save darf dirty wieder auf false setzen.
      */
+
     public boolean saveStateSafely() {
         if (!dirty) {
             return true;
@@ -106,7 +117,8 @@ public final class NpcStateStore {
      * Ein Fehler bleibt sichtbar und setzt dirty auf true.
      */
     public StateSaveResult saveWorldState(String worldKey) {
-        StateSaveResult result = worldStateStore.saveWorld(worldKey);
+
+		StateSaveResult result = worldStateStore.saveWorld(worldKey);
 
         if (!result.success()) {
             dirty = true;

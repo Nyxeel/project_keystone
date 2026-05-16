@@ -22,9 +22,8 @@ import keystone.npc.KeystoneNpcPlugin;
 public final class WorldManager {
 
     private final KeystoneNpcPlugin plugin;
-    public 	String					worldKey;
-    public 	String					worldName;
-
+    private String worldKey;
+    private String worldName;
 
 
     /*
@@ -33,7 +32,6 @@ public final class WorldManager {
      */
     public WorldManager(KeystoneNpcPlugin plugin) {
         this.plugin = Objects.requireNonNull(plugin, "plugin must not be null");
-
     }
 
     /*
@@ -41,46 +39,68 @@ public final class WorldManager {
      * Im Skeleton gibt es noch nichts zu laden.
      */
     public void prepare() {
-        // TODO: Später Hytale-Welten / Save-Infos prüfen, wenn API final klar ist.
+    // TODO: Später Hytale-Welten / Save-Infos prüfen, wenn API final klar ist.
 
 
-		final String worldUuid = "56adsf-215sfd-jbhv5473-udrsyt908"; //world.getWorldConfig().getUuid().toString();
-		this.worldKey = worldUuid; //TODO; worldUuid API -> world.getWorldConfig().getUuid().toString();
+	// Holt WorldUuid
+    this.worldKey = getWorldKeyFromAPI();
 
-		this.worldName = "TestWelt"; // Weltname API -> world.getName();
+	if (this.worldKey == null || this.worldKey.isBlank()) {
+       	throw new IllegalStateException("worldKey could not be resolved — aborting WorldManager.prepare()");
+    }
+
+	//Holt den Servername
+	this.worldName = getWorldNameFromAPI();
+	if (this.worldName == null || this.worldName.isBlank()) {
+       	throw new IllegalStateException("worldName could not be resolved — aborting WorldManager.prepare()");
+    }
 
 
-		// TODO: Keine Welt scannen, keine Chunks laden und keine NPCs spawnen.
+	// TODO: Keine Welt scannen, keine Chunks laden und keine NPCs spawnen.
     }
 
 
 
 	/*
-     * Gibt den Welt-Key zurück.
+     * Gibt den Welt Key zurück.
      */
     public String getWorldKey() {
         return this.worldKey;
     }
 
+
+
+	/*
+     * Gibt den Welt Namen zurück.
+     */
+    public String getWorldName() {
+        return this.worldName;
+    }
+
     /*
-     * Erstellt einen WorldKey aus einem bekannten Welt-Namen.
+     * Erstellt einen WorldKey udnd WorldName.
      * Das ist aktuell der sichere Minimal-Fallback.
      */
-    public WorldKey worldKeyFromName(String worldName) {
-        return WorldKey.fromName(worldName);
+    public String getWorldKeyFromAPI() {
+        return "TestKey"; //TODO; worldUuid API -> world.getWorldConfig().getUuid().toString();
+    }
+
+
+	public String getWorldNameFromAPI() {
+        return "TestWelt"; // TODO: Weltname API -> world.getName();
     }
 
     /*
      * Prüft, ob zwei WorldKeys dieselbe Server-Spielwelt beschreiben.
      */
-    public boolean isSameWorld(WorldKey first, WorldKey second) {
+/*     public boolean isSameWorld(WorldKey first, WorldKey second) {
         if (first == null || second == null) {
             return false;
         }
 
         return first.key().equals(second.key());
     }
-
+ */
     /*
      * Prüft, ob ein NPC und ein Marker zur selben Welt gehören.
      * Beide Werte sind hier einfache worldKey-Strings.
@@ -95,13 +115,6 @@ public final class WorldManager {
         }
 
         return npcWorldKey.trim().equals(markerWorldKey.trim());
-    }
-
-    /*
-     * Macht einen Welt-Namen sicher für Datei- und Ordnernamen.
-     */
-    public String sanitizeWorldKey(String value) {
-        return WorldKey.sanitize(value);
     }
 
     /*

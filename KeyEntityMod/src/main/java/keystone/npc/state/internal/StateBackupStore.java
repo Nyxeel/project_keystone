@@ -24,7 +24,7 @@ import keystone.npc.state.StateSaveResult;
 public final class StateBackupStore {
 
     private static final DateTimeFormatter BACKUP_TIMESTAMP_FORMAT =
-            DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss_SSS");
+            DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm");
 
     private final StatePathResolver pathResolver;
 

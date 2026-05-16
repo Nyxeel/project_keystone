@@ -44,14 +44,21 @@ public class KeystoneNpcPlugin extends JavaPlugin {
     @Override
     protected void setup() {
         if (service != null) {
-            throw new IllegalStateException("KeystoneNPC setup() was already called.");
+            throw new IllegalStateException("setup() was already called.");
         }
 
-        this.service = new NpcPluginBootstrap(
+        try {
+			this.service = new NpcPluginBootstrap(
                 this,
                 this::queueInitialRespawnIfNeeded
-        ).setupNpcMod();
-    }
+        	).setupNpcMod();
+		} catch (IllegalStateException e) {
+			System.err.println("[KeystoneNPC][SETUP_FAILED] " + e.getMessage());
+			throw e;
+		}
+
+
+	}
 
     /*
      * Wird aufgerufen, wenn der Server bereit ist.

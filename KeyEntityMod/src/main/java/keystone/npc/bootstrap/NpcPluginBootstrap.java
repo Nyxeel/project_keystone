@@ -59,7 +59,7 @@ public final class NpcPluginBootstrap {
  		* Bereitet das World-System vor.
  		* Aktuell ist das nur Skeleton-Setup, später werden hier Hytale-Welten geprüft.
  		*/
-		prepareWorldSystem();
+	    prepareWorldSystem();
 
 
 
