@@ -83,30 +83,42 @@ public final class WorldStateStore {
             return StateLoadResult.failed("Failed to resolve state.json path for world " + checkedWorldKey + ": " + e.getMessage());
         }
 
+
+
+		// Wenn keine Server noch keine state.json hat (weil erster Start)
         if (!fileIO.exists(stateFile)) {
 			String emptyJson = jsonCodec.emptyWorldStateJson();
-            PersistedWorldState defaultState = jsonCodec.decodeWorldState(checkedWorldKey, emptyJson);
+            PersistedWorldState defaultState = jsonCodec.JsonToWorldState(checkedWorldKey, emptyJson); //check ob json format stimmt
 
             if (defaultState == null) {
 				return StateLoadResult.failed("Internal error: default world state JSON is invalid.");
 			}
 
             loadedWorldState.put(checkedWorldKey, defaultState);
-            return StateLoadResult.success("No state.json found. Empty world state prepared for world: " + checkedWorldKey);
+            return StateLoadResult.success(
+			"No state.json found. Empty world state prepared for world: " + checkedWorldKey,
+			defaultState);
         }
+
+
+		// Wenn Server schon ne state.json hat, dann auslesen um NPC laden zu koennen!
+		//TODO: es ist wichtig das NPC auck korrekt gefunden werden, wenn in deren role.json
+		//		aenderungen gab die nicht mehr der state.json entsprechen!
+
 
         String stateJson = fileIO.readString(stateFile);
         if (stateJson == null) {
             return StateLoadResult.failed("Failed to read state.json for world: " + checkedWorldKey);
         }
 
-        PersistedWorldState decodedState = jsonCodec.decodeWorldState(checkedWorldKey, stateJson);
+        PersistedWorldState decodedState = jsonCodec.JsonToWorldState(checkedWorldKey, stateJson);
     	if (decodedState == null) {
-			return StateLoadResult.failed("Internal error: default world state JSON is invalid.");
+			return StateLoadResult.failed("Invalid state.json for world: " + checkedWorldKey);
 		}
 
         loadedWorldState.put(checkedWorldKey, decodedState);
-        return StateLoadResult.success("Loaded state.json for world: " + checkedWorldKey);
+        return StateLoadResult.success( "Loaded state.json for world: " + checkedWorldKey,
+											decodedState);
     }
 
     /*
@@ -125,9 +137,12 @@ public final class WorldStateStore {
             return StateSaveResult.failed("Cannot save world state: world not loaded: " + checkedWorldKey);
         }
 
-        String rawJson = loadedWorldState.get(checkedWorldKey);
-        String encodedJson = jsonCodec.encodeRaw(rawJson);
+        PersistedWorldState worldState = loadedWorldState.get(checkedWorldKey);
+		if (worldState == null) {
+			return StateSaveResult.failed("World state is not loaded.");
+		}
 
+        String encodedJson = jsonCodec.WorldStateToJson(worldState);
         if (encodedJson == null) {
             return StateSaveResult.failed("Cannot save world state: loaded JSON is invalid for world: " + checkedWorldKey);
         }
@@ -156,18 +171,16 @@ public final class WorldStateStore {
         if (!saved) {
             return StateSaveResult.failed("Failed to save state.json for world: " + checkedWorldKey);
         }
-
-
-		/*
-        loadedWorldState.put(checkedWorldKey, encodedJson);
         return StateSaveResult.success("Saved state.json for world: " + checkedWorldKey);
-    	 */
-
-	}
+    }
 
     /*
      * Speichert alle Welten, die aktuell im Speicher geladen sind.
      */
+
+
+	// Denk nicht das wir das brauchen, da immer nur ein server laueft,
+	// aber fuer mehrere Dimensionen wie Nether, End, Overworld interessant!
     public StateSaveResult saveAllLoadedWorlds() {
         for (String worldKey : new ArrayList<>(loadedWorldState.keySet())) {
             StateSaveResult result = saveWorld(worldKey);
@@ -193,13 +206,14 @@ public final class WorldStateStore {
             return StateLoadResult.failed("Cannot put raw world JSON: " + e.getMessage());
         }
 
-        String decodedJson = jsonCodec.decodeRaw(json);
-        if (decodedJson == null) {
-            return StateLoadResult.failed("Cannot put raw world JSON: json is invalid for world: " + checkedWorldKey);
-        }
+        PersistedWorldState decodedState = jsonCodec.JsonToWorldState(checkedWorldKey, json);
+    	if (decodedState == null) {
+			return StateLoadResult.failed("Cannot put raw world JSON: json is invalid for world: " + checkedWorldKey);
+		}
 
-        loadedWorldState.put(checkedWorldKey, decodedJson);
-        return StateLoadResult.success("Raw world JSON accepted for world: " + checkedWorldKey);
+        loadedWorldState.put(checkedWorldKey, decodedState);
+        return StateLoadResult.success("Raw world JSON accepted for world: " + checkedWorldKey,
+																decodedState);
     }
 
     /*

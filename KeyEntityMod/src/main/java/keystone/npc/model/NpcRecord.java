@@ -50,10 +50,10 @@ public final class NpcRecord {
         this.identity = new NpcIdentity(npcId, npcName, roleId);
         this.entityIdentity = new NpcEntityIdentity();
         this.worldBinding = new NpcWorldBinding(worldKey);
-        this.structureBinding = new NpcStructureBinding();
+        this.structureBinding = new NpcStructureBinding(); 			//prefab id zb lumberajck_id5
         this.spawnSelection = new NpcSpawnSelection();
-        this.appearanceSelection = new NpcAppearanceSelection();
-        this.markerAssignments = new NpcMarkerAssignments();
+        this.appearanceSelection = new NpcAppearanceSelection(); 	//apperance pool
+        this.markerAssignments = new NpcMarkerAssignments();		
 
         this.entityStatus = NpcEntityStatus.NEEDS_RELINK;
         this.state = NpcState.IDLE;

@@ -28,6 +28,9 @@ public final class StateJsonCodec {
     private static final Pattern NPCS_FIELD = Pattern.compile("\"npcs\"\\s*:");
     private static final Pattern MARKERS_FIELD = Pattern.compile("\"markers\"\\s*:");
 	private static final Pattern EMPTY_NPCS_FIELD = Pattern.compile("\"npcs\"\\s*:\\s*\\[\\s*\\]");
+	// MORE FIELDS LATER
+
+
 
     /*
      * Gibt einen leeren, aber gültigen Welt-State als JSON zurück.
@@ -43,14 +46,14 @@ public final class StateJsonCodec {
     }
 
 
-	private static String escapeJson(String value) {
+	private static String escapeJson(String value) { ///warum den worldkey escapen ?
    		return value
         	.replace("\\", "\\\\")
             .replace("\"", "\\\"");
 	}
 
 
-	public String encodeWorldState(PersistedWorldState worldState) {
+	public String WorldStateToJson(PersistedWorldState worldState) {
 		if (worldState == null)
 			return null;
 
@@ -67,6 +70,8 @@ public final class StateJsonCodec {
              "markers": []
            }
            """.formatted(escapeJson(worldKey));
+		// TODO: Nur ne Skelet nachricht
+		// Muss spaeter die NPC Record eintraege rauslesen und dann als json returnen!
 	}
 
 
@@ -84,39 +89,25 @@ public final class StateJsonCodec {
 	 */
 
 
-	public PersistedWorldState decodeWorldState(String worldKey, String json) {
+	public PersistedWorldState JsonToWorldState(String worldKey, String json) {
 		if (worldKey == null || worldKey.isBlank()) {
 			return null;
 		}
 
-		if (json == null || json.isBlank()) {
+		if (!isValidStateJson(json)) {
 			return null;
 		}
 
 		String trimmedJson = json.trim();
-
-		if (!trimmedJson.startsWith("{") || !trimmedJson.endsWith("}")) {
+		if (!EMPTY_NPCS_FIELD.matcher(trimmedJson).find()) { //Empty field skelett!
 			return null;
 		}
 
-		if (!new JsonSyntaxParser(trimmedJson).isValidJson()) {
-			return null;
-		}
-
-		if (!VERSION_FIELD.matcher(trimmedJson).find()) {
-			return null;
-		}
-
-		if (!NPCS_FIELD.matcher(trimmedJson).find()) {
-			return null;
-		}
-
-		if (!EMPTY_NPCS_FIELD.matcher(trimmedJson).find()) {
-			return null;
-		}
-
-		return new PersistedWorldState(worldKey);
+		return new PersistedWorldState(worldKey.trim());
+		// TODO: nur nen Skelett return, muss in NPC Record die eintraege speichern
 	}
+
+
     /*
      * Prüft, ob ein JSON-Text als Skeleton-state.json verwendbar ist.
      */
@@ -137,6 +128,7 @@ public final class StateJsonCodec {
 	    return VERSION_FIELD.matcher(trimmed).find()
 	           && NPCS_FIELD.matcher(trimmed).find()
 	           && MARKERS_FIELD.matcher(trimmed).find();
+			   // TODO: JSON Marker die aus der File gelesen werden soll hier und oben eintragen!
 	}
 
 	/*
