@@ -44,9 +44,10 @@ public final class StateJsonCodec {
                 }
                 """;
     }
+	//TODO: JSON bei Bedarf erweitern
 
 
-	private static String escapeJson(String value) { ///warum den worldkey escapen ?
+	private static String escapeJson(String value) {
    		return value
         	.replace("\\", "\\\\")
             .replace("\"", "\\\"");

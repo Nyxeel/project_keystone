@@ -68,7 +68,7 @@ public final class NpcStateStore {
      * Lädt später den gesamten bekannten NPC-State.
      * Im Skeleton gibt es noch keinen automatischen World-Scan.
      */
-    public StateLoadResult loadState() {
+    public StateLoadResult loadWorldState() {
 
 		prepareBaseDirectories();
 

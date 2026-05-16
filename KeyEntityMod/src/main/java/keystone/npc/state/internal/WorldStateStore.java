@@ -77,6 +77,7 @@ public final class WorldStateStore {
 
         Path stateFile;
 
+		// Baut Pfad key-entity-mod/<worldKey>/state.json
         try {
             stateFile = pathResolver.stateFile(checkedWorldKey);
         } catch (RuntimeException e) {

@@ -31,7 +31,6 @@ public final class StatePathResolver {
     private final KeystoneNpcPlugin plugin;
 
     private final Path baseDir;
-    private final Path worldsDir;
     private final Path backupsDir;
 
     /*
@@ -57,7 +56,6 @@ public final class StatePathResolver {
  		*/
 
         this.baseDir = Path.of("key-entity-mod");
-        this.worldsDir = baseDir;
         this.backupsDir = baseDir.resolve("backups");
     }
 
@@ -67,7 +65,6 @@ public final class StatePathResolver {
     public void prepareBaseDirectories() {
         try {
             Files.createDirectories(baseDir);
-            Files.createDirectories(worldsDir);
             Files.createDirectories(backupsDir);
         } catch (IOException e) {
             throw new IllegalStateException("Failed to prepare KeystoneNPC state directories.", e);
@@ -79,7 +76,7 @@ public final class StatePathResolver {
 	 * Baut den Ordner für genau eine Welt.
 	 *
 	 * Zielstruktur:
-	 * key-entity-mod/<worldKey>/state.json
+	 * key-entity-mod/<worldName>/state.json
 	 */
 	public Path worldDirectory(String worldKey) {
 		if (worldKey == null || worldKey.isBlank()) {
@@ -105,7 +102,8 @@ public final class StatePathResolver {
     /*
      * Gibt den Pfad zur state.json einer konkreten Server-Spielwelt zurück.
      */
-    public Path stateFile(String worldKey) {
+    public Path
+	stateFile(String worldKey) {
         return worldDirectory(worldKey).resolve("state.json");
     }
 

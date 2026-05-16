@@ -23,6 +23,8 @@ public final class WorldManager {
 
     private final KeystoneNpcPlugin plugin;
     public 	String					worldKey;
+    public 	String					worldName;
+
 
 
     /*
@@ -40,18 +42,15 @@ public final class WorldManager {
      */
     public void prepare() {
         // TODO: Später Hytale-Welten / Save-Infos prüfen, wenn API final klar ist.
-		/////API fuer worldkey ist bekannt!!
-		///
-		///
-		/// WorldKey.fromAPI() !!!
-		///
-		///
-		///
-		/// String worldKey = world.getWorldConfig().getUuid().toString();
 
-		this.worldKey = "TestKeyInWorldManager"; //TODO; Testkey for debbuging.
 
-        // TODO: Keine Welt scannen, keine Chunks laden und keine NPCs spawnen.
+		final String worldUuid = "56adsf-215sfd-jbhv5473-udrsyt908"; //world.getWorldConfig().getUuid().toString();
+		this.worldKey = worldUuid; //TODO; worldUuid API -> world.getWorldConfig().getUuid().toString();
+
+		this.worldName = "TestWelt"; // Weltname API -> world.getName();
+
+
+		// TODO: Keine Welt scannen, keine Chunks laden und keine NPCs spawnen.
     }
 
 

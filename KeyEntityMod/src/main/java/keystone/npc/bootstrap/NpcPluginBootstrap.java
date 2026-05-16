@@ -95,7 +95,7 @@ public final class NpcPluginBootstrap {
 		// Später bei deinem World-System:
 		// state.json sollte pro Server-Welt geladen werden,
 		// z. B. key-entity-mod/worlds/<worldKey>/state.json.
-		loadState();
+		loadWorldState();
 
 
 		// 4) Commands registrieren
@@ -140,9 +140,9 @@ public final class NpcPluginBootstrap {
         service.definition().loadDefinitions();
     }
 
-    private void loadState()
+    private void loadWorldState()
 	{
-        service.stateStore().loadState();
+        service.stateStore().loadWorldState();
     }
 
     private void registerCommands()
