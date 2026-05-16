@@ -17,6 +17,10 @@ public final class NpcPluginBootstrap {
     private NpcServices service;
 
 
+
+
+
+
     public NpcPluginBootstrap(KeystoneNpcPlugin plugin, Consumer<String> queueInitialRespawn)
 	{
      	this.plugin = Objects.requireNonNull(plugin, "plugin must not be null");
@@ -28,10 +32,12 @@ public final class NpcPluginBootstrap {
 
     public NpcServices setupNpcMod()
 	{
-		if (service != null) {
+		if (this.service != null) {
     		throw new IllegalStateException("NpcPluginBootstrap setupNpcMod() was already called.");
 		}
         System.out.println("[KeystoneNPC] setup...");
+
+
 
 		// 1) Services bauen
 		// Hier wird die zentrale Service-Schaltzentrale erstellt.

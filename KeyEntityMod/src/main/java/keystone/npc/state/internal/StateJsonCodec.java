@@ -27,6 +27,7 @@ public final class StateJsonCodec {
     private static final Pattern VERSION_FIELD = Pattern.compile("\"version\"\\s*:");
     private static final Pattern NPCS_FIELD = Pattern.compile("\"npcs\"\\s*:");
     private static final Pattern MARKERS_FIELD = Pattern.compile("\"markers\"\\s*:");
+	private static final Pattern EMPTY_NPCS_FIELD = Pattern.compile("\"npcs\"\\s*:\\s*\\[\\s*\\]");
 
     /*
      * Gibt einen leeren, aber gültigen Welt-State als JSON zurück.
@@ -53,7 +54,7 @@ public final class StateJsonCodec {
 		if (worldState == null)
 			return null;
 
-		String worldKey = worldState.worldKey();
+		String worldKey = worldState.worldKey(); //
 
 		if (worldKey == null || worldKey.isBlank())
 			return null;
@@ -70,20 +71,52 @@ public final class StateJsonCodec {
 
 
 
-/* 	public PersistedWorldState decodeWorldState(String worldKey, String json) {
+	/*
+	 * Liest den JSON-Text einer state.json und baut daraus einen PersistedWorldState.
+	 *
+	 * Wichtig:
+	 * Diese Methode darf kaputtes JSON niemals still als leeren State behandeln.
+	 * Wenn etwas fehlt oder ungültig ist, gibt sie null zurück.
+	 *
+	 * Phase 2 Minimal-Version:
+	 * - leere npc-Liste ist erlaubt
+	 * - echte NPC-Records werden später sauber geparst
+	 */
 
-		if ( )
 
-		if (json == null || json.isBlank())
+	public PersistedWorldState decodeWorldState(String worldKey, String json) {
+		if (worldKey == null || worldKey.isBlank()) {
 			return null;
+		}
 
-		return
+		if (json == null || json.isBlank()) {
+			return null;
+		}
 
+		String trimmedJson = json.trim();
 
+		if (!trimmedJson.startsWith("{") || !trimmedJson.endsWith("}")) {
+			return null;
+		}
 
+		if (!new JsonSyntaxParser(trimmedJson).isValidJson()) {
+			return null;
+		}
 
-	} */
+		if (!VERSION_FIELD.matcher(trimmedJson).find()) {
+			return null;
+		}
 
+		if (!NPCS_FIELD.matcher(trimmedJson).find()) {
+			return null;
+		}
+
+		if (!EMPTY_NPCS_FIELD.matcher(trimmedJson).find()) {
+			return null;
+		}
+
+		return new PersistedWorldState(worldKey);
+	}
     /*
      * Prüft, ob ein JSON-Text als Skeleton-state.json verwendbar ist.
      */
@@ -91,31 +124,29 @@ public final class StateJsonCodec {
         if (json == null || json.isBlank()) {
             return false;
         }
+	    String trimmed = json.trim();
 
-        String trimmed = json.trim();
+	    if (!trimmed.startsWith("{") || !trimmed.endsWith("}")) {
+	        return false;
+	    }
 
-        if (!trimmed.startsWith("{") || !trimmed.endsWith("}")) {
-            return false;
-        }
+	    if (!new JsonSyntaxParser(trimmed).isValidJson()) {
+	        return false;
+	    }
 
-        if (!new JsonSyntaxParser(trimmed).isValidJson()) {
-            return false;
-        }
+	    return VERSION_FIELD.matcher(trimmed).find()
+	           && NPCS_FIELD.matcher(trimmed).find()
+	           && MARKERS_FIELD.matcher(trimmed).find();
+	}
 
-        return VERSION_FIELD.matcher(trimmed).find()
-                && NPCS_FIELD.matcher(trimmed).find()
-                && MARKERS_FIELD.matcher(trimmed).find();
-    }
-
-    /*
-     * Bereitet rohes JSON vor dem Speichern vor.
-     * Ungültiges JSON wird nicht durch Default-State ersetzt.
-     */
-    public String encodeRaw(String json) {
-        if (!isValidStateJson(json)) {
-            return null;
-        }
-
+	/*
+	* Bereitet rohes JSON vor dem Speichern vor.
+	* Ungültiges JSON wird nicht durch Default-State ersetzt.
+	*/
+	public String encodeRaw(String json) {
+	    if (!isValidStateJson(json)) {
+	        return null;
+	    }
         return json.trim();
     }
 

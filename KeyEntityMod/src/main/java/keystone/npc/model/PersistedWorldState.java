@@ -11,7 +11,7 @@ import java.util.Optional;
  * PersistedWorldState beschreibt den kompletten gespeicherten NPC-State einer Server-Spielwelt.
  *
  * Diese Klasse ist später der Inhalt von:
- * keystone-npc/worlds/<worldKey>/state.json
+ * keystone-npc/<worldKey>/state.json  ---Das ist wahrheit fuer das project!
  *
  * Sie enthält persistente NpcRecord-Objekte.
  * Sie enthält keine RuntimeNpc-Objekte.

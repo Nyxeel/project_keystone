@@ -16,6 +16,12 @@ import keystone.npc.KeystoneNpcPlugin;
  * - Pfad zu state.json pro Welt erzeugen
  * - worldKey sicher für Dateipfade machen
  *
+ * Path: key-entit-mod/<worldKey>/state.json
+ * Wichtig:
+ * Es werden innerhalb einer world verschiedene Dimensionen ins spiel kommen,
+ * die später die state.json nach dimension aufteilen muss!! oder zumindest
+ * "worldKey": "world_" + dimension string anhaengen! oder in die json den dimension
+ * eintrage extra anlegen: "dimension": "overworld"
  * Wichtig:
  * Diese Klasse kennt keine NPC-Logik.
  * Sie entscheidet nur, wo Dateien liegen.
@@ -51,9 +57,7 @@ public final class StatePathResolver {
  		*/
 
         this.baseDir = Path.of("key-entity-mod");
-
-
-        this.worldsDir = baseDir.resolve("worlds");
+        this.worldsDir = baseDir;
         this.backupsDir = baseDir.resolve("backups");
     }
 
@@ -70,31 +74,33 @@ public final class StatePathResolver {
         }
     }
 
-    /*
-     * Gibt den Ordner für eine konkrete Server-Spielwelt zurück.
-     */
-    public Path worldDirectory(String worldKey) {
-        prepareBaseDirectories();
 
+    /*
+	 * Baut den Ordner für genau eine Welt.
+	 *
+	 * Zielstruktur:
+	 * key-entity-mod/<worldKey>/state.json
+	 */
+	public Path worldDirectory(String worldKey) {
 		if (worldKey == null || worldKey.isBlank()) {
 			throw new IllegalArgumentException("worldKey must not be null or blank.");
 		}
 
+		String safeWorldKey = worldKey.trim();
 
-        String safeWorldKey = sanitizeWorldKey(worldKey);
-        Path worldDir = worldsDir.resolve(safeWorldKey).normalize();
+		Path basePath = baseDir.toAbsolutePath().normalize();
+		Path worldDirectory = basePath.resolve(safeWorldKey).normalize();
 
-        if (!worldDir.startsWith(worldsDir.normalize())) {
-            throw new IllegalArgumentException("Resolved world directory escaped worldsDir: " + worldKey);
-        }
+		if (!worldDirectory.startsWith(basePath)) {
+			throw new IllegalArgumentException("worldKey escapes state directory: " + worldKey);
+		}
 
-        try {
-            Files.createDirectories(worldDir);
-            return worldDir;
-        } catch (IOException e) {
-            throw new IllegalStateException("Failed to prepare world directory: " + safeWorldKey, e);
-        }
-    }
+		if (worldDirectory.equals(backupsDir.toAbsolutePath().normalize())) {
+			throw new IllegalArgumentException("worldKey is reserved: " + worldKey);
+		}
+
+		return worldDirectory;
+	}
 
     /*
      * Gibt den Pfad zur state.json einer konkreten Server-Spielwelt zurück.

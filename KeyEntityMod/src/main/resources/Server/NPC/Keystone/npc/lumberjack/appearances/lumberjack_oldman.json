@@ -1,5 +1,25 @@
 {
   "id": "lumberjack_oldman_appearance",
   "version": 1,
-  "value": "Player"
+  "value": "Player",
+  "bodyCharacteristic": "Default.33",
+  "underwear": "Suit.Turquoise",
+  "face": "Face_Older2",
+  "ears": "Elf_Ears_Small",
+  "mouth": "Mouth_Cute",
+  "haircut": "SuperSideSlick.BlueLight",
+  "facialHair": "Beard_Large.BlueLight",
+  "eyebrows": "Plucked.BlueLight",
+  "eyes": "Reptile_Eyes.Black",
+  "pants": "CostumePants.White",
+  "overpants": null,
+  "undertop": "Crinkled_Top.Pink",
+  "overtop": "TrenchCoat.Blue",
+  "shoes": "BasicShoes_Buckle.White",
+  "headAccessory": null,
+  "faceAccessory": "BusinessGlasses.Black",
+  "earAccessory": null,
+  "skinFeature": null,
+  "gloves": null,
+  "cape": "Cape_Forest_Guardian.Green.Neck_Piece"
 }
