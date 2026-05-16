@@ -54,7 +54,7 @@ public final class WorldStateStore {
      * Lädt später alle bekannten Welten.
      * Im Skeleton macht diese Methode noch keinen echten World-Scan.
      */
-    public StateLoadResult loadAllKnownWorlds() {
+    public StateLoadResult loadAllWorldDimensions() {
         try {
             pathResolver.prepareBaseDirectories();
             return StateLoadResult.success("World state store prepared. No automatic world scan implemented yet.");

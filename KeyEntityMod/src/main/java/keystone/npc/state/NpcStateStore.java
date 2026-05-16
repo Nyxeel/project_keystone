@@ -8,6 +8,7 @@ import keystone.npc.state.internal.StateFileIO;
 import keystone.npc.state.internal.StateJsonCodec;
 import keystone.npc.state.internal.StatePathResolver;
 import keystone.npc.state.internal.WorldStateStore;
+import keystone.npc.world.WorldManager;
 
 /*
  * NpcStateStore ist die obere State-Schicht der Mod.
@@ -32,19 +33,21 @@ public final class NpcStateStore {
     private final StateJsonCodec jsonCodec;
     private final StateBackupStore backupStore;
     private final WorldStateStore worldStateStore;
+    private final WorldManager worldManager;
 
     private boolean dirty;
 
     /*
      * Erstellt den StateStore und alle internen State-Hilfsschichten.
      */
-    public NpcStateStore(KeystoneNpcPlugin plugin) {
+    public NpcStateStore(KeystoneNpcPlugin plugin, WorldManager worldManager) {
         this.plugin = Objects.requireNonNull(plugin, "plugin must not be null");
 
         this.pathResolver = new StatePathResolver(plugin);
         this.fileIO = new StateFileIO();
         this.jsonCodec = new StateJsonCodec();
         this.backupStore = new StateBackupStore(pathResolver);
+		this.worldManager = worldManager;
 
         this.worldStateStore = new WorldStateStore(
                 pathResolver,
@@ -66,26 +69,15 @@ public final class NpcStateStore {
      * Im Skeleton gibt es noch keinen automatischen World-Scan.
      */
     public StateLoadResult loadState() {
-        StateLoadResult result = worldStateStore.loadAllKnownWorlds();
 
+		prepareBaseDirectories();
+
+		String worldKey = worldManager.getWorldKey();
+		StateLoadResult result = worldStateStore.loadWorld(worldKey);
         if (!result.success()) {
             dirty = false;
         }
-
-        return result;
-    }
-
-    /*
-     * Lädt den NPC-State für genau eine Welt.
-     */
-    public StateLoadResult loadWorldState(String worldKey) {
-        StateLoadResult result = worldStateStore.loadWorld(worldKey);
-
-        if (!result.success()) {
-            dirty = false;
-        }
-
-        return result;
+	    return result;
     }
 
     /*
@@ -153,5 +145,12 @@ public final class NpcStateStore {
      */
     public WorldStateStore worldStateStore() {
         return worldStateStore;
+    }
+	  /*
+     * Gibt den internen WorldManager zurück.
+     *
+     */
+    public WorldManager worldManager() {
+        return worldManager;
     }
 }

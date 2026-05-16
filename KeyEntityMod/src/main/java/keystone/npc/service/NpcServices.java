@@ -93,7 +93,7 @@ public final class NpcServices {
         WorldManager worldManager = new WorldManager(plugin);
         NpcManager npcManager = new NpcManager();
         MarkerRegistry markerRegistry = new MarkerRegistry();
-        NpcStateStore stateStore = new NpcStateStore(plugin);
+        NpcStateStore stateStore = new NpcStateStore(plugin, worldManager);
         NpcDefinition definition = new NpcDefinition(plugin);
 
         MarkerAssignment markerAssignment =

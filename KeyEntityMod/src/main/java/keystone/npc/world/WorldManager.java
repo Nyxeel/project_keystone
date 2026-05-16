@@ -22,6 +22,8 @@ import keystone.npc.KeystoneNpcPlugin;
 public final class WorldManager {
 
     private final KeystoneNpcPlugin plugin;
+    public 	String					worldKey;
+
 
     /*
      * Erstellt den WorldManager.
@@ -29,6 +31,7 @@ public final class WorldManager {
      */
     public WorldManager(KeystoneNpcPlugin plugin) {
         this.plugin = Objects.requireNonNull(plugin, "plugin must not be null");
+
     }
 
     /*
@@ -41,10 +44,23 @@ public final class WorldManager {
 		///
 		///
 		/// WorldKey.fromAPI() !!!
+		///
+		///
+		///
+		/// String worldKey = world.getWorldConfig().getUuid().toString();
 
-
+		this.worldKey = "TestKeyInWorldManager"; //TODO; Testkey for debbuging.
 
         // TODO: Keine Welt scannen, keine Chunks laden und keine NPCs spawnen.
+    }
+
+
+
+	/*
+     * Gibt den Welt-Key zurück.
+     */
+    public String getWorldKey() {
+        return this.worldKey;
     }
 
     /*
