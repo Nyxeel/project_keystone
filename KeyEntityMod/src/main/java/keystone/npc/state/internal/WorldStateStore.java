@@ -88,8 +88,10 @@ public final class WorldStateStore {
 		// Wenn keine Server noch keine state.json hat (weil erster Start)
         if (!fileIO.exists(stateFile)) {
 			String emptyJson = jsonCodec.emptyWorldStateJson();
-            PersistedWorldState defaultState = jsonCodec.JsonToWorldState(checkedWorldKey, emptyJson); //check ob json format stimmt
 
+
+			// Hier wird defualt json file eingelesen (derzeit nur worldkey weil skelett)
+			PersistedWorldState defaultState = jsonCodec.JsonToWorldState(checkedWorldKey, emptyJson); //check ob json format stimmt
             if (defaultState == null) {
 				return StateLoadResult.failed("Internal error: default world state JSON is invalid.");
 			}
@@ -100,26 +102,37 @@ public final class WorldStateStore {
 			defaultState);
         }
 
-
-		// Wenn Server schon ne state.json hat, dann auslesen um NPC laden zu koennen!
-		//TODO: es ist wichtig das NPC auck korrekt gefunden werden, wenn in
-		// resources/Server/NPC/Roles in deren role.json aenderungen gab die
-		// nicht mehr der state.json entsprechen!
-
+		boolean loadedFromBackup = false;
 
         String stateJson = fileIO.readString(stateFile);
         if (stateJson == null) {
-            return StateLoadResult.failed("Failed to read state.json for world: " + checkedWorldKey);
+
+			stateJson = backupStore.loadBackup(checkedWorldKey);
+			loadedFromBackup = true;
+			if (stateJson == null)
+				return StateLoadResult.failed("Failed to read state.json for world: " + checkedWorldKey);
         }
 
+		// Hier werden die Eintraege aus state.json in NPC Record eingelesen (derzeit nur worldkey weil skelett)
         PersistedWorldState decodedState = jsonCodec.JsonToWorldState(checkedWorldKey, stateJson);
-    	if (decodedState == null) {
-			return StateLoadResult.failed("Invalid state.json for world: " + checkedWorldKey);
+    	if (decodedState == null && !loadedFromBackup) {
+
+			stateJson = backupStore.loadBackup(checkedWorldKey);
+			loadedFromBackup = true;
+			if (stateJson == null)
+				return StateLoadResult.failed("Invalid state.json and no backup found for world: " + checkedWorldKey);
+
+			decodedState = jsonCodec.JsonToWorldState(checkedWorldKey, stateJson);
 		}
+		if (decodedState == null)
+				return StateLoadResult.failed("Invalid state.json and no backup found for world: " + checkedWorldKey);
 
         loadedWorldState.put(checkedWorldKey, decodedState);
-        return StateLoadResult.success( "Loaded state.json for world: " + checkedWorldKey,
-											decodedState);
+        return StateLoadResult.success(
+			loadedFromBackup
+				? "Loaded Backup state.json for world: " + checkedWorldKey
+				: "Loaded state.json for world: " + checkedWorldKey,
+				decodedState);
     }
 
     /*

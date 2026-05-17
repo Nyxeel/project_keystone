@@ -1,5 +1,7 @@
 package keystone.npc.state;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Objects;
 
 import keystone.npc.KeystoneNpcPlugin;
@@ -72,9 +74,9 @@ public final class NpcStateStore {
 
 		StateLoadResult result;
 
+		prepareBaseDirectories();
 		for (String worldKey : worldManager.worldKeys()) {
 
-			prepareBaseDirectories();
 			result = worldStateStore.loadWorld(worldKey);
 			if (!result.success()) {
 				dirty = false;
@@ -103,20 +105,28 @@ public final class NpcStateStore {
         if (!dirty) {
             return true;
         }
-
-		StateSaveResult result;
+		Map<String, String> failedSaveWorlds = new LinkedHashMap<>();
 
 		for (String worldKey : worldManager.worldKeys()) {
 
-			result = worldStateStore.saveWorld(worldKey);
+			StateSaveResult result = worldStateStore.saveWorld(worldKey);
         	if (!result.success()) {
-        	    dirty = true;
-				System.err.println("[KeystoneNPC][STATE_SAVE_FAILED] " + result.message());
-        	    return false;
-        	}
+				failedSaveWorlds.put(worldKey, result.message());
+			}
+		}
+		if (!failedSaveWorlds.isEmpty())
+		{
+			dirty = true;
+			System.err.println("[KeystoneNPC] ");
+			for (Map.Entry<String, String> entry : failedSaveWorlds.entrySet())
+			{
+				System.err.println("[WORLD_SAVE_FAILED] "
+						+ entry.getKey() + entry.getValue());
+			}
+			return false;
 		}
 		dirty = false;
-		return false;
+		return true;
     }
 
     /*
@@ -147,7 +157,7 @@ public final class NpcStateStore {
      * Gibt zurück, ob ungespeicherte Änderungen existieren.
      */
     public boolean markNotDirty() {
-        return dirty;
+        return this.dirty = false;
     }
 
     /*

@@ -59,8 +59,6 @@ public final class WorldManager {
 
 
 		Map<String, World> worlds = Universe.get().getWorlds();
-
-
 		Map<String, WorldData> localWorldData = new LinkedHashMap<>();
 
 		for (World world : worlds.values()) {
@@ -100,6 +98,7 @@ public final class WorldManager {
     	return worldData.get(worldKey);
 	}
 
+
 	public Set<String> worldKeys() {
 		return worldData.keySet();
 	}
@@ -136,26 +135,6 @@ public final class WorldManager {
 
 
 
-
-
-
-
-
-
-
-
-    /*
-     * Erstellt einen WorldKey udnd WorldName.
-     * Das ist aktuell der sichere Minimal-Fallback.
-     */
-    public String getWorldKeyFromAPI() {
-        return "TestKey"; //TODO; worldUuid API -> world.getWorldConfig().getUuid().toString();
-    }
-
-
-	public String getWorldNameFromAPI() {
-        return "TestWelt"; // TODO: Weltname API -> world.getName();
-    }
 
     /*
      * Prüft, ob ein NPC und ein Marker zur selben Welt gehören.

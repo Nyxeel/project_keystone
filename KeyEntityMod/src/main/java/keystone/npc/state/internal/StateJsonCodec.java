@@ -46,6 +46,17 @@ public final class StateJsonCodec {
     }
 	//TODO: JSON bei Bedarf erweitern
 
+	// npcId
+	// roleId
+	// worldKey / worldUuid
+	// entityUuid
+	// state
+	// markerAssignments
+	// currentPosition
+	// structureInstanceId
+	// slotId
+	// selectedAppearanceId
+
 
 	private static String escapeJson(String value) {
    		return value
@@ -102,12 +113,19 @@ public final class StateJsonCodec {
 		}
 
 		String trimmedJson = json.trim();
-		if (!EMPTY_NPCS_FIELD.matcher(trimmedJson).find()) { //Empty field skelett!
-			return null;
+		if (!EMPTY_NPCS_FIELD.matcher(trimmedJson).find()) { //Empty fields skelett!
+			return null;									// Eintraege anlegen
 		}
 
 		return new PersistedWorldState(worldKey.trim());
 		// TODO: nur nen Skelett return, muss in NPC Record die eintraege speichern
+		// Wenn Server schon ne state.json hat, dann auslesen um NPC laden zu koennen!
+		//TODO: es ist wichtig das NPC auck korrekt gefunden werden, wenn in
+		// resources/Server/NPC/Roles in deren role.json aenderungen gab die
+		// nicht mehr der state.json entsprechen!
+
+
+
 	}
 
 

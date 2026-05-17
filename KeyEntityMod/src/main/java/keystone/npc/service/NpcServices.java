@@ -238,7 +238,7 @@ public final class NpcServices {
 
         boolean saved = stateStore.saveWorldStateSafely();
         if (!saved) {
-            System.err.println("[KeystoneNPC] Failed to save NPC state during shutdown.");
+            System.err.println("[KeystoneNPC] Failed to save World state during shutdown.");
         }
     }
 }

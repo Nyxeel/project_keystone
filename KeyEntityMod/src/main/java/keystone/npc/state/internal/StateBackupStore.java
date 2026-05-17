@@ -1,12 +1,15 @@
 package keystone.npc.state.internal;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
 import java.util.Objects;
+import java.util.stream.Stream;
 
 import keystone.npc.state.StateSaveResult;
 
@@ -94,4 +97,65 @@ public final class StateBackupStore {
 
         throw new IllegalStateException("Cannot create unique backup filename for timestamp: " + timestamp);
     }
+
+		/*
+	 * Lädt das neueste Backup für eine Welt als rohen JSON-String.
+	 *
+	 * Gibt null zurück, wenn kein Backup gefunden oder gelesen werden konnte.
+	 * Das Decoding macht danach WorldStateStore.
+	 */
+	public String loadBackup(String worldKey) {
+		if (worldKey == null || worldKey.isBlank()) {
+			return null;
+		}
+
+		try {
+			String safeWorldKey = pathResolver.sanitizeWorldKey(worldKey);
+			Path worldBackupDir = pathResolver.backupsDir().resolve(safeWorldKey);
+
+			if (!Files.isDirectory(worldBackupDir)) {
+				return null;
+			}
+
+			Path backupFile = newestBackupFile(worldBackupDir);
+			if (backupFile == null) {
+				return null;
+			}
+
+			String backupJson = Files.readString(backupFile, StandardCharsets.UTF_8);
+			if (backupJson == null || backupJson.isBlank()) {
+				return null;
+			}
+
+			return backupJson;
+		}
+		catch (IOException | RuntimeException e) {
+			return null;
+		}
+	}
+
+	/*
+	 * Sucht die neueste Backup-Datei anhand des Dateinamens.
+	 */
+	private static Path newestBackupFile(Path worldBackupDir) throws IOException {
+		try (Stream<Path> files = Files.list(worldBackupDir)) {
+			return files
+				.filter(Files::isRegularFile)
+				.filter(StateBackupStore::isStateBackupFile)
+				.max(Comparator.comparing(path -> path.getFileName().toString()))
+				.orElse(null);
+		}
+	}
+
+	/*
+	 * Prüft, ob eine Datei wie ein state.json-Backup aussieht.
+	 */
+	private static boolean isStateBackupFile(Path file) {
+		String fileName = file.getFileName().toString();
+
+		return fileName.startsWith("state_") && fileName.endsWith(".json.bak");
+	}
+
+
+
 }
