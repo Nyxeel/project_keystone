@@ -1,6 +1,13 @@
 package keystone.npc.world;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
+
+import com.hypixel.hytale.server.core.universe.Universe;
+import com.hypixel.hytale.server.core.universe.world.World;
 
 import keystone.npc.KeystoneNpcPlugin;
 
@@ -22,9 +29,7 @@ import keystone.npc.KeystoneNpcPlugin;
 public final class WorldManager {
 
     private final KeystoneNpcPlugin plugin;
-    private String worldKey;
-    private String worldName;
-
+   	private Map<String, WorldData> worldData = Map.of();
 
     /*
      * Erstellt den WorldManager.
@@ -38,12 +43,85 @@ public final class WorldManager {
      * Bereitet den WorldManager vor.
      * Im Skeleton gibt es noch nichts zu laden.
      */
-    public void prepare() {
-    // TODO: Später Hytale-Welten / Save-Infos prüfen, wenn API final klar ist.
+   			// Eine World ist NICHT das ganze Universe.
+			// Eine World ist z. B.:
+			//
+			// - lobby
+			// - farmwelt
+			// - bauwelt
+			// - dungeon_instance_001
+			// jede World hat eigene WorlUuid
+			//	Map<String, World> worldsfd
+			//	Map<UUID, World> worldsByUuid
 
 
-	// Holt WorldUuid
-    this.worldKey = getWorldKeyFromAPI();
+	public void prepare() {
+
+
+		Map<String, World> worlds = Universe.get().getWorlds();
+
+
+		Map<String, WorldData> localWorldData = new LinkedHashMap<>();
+
+		for (World world : worlds.values()) {
+
+			// get WorldUuid
+			UUID uuid = world.getWorldConfig().getUuid();
+
+			//Duplicate check!
+			if (localWorldData.containsKey(uuid.toString())) {
+				throw new IllegalStateException("Duplicate WorldUuid found: " + uuid);
+			}
+
+			// Extract World Data for each World
+			WorldData extractedWorldData  = WorldData.fromWorld(uuid.toString(), world);
+			localWorldData.put(uuid.toString(), extractedWorldData);
+		}
+		this.worldData = Map.copyOf(localWorldData);
+	}
+
+
+	/*	this.worldKeys = Map.copyOf(loadedWorldKeys);
+	if (this.worldKeys.isEmpty()) {
+		throw new IllegalStateException("No worlds found — aborting WorldManager.prepare()");
+	} */
+	// Wichtig:
+	// Hier keine Chunks laden.
+	// Hier keine NPCs spawnen.
+	// Hier nur bekannte Worlds merken.
+
+
+	//get worlddata
+	public Map<String, WorldData> worldData() {
+		return worldData;
+	}
+
+	public WorldData getWorldData(String worldKey) {
+    	return worldData.get(worldKey);
+	}
+
+	public Set<String> worldKeys() {
+		return worldData.keySet();
+	}
+
+	//service.worldManager.getWorldData(worldKey).getSavePath()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   /*  this.worldKey = getWorldKeyFromAPI();
 
 	if (this.worldKey == null || this.worldKey.isBlank()) {
        	throw new IllegalStateException("worldKey could not be resolved — aborting WorldManager.prepare()");
@@ -54,28 +132,17 @@ public final class WorldManager {
 	if (this.worldName == null || this.worldName.isBlank()) {
        	throw new IllegalStateException("worldName could not be resolved — aborting WorldManager.prepare()");
     }
-
-
-	// TODO: Keine Welt scannen, keine Chunks laden und keine NPCs spawnen.
-    }
+ 	*/
 
 
 
-	/*
-     * Gibt den Welt Key zurück.
-     */
-    public String getWorldKey() {
-        return this.worldKey;
-    }
 
 
 
-	/*
-     * Gibt den Welt Namen zurück.
-     */
-    public String getWorldName() {
-        return this.worldName;
-    }
+
+
+
+
 
     /*
      * Erstellt einen WorldKey udnd WorldName.
@@ -90,17 +157,6 @@ public final class WorldManager {
         return "TestWelt"; // TODO: Weltname API -> world.getName();
     }
 
-    /*
-     * Prüft, ob zwei WorldKeys dieselbe Server-Spielwelt beschreiben.
-     */
-/*     public boolean isSameWorld(WorldKey first, WorldKey second) {
-        if (first == null || second == null) {
-            return false;
-        }
-
-        return first.key().equals(second.key());
-    }
- */
     /*
      * Prüft, ob ein NPC und ein Marker zur selben Welt gehören.
      * Beide Werte sind hier einfache worldKey-Strings.

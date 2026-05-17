@@ -1,7 +1,6 @@
 package keystone.npc.state.internal;
 
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -54,7 +53,7 @@ public final class WorldStateStore {
      * Lädt später alle bekannten Welten.
      * Im Skeleton macht diese Methode noch keinen echten World-Scan.
      */
-    public StateLoadResult loadAllWorldDimensions() {
+    public StateLoadResult loadUniverse() {
         try {
             pathResolver.prepareBaseDirectories();
             return StateLoadResult.success("World state store prepared. No automatic world scan implemented yet.");
@@ -180,19 +179,6 @@ public final class WorldStateStore {
      */
 
 
-	// Denk nicht das wir das brauchen, da immer nur ein server laueft,
-	// aber fuer mehrere Dimensionen wie Nether, End, Overworld interessant!
-    public StateSaveResult saveAllLoadedWorlds() {
-        for (String worldKey : new ArrayList<>(loadedWorldState.keySet())) {
-            StateSaveResult result = saveWorld(worldKey);
-
-            if (!result.success()) {
-                return result;
-            }
-        }
-
-        return StateSaveResult.success("Saved all loaded world states.");
-    }
 
     /*
      * Merkt rohen JSON-State für eine Welt.

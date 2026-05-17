@@ -6,7 +6,6 @@ import java.nio.file.Path;
 import java.util.Objects;
 
 import keystone.npc.KeystoneNpcPlugin;
-
 /*
  * StatePathResolver ist nur für Pfade und Ordner zuständig.
  *
@@ -31,6 +30,7 @@ public final class StatePathResolver {
     private final KeystoneNpcPlugin plugin;
 
     private final Path baseDir;
+    private final Path worldDir;
     private final Path backupsDir;
 
     /*
@@ -40,10 +40,8 @@ public final class StatePathResolver {
     public StatePathResolver(KeystoneNpcPlugin plugin) {
         this.plugin = Objects.requireNonNull(plugin, "plugin must not be null");
 
-
-
 		/*
- 		* TODO Hytale-API:
+ 		*
  		* Dieser Pfad ist aktuell nur ein Skeleton-/Entwicklungspfad.
  		*
  		* Später darf die Mod den Speicherordner nicht selbst raten.
@@ -55,16 +53,45 @@ public final class StatePathResolver {
  		* Dadurch landen state.json und Backups später am richtigen Server-Ort.
  		*/
 
+
+		// Path base = getDataDirectory();
         this.baseDir = Path.of("key-entity-mod");
+        this.worldDir = baseDir.resolve("worlds");
         this.backupsDir = baseDir.resolve("backups");
+
+
+		// getDataDirectory()
+		// -> gibt deiner Mod ihren eigenen Server-Datenordner.
+		// -> gut für eigene Dateien wie worlds/<worldUuid>/state.json.
+			//
+		// withConfig(...)
+		// -> Hytale-Config-System für Mod-Einstellungen.
+		// -> eher für config.json, nicht für NPC-State.
+			//
+		// DataStore<T>
+		// -> Hytale-System für persistente Daten mit load/save/list/loadAll.
+		// -> gut, wenn du saubere Codec-basierte Speicherung willst.
+			//
+		// DiskDataStoreProvider("keystonenpc/worlds")
+		// -> speichert DataStore-Dateien auf Disk im Universe-/Serverbereich.
+			//
+		// Universe#getWorld(UUID)
+		// -> holt die World, zu der dein gespeicherter worldUuid gehört.
+
+
+
     }
 
     /*
      * Erstellt die globalen Basisordner der Mod.
      */
     public void prepareBaseDirectories() {
+
+
+		//TODO Hytale-API to Directory
         try {
             Files.createDirectories(baseDir);
+            Files.createDirectories(worldDir);
             Files.createDirectories(backupsDir);
         } catch (IOException e) {
             throw new IllegalStateException("Failed to prepare KeystoneNPC state directories.", e);
@@ -76,7 +103,7 @@ public final class StatePathResolver {
 	 * Baut den Ordner für genau eine Welt.
 	 *
 	 * Zielstruktur:
-	 * key-entity-mod/<worldName>/state.json
+	 * key-entity-mod/worldname/<worlduuid>/state.json
 	 */
 	public Path worldDirectory(String worldKey) {
 		if (worldKey == null || worldKey.isBlank()) {
@@ -102,8 +129,7 @@ public final class StatePathResolver {
     /*
      * Gibt den Pfad zur state.json einer konkreten Server-Spielwelt zurück.
      */
-    public Path
-	stateFile(String worldKey) {
+    public Path	stateFile(String worldKey) {
         return worldDirectory(worldKey).resolve("state.json");
     }
 

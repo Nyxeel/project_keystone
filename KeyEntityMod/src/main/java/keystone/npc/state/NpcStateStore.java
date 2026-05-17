@@ -68,16 +68,20 @@ public final class NpcStateStore {
      * Lädt später den gesamten bekannten NPC-State.
      * Im Skeleton gibt es noch keinen automatischen World-Scan.
      */
-    public StateLoadResult loadWorldState() {
+    public void loadWorldState() {
 
-		prepareBaseDirectories();
+		StateLoadResult result;
 
-		String worldKey = worldManager.getWorldKey();
-		StateLoadResult result = worldStateStore.loadWorld(worldKey);
+		for (String worldKey : worldManager.worldKeys()) {
 
-		return result;
+			prepareBaseDirectories();
+			result = worldStateStore.loadWorld(worldKey);
+			if (!result.success()) {
+				dirty = false;
+			}
+		}
 	}
-	
+
 		/*
 		 * dirty = true bedeutet: Speicher hat Änderungen, die noch nicht in state.json stehen.
 		 * dirty = false bedeutet: Speicher und Disk sind synchron.
@@ -95,28 +99,31 @@ public final class NpcStateStore {
      * Nur ein erfolgreicher Save darf dirty wieder auf false setzen.
      */
 
-    public boolean saveStateSafely() {
+    public boolean saveWorldStateSafely() {
         if (!dirty) {
             return true;
         }
 
-        StateSaveResult result = worldStateStore.saveAllLoadedWorlds();
+		StateSaveResult result;
 
-        if (result.success()) {
-            dirty = false;
-            return true;
-        }
+		for (String worldKey : worldManager.worldKeys()) {
 
-        dirty = true;
-        System.err.println("[KeystoneNPC][STATE_SAVE_FAILED] " + result.message());
-        return false;
+			result = worldStateStore.saveWorld(worldKey);
+        	if (!result.success()) {
+        	    dirty = true;
+				System.err.println("[KeystoneNPC][STATE_SAVE_FAILED] " + result.message());
+        	    return false;
+        	}
+		}
+		dirty = false;
+		return false;
     }
 
     /*
      * Speichert den State einer einzelnen Welt.
      * Ein Fehler bleibt sichtbar und setzt dirty auf true.
      */
-    public StateSaveResult saveWorldState(String worldKey) {
+/*     public StateSaveResult saveWorldState(String worldKey) {
 
 		StateSaveResult result = worldStateStore.saveWorld(worldKey);
 
@@ -127,10 +134,10 @@ public final class NpcStateStore {
 
         return result;
     }
-
+ */
     /*
      * Markiert den State als verändert.
-     * Danach soll saveStateSafely() wirklich speichern.
+     * Danach soll saveWorldStateSafely() wirklich speichern.
      */
     public void markDirty() {
         this.dirty = true;
@@ -139,7 +146,7 @@ public final class NpcStateStore {
     /*
      * Gibt zurück, ob ungespeicherte Änderungen existieren.
      */
-    public boolean isDirty() {
+    public boolean markNotDirty() {
         return dirty;
     }
 

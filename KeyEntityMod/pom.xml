@@ -22,11 +22,19 @@
         <dependency>
             <groupId>com.hypixel.hytale</groupId>
             <artifactId>hytale-server</artifactId>
-            <version>20.5.0-pre.8</version>
+            <version>0.5.0-pre.8</version>
             <scope>system</scope>
             <systemPath>${project.basedir}/libs/HytaleServer.jar</systemPath>
         </dependency>
     </dependencies>
+
+
+
+
+
+
+
+
 
     <build>
         <finalName>KeystoneNPC-${project.version}</finalName>
@@ -64,9 +72,9 @@
                         <configuration>
                             <target>
                                 <copy file="${project.build.directory}/${project.build.finalName}.jar"
-                                      todir="project_keystone/KeyEntityMod/pom.xml"
+                                      todir="/home/pj/.var/app/com.hypixel.HytaleLauncher/data/Hytale/UserData/Mods"
                                       overwrite="true"/>
-                            </target>/home/netrunner/.var/app/com.hypixel.HytaleLauncher/data/Hytale/UserData/Mods
+                            </target>
                         </configuration>
                     </execution>
                 </executions>
