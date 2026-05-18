@@ -17,17 +17,11 @@ public final class NpcPluginBootstrap {
     private NpcServices service;
 
 
-
-
-
-
     public NpcPluginBootstrap(KeystoneNpcPlugin plugin, Consumer<String> queueInitialRespawn)
 	{
      	this.plugin = Objects.requireNonNull(plugin, "plugin must not be null");
 		this.queueInitialRespawn = Objects.requireNonNull(queueInitialRespawn, "queueInitialRespawn must not be null");
     }
-
-
 
 
     public NpcServices setupNpcMod()
@@ -36,8 +30,6 @@ public final class NpcPluginBootstrap {
     		throw new IllegalStateException("NpcPluginBootstrap setupNpcMod() was already called.");
 		}
         System.out.println("[KeystoneNPC] setup...");
-
-
 
 		// 1) Services bauen
 		// Hier wird die zentrale Service-Schaltzentrale erstellt.
@@ -48,22 +40,25 @@ public final class NpcPluginBootstrap {
 		// - Spawn / Relink / Respawn / Removal
 		// - Tick / Navigation
 		// - Commands
-		//
-		// Wichtig:
-		// In der Plugin-Main soll keine große NPC-Logik stehen.
-		// Die Main startet nur die Abteilungen.
-        createServices();
+	    createServices();
+		
+
+		////////////////////////////////////////////////////////
+		// 2) World States aus den state.json laden
+ 		// Bereitet das World-System vor.
+		// Hier wird der gespeicherte Zustand geladen.
+		// Also z. B.:
+		// - holt Worlds ueber hytale API
+		// - welche NPCs existierten vorher?
+		// - welche npcId hatten sie?
+		// - welche entityUuid hatten sie?
+		// - welche Marker waren ihnen zugewiesen?
+		// - in welcher Welt waren sie?
+		prepareWorldSystem();
+		//TODOS in BootstrapJava.md
 
 
-		/*
- 		* Bereitet das World-System vor.
- 		* Aktuell ist das nur Skeleton-Setup, später werden hier Hytale-Welten geprüft.
- 		*/
-	    prepareWorldSystem();
-
-
-
-		// 2) Definitionen laden
+		// 3) Definitionen laden
 		// Hier werden die NPC-Baupläne geladen.
 		// Also z. B.:
 		// - Welche NPC-Rollen existieren?
@@ -78,27 +73,29 @@ public final class NpcPluginBootstrap {
 
 
 
-		// 3) state.json laden
-		// Hier wird der gespeicherte Zustand geladen.
+
+		// 4) Geladene Welt-Daten gegen Definitionen prüfen
+		// Hier wird geprüft, ob die bereits geladene state.json
+		// noch zu den aktuell geladenen NPC-Bauplänen passt.
 		// Also z. B.:
-		// - welche NPCs existierten vorher?
-		// - welche npcId hatten sie?
-		// - welche entityUuid hatten sie?
-		// - welche Marker waren ihnen zugewiesen?
-		// - in welcher Welt waren sie?
+		// - Existiert die gespeicherte roleId noch?
+		// - Darf dieser NPC diese Marker verwenden?
+		// - Passen markerAssignments zu den requiredMarkers?
+		// - Ist die gespeicherte Welt-/NPC-Struktur noch gültig?
+		// - Gibt es alte oder ungültige Daten in der state.json?
 		//
 		// Wichtig:
-		// Hier darf keine normale NPC-Logik laufen.
-		// Nach dem Laden muss später erst Relink/Respawn prüfen,
-		// ob die echte Live-Entity wieder sicher gefunden werden kann.
-		//
-		// Später bei deinem World-System:
-		// state.json sollte pro Server-Welt geladen werden,
-		// z. B. key-entity-mod/worlds/<worldKey>/state.json.
-		loadWorldState();
+		// Hier werden echte gespeicherte NPC-Daten nur geprüft.
+		// Hier wird noch nichts gespawnt.
+		// Hier wird noch kein Relink gemacht.
+		// Hier wird noch keine kaputte state.json automatisch repariert oder überschrieben.
+		validateStateAgainstDefinitions();
 
 
-		// 4) Commands registrieren
+
+
+
+		// 5) Commands registrieren
 		// Hier werden Admin-Befehle registriert.
 		// Zum Beispiel später:
 		// /knpc spawn
@@ -113,7 +110,7 @@ public final class NpcPluginBootstrap {
 
 
 
-		// 5) Events registrieren
+		// 6) Events registrieren
 		// Diese Events sagen: Die Welten oder NPC-Daten der Engine sind jetzt geladen.
 		// Erst dann darf ein sicherer Relink/Respawn-Check geplant werden.
 		//
@@ -135,14 +132,19 @@ public final class NpcPluginBootstrap {
         this.service = NpcServices.create(plugin);
     }
 
+
+	private void validateStateAgainstDefinitions()
+	{
+
+
+
+
+
+    }
+
     private void loadDefinitions()
 	{
         service.definition().loadDefinitions();
-    }
-
-    private void loadWorldState()
-	{
-        service.stateStore().loadWorldState();
     }
 
     private void registerCommands()
@@ -152,7 +154,8 @@ public final class NpcPluginBootstrap {
 
 
 	private void prepareWorldSystem() {
-    	service.worldManager().prepare();
+    	service.worldManager().prepare();		// extract serverdata
+		service.stateStore().loadWorldState();	//
 	}
 
 	private void registerStartupEvents()

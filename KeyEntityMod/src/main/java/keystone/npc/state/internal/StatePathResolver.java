@@ -39,27 +39,9 @@ public final class StatePathResolver {
      */
     public StatePathResolver(KeystoneNpcPlugin plugin) {
         this.plugin = Objects.requireNonNull(plugin, "plugin must not be null");
-
-		/*
- 		*
- 		* Dieser Pfad ist aktuell nur ein Skeleton-/Entwicklungspfad.
- 		*
- 		* Später darf die Mod den Speicherordner nicht selbst raten.
- 		* Stattdessen soll der offizielle Plugin-Datenordner von Hytale benutzt werden,
- 		* z. B. über plugin.getDataDirectory().
- 		*
- 		* Grund:
- 		* Hytale soll entscheiden, wo Mod-Daten sicher gespeichert werden.
- 		* Dadurch landen state.json und Backups später am richtigen Server-Ort.
- 		*/
-
-
-		// Path base = getDataDirectory();
-        this.baseDir = Path.of("key-entity-mod");
-        this.worldDir = baseDir.resolve("worlds");
-        this.backupsDir = baseDir.resolve("backups");
-
-
+      	this.baseDir = plugin.getDataDirectory();
+       	this.worldDir = baseDir.resolve("worlds");
+    	this.backupsDir = baseDir.resolve("backups");
 		// getDataDirectory()
 		// -> gibt deiner Mod ihren eigenen Server-Datenordner.
 		// -> gut für eigene Dateien wie worlds/<worldUuid>/state.json.
@@ -77,9 +59,6 @@ public final class StatePathResolver {
 			//
 		// Universe#getWorld(UUID)
 		// -> holt die World, zu der dein gespeicherter worldUuid gehört.
-
-
-
     }
 
     /*
@@ -87,8 +66,6 @@ public final class StatePathResolver {
      */
     public void prepareBaseDirectories() {
 
-
-		//TODO Hytale-API to Directory
         try {
             Files.createDirectories(baseDir);
             Files.createDirectories(worldDir);
@@ -110,17 +87,13 @@ public final class StatePathResolver {
 			throw new IllegalArgumentException("worldKey must not be null or blank.");
 		}
 
-		String safeWorldKey = worldKey.trim();
+		String safeWorldKey = sanitizeWorldKey(worldKey);
 
-		Path basePath = baseDir.toAbsolutePath().normalize();
-		Path worldDirectory = basePath.resolve(safeWorldKey).normalize();
+		Path worldRoot = worldDir.toAbsolutePath().normalize();
+		Path worldDirectory = worldRoot.resolve(safeWorldKey).normalize();
 
-		if (!worldDirectory.startsWith(basePath)) {
-			throw new IllegalArgumentException("worldKey escapes state directory: " + worldKey);
-		}
-
-		if (worldDirectory.equals(backupsDir.toAbsolutePath().normalize())) {
-			throw new IllegalArgumentException("worldKey is reserved: " + worldKey);
+		if (!worldDirectory.startsWith(worldRoot)) {
+			throw new IllegalArgumentException("worldKey escapes worlds directory: " + worldKey);
 		}
 
 		return worldDirectory;

@@ -4,6 +4,7 @@ import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import keystone.npc.model.PersistedWorldState;
 import keystone.npc.state.StateLoadResult;
@@ -49,18 +50,24 @@ public final class WorldStateStore {
         this.backupStore = Objects.requireNonNull(backupStore, "backupStore must not be null");
     }
 
-    /*
-     * Lädt später alle bekannten Welten.
-     * Im Skeleton macht diese Methode noch keinen echten World-Scan.
-     */
-    public StateLoadResult loadUniverse() {
-        try {
-            pathResolver.prepareBaseDirectories();
-            return StateLoadResult.success("World state store prepared. No automatic world scan implemented yet.");
-        } catch (RuntimeException e) {
-            return StateLoadResult.failed("Failed to prepare world state store: " + e.getMessage());
-        }
-    }
+	// TODO Phase später / DataStore<T>-Migration:
+	// Beim Laden eines PersistedWorldState in loadWorld prüfen,
+	// ob der gespeicherte interne worldKey/worldUuid
+	// zum erwarteten Storage-Key passt.
+	//
+	// Grund:
+	// Wenn eine state.json oder ein DataStore-Eintrag versehentlich kopiert, verschoben oder falsch
+	// zugeordnet wird, darf der Inhalt nicht still als Zustand einer anderen Welt akzeptiert werden.
+	//
+	// Regel:
+	// - Storage-Key / DataStore-Key bleibt die primäre Adresse.
+	// - Wenn PersistedWorldState später ein worldKey/worldUuid-Feld enthält:
+	//   expectedWorldKey == persistedWorldState.worldKey()
+	// - Bei mismatch:
+	//   Load failed
+	//   kein Save
+	//   kein Auto-Repair
+	//   kein Überschreiben mit leerem Default-State
 
     /*
      * Lädt den State für genau eine Server-Spielwelt.
@@ -134,6 +141,44 @@ public final class WorldStateStore {
 				: "Loaded state.json for world: " + checkedWorldKey,
 				decodedState);
     }
+
+
+
+
+
+	////////////////////////////////////////////////////////////////////////
+	/////////////////////////  S    A    V    E  ///////////////////////////
+	////////////////////////////////////////////////////////////////////////
+
+
+
+	public boolean saveLoadedWorlds() {
+
+		if (getWorldKeys().isEmpty()) {
+			System.err.println("[WORLD_SAVE_FAILED] dirty save requested, but no loaded world states exist.");
+		return false;
+	}
+		Map<String, String> failedSaveWorlds = new LinkedHashMap<>();
+
+		for (String worldKey : getWorldKeys()){
+
+			StateSaveResult result = saveWorld(worldKey);
+        	if (!result.success()) {
+				failedSaveWorlds.put(worldKey, result.message());
+			}
+		}
+		if (!failedSaveWorlds.isEmpty())
+		{
+			System.err.println("[KeystoneNPC] ");
+			for (Map.Entry<String, String> entry : failedSaveWorlds.entrySet())
+			{
+				System.err.println("[WORLD_SAVE_FAILED] "
+						+ entry.getKey() + ": " + entry.getValue());
+			}
+			return false;
+		}
+		return true;
+	}
 
     /*
      * Speichert den State für genau eine Server-Spielwelt.
@@ -226,4 +271,10 @@ public final class WorldStateStore {
 
         return worldKey.trim();
     }
+
+
+
+	public Set<String> getWorldKeys() {
+		return loadedWorldState.keySet();
+	}
 }

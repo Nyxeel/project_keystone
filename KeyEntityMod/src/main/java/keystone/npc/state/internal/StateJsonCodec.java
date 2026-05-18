@@ -30,6 +30,18 @@ public final class StateJsonCodec {
 	private static final Pattern EMPTY_NPCS_FIELD = Pattern.compile("\"npcs\"\\s*:\\s*\\[\\s*\\]");
 	// MORE FIELDS LATER
 
+	//TODO: JSON bei Bedarf erweitern
+
+	// npcId
+	// roleId
+	// worldKey / worldUuid
+	// entityUuid
+	// state
+	// markerAssignments
+	// currentPosition
+	// structureInstanceId
+	// slotId
+	// selectedAppearanceId
 
 
     /*
@@ -44,18 +56,7 @@ public final class StateJsonCodec {
                 }
                 """;
     }
-	//TODO: JSON bei Bedarf erweitern
 
-	// npcId
-	// roleId
-	// worldKey / worldUuid
-	// entityUuid
-	// state
-	// markerAssignments
-	// currentPosition
-	// structureInstanceId
-	// slotId
-	// selectedAppearanceId
 
 
 	private static String escapeJson(String value) {
@@ -85,8 +86,7 @@ public final class StateJsonCodec {
              "markers": []
            }
            """.formatted(escapeJson(worldKey));
-		// TODO: Nur ne Skelet nachricht, nicht die echte state.json
-		// Muss spaeter die NPC Record eintraege rauslesen und dann als json returnen!
+		// TODO: Muss spaeter die NPC Json eintraege als skelett returnen!
 	}
 
 
@@ -123,6 +123,17 @@ public final class StateJsonCodec {
 		//TODO: es ist wichtig das NPC auck korrekt gefunden werden, wenn in
 		// resources/Server/NPC/Roles in deren role.json aenderungen gab die
 		// nicht mehr der state.json entsprechen!
+
+		//Aktuell schreibt WorldStateToJson() immer:
+
+		// "npcs": []
+		// "markers": []
+			//
+		// Egal, ob PersistedWorldState echte NpcRecords enthält.
+
+
+		// PersistedWorldState leer → darf speichern
+		// PersistedWorldState enthält NPCs → Save blockieren
 
 
 

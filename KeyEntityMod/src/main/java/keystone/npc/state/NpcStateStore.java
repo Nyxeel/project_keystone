@@ -1,7 +1,5 @@
 package keystone.npc.state;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.Objects;
 
 import keystone.npc.KeystoneNpcPlugin;
@@ -73,13 +71,13 @@ public final class NpcStateStore {
     public void loadWorldState() {
 
 		StateLoadResult result;
-
 		prepareBaseDirectories();
+		dirty = false;
 		for (String worldKey : worldManager.worldKeys()) {
 
 			result = worldStateStore.loadWorld(worldKey);
 			if (!result.success()) {
-				dirty = false;
+				throw new IllegalStateException("WORLD: " + worldKey + " LOADING_FAILED: " + result.message());
 			}
 		}
 	}
@@ -102,31 +100,21 @@ public final class NpcStateStore {
      */
 
     public boolean saveWorldStateSafely() {
-        if (!dirty) {
+
+		if (!dirty) {
             return true;
         }
-		Map<String, String> failedSaveWorlds = new LinkedHashMap<>();
-
-		for (String worldKey : worldManager.worldKeys()) {
-
-			StateSaveResult result = worldStateStore.saveWorld(worldKey);
-        	if (!result.success()) {
-				failedSaveWorlds.put(worldKey, result.message());
-			}
-		}
-		if (!failedSaveWorlds.isEmpty())
+		// TODO dirty muss noch auf true gesetzt werden vorm speichern von
+		// aktionen wie neue NPCS spawnen etc...!!
+		boolean saved = worldStateStore.saveLoadedWorlds();
+		if (!saved)
 		{
-			dirty = true;
-			System.err.println("[KeystoneNPC] ");
-			for (Map.Entry<String, String> entry : failedSaveWorlds.entrySet())
-			{
-				System.err.println("[WORLD_SAVE_FAILED] "
-						+ entry.getKey() + entry.getValue());
-			}
+			dirty = true; //redundant
 			return false;
 		}
 		dirty = false;
 		return true;
+
     }
 
     /*
