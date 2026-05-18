@@ -1,0 +1,10 @@
+{
+  "Id": "guard_patrol",
+  "Version": 1,
+  "PathStyle": "patrol",
+  "DoorPolicy": "use_if_needed",
+  "DangerPolicy": "approach",
+  "TargetPolicy": "defend_area",
+  "ShortcutPolicy": "allow",
+  "ClimbPolicy": "if_needed"
+}

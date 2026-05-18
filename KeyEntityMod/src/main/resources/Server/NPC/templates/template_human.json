@@ -1,8 +1,8 @@
 {
-  "id": "template_human",
-  "version": 1,
-  "type": "template",
-  "npcType": "human",
-  "faction": "friendly",
-  "defaultState": "IDLE"
+  "Id": "template_human",
+  "Version": 1,
+  "Type": "template",
+  "NpcType": "human",
+  "Faction": "friendly",
+  "DefaultState": "IDLE"
 }

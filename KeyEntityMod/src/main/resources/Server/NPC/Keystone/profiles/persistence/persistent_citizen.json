@@ -1,0 +1,11 @@
+{
+  "Id": "persistent_citizen",
+  "Version": 1,
+  "Persistent": true,
+  "SavePosition": true,
+  "SaveState": true,
+  "SaveHome": true,
+  "SaveRoutineProgress": false,
+  "RespawnAfterRestart": true,
+  "DespawnWhenFarAway": false
+}

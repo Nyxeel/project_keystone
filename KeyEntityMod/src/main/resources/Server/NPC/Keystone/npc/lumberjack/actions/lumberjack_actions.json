@@ -1,30 +1,30 @@
 {
-  "id": "lumberjack_actions",
-  "version": 1,
-  "actions": {
+  "Id": "lumberjack_actions",
+  "Version": 1,
+  "Actions": {
     "chop_wood": {
-      "animation": "lumberjack.chop",
-      "loop": true,
-      "sound": "npc.axe.hit_wood",
-      "requiresCapability": "USE_TOOLS"
+      "Animation": "lumberjack.chop",
+      "Loop": true,
+      "Sound": "npc.axe.hit_wood",
+      "RequiresCapability": "USE_TOOLS"
     },
     "open_chest": {
-      "animation": "human.open_chest",
-      "loop": false,
-      "sound": "block.chest.open",
-      "requiresCapability": "USE_CHEST"
+      "Animation": "human.open_chest",
+      "Loop": false,
+      "Sound": "block.chest.open",
+      "RequiresCapability": "USE_CHEST"
     },
     "eat_meal": {
-      "animation": "human.eat",
-      "loop": true,
-      "sound": "npc.human.eat",
-      "requiresCapability": null
+      "Animation": "human.eat",
+      "Loop": true,
+      "Sound": "npc.human.eat",
+      "RequiresCapability": null
     },
     "sleep": {
-      "animation": "human.sleep",
-      "loop": true,
-      "sound": null,
-      "requiresCapability": "USE_BED"
+      "Animation": "human.sleep",
+      "Loop": true,
+      "Sound": null,
+      "RequiresCapability": "USE_BED"
     }
   }
 }

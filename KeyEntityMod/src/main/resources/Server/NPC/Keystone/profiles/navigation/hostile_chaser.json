@@ -1,0 +1,10 @@
+{
+  "Id": "hostile_chaser",
+  "Version": 1,
+  "PathStyle": "direct",
+  "DoorPolicy": "avoid",
+  "DangerPolicy": "ignore",
+  "TargetPolicy": "chase_target",
+  "ShortcutPolicy": "allow",
+  "ClimbPolicy": "if_needed"
+}

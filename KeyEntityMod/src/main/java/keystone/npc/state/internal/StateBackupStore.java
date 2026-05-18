@@ -109,6 +109,10 @@ public final class StateBackupStore {
 			return null;
 		}
 
+
+		//TODO: wenn backup geladen wird, was soll mit original state.json passieren ??
+		// noch wird nichts gemacht
+
 		try {
 			String safeWorldKey = pathResolver.sanitizeWorldKey(worldKey);
 			Path worldBackupDir = pathResolver.backupsDir().resolve(safeWorldKey);

@@ -1,40 +1,184 @@
 {
-  "id": "test_group",
-  "version": 1,
-  "type": "npc_group",
-  "shared": {
-    "skills": "skills/human_worker.json",
-    "movement": "movement/human_walk.json",
-    "navigation": "navigation/friendly_worker.json",
-    "combat": "combat/peaceful.json",
-    "spawn": "spawns/forest_village.json",
-    "persistence": "persistence/persistent_citizen.json",
-    "actions": "Keystone/npc/test/actions/test_actions.json"
-  },
-  "variants": [
-    {
-      "id": "test",
-      "role": "test",
-      "hytaleRole": "Test",
-      "displayName": "Test NPC",
-      "nameTranslationKey": "keystone.npc.roles.test.name",
-      "appearance": {
-        "profile": "Keystone/npc/test/appearances/default.json",
-        "value": "Player"
-      },
-      "routine": "Keystone/npc/test/routines/default_day_cycle.json",
-      "requiredMarkers": [
-        "bed",
-        "chest",
-        "food",
-        "work"
-      ],
-      "markerRoles": {
-        "bed": "BED",
-        "chest": "CHEST",
-        "food": "FOOD",
-        "work": "WORK"
-      }
-    }
-  ]
+	"Id": "test_group",
+	"Version": 1,
+	"Type": "NpcGroup",
+
+	"SharedProfiles": {
+		"Skills": "profiles/skills/human_worker.json",
+		"Movement": "profiles/movement/human_walk.json",
+		"Navigation": "profiles/navigation/friendly_worker.json",
+		"Combat": "profiles/combat/peaceful.json",
+		"Spawn": "profiles/spawns/forest_village.json",
+		"Persistence": "profiles/persistence/persistent_citizen.json"
+	},
+
+	"Variants": [
+		{
+			"RoleId": "test",
+
+			"Engine": {
+				"HytaleRole": "Test"
+			},
+
+			"Display": {
+				"FallbackName": "test",
+				"NameTranslationKey": "keystone.npc.roles.test.name"
+			},
+
+			"Profiles": {
+				"Appearance": "npc/test/appearances/test_appearance4.json",
+				"Routine": "npc/test/routines/test_routine.json",
+				"Actions": "npc/test/actions/test_actions.json"
+			},
+
+			"Markers": {
+				"RequiredMarkers": [
+					"bed",
+					"chest",
+					"food",
+					"work"
+				],
+				"MarkerRoles": {
+					"bed": "BED",
+					"chest": "CHEST",
+					"food": "FOOD",
+					"work": "WORK"
+				}
+			},
+
+			"Debug": {
+				"Enabled": true,
+				"LogRoutine": true,
+				"LogMarkers": true,
+				"LogNavigation": false,
+				"LogActions": true
+			}
+		},
+
+		{
+			"RoleId": "test_wife",
+
+			"Engine": {
+				"HytaleRole": "Test_Wife"
+			},
+
+			"Display": {
+				"FallbackName": "test Wife",
+				"NameTranslationKey": "keystone.npc.roles.test_wife.name"
+			},
+
+			"Profiles": {
+				"Appearance": "npc/test/appearances/test_appearance1.json",
+				"Routine": "npc/test/routines/test_routine.json",
+				"Actions": "npc/test/actions/test_actions.json"
+			},
+
+			"Markers": {
+				"RequiredMarkers": [
+					"bed",
+					"chest",
+					"food",
+					"work"
+				],
+				"MarkerRoles": {
+					"bed": "BED",
+					"chest": "CHEST",
+					"food": "FOOD",
+					"work": "WORK"
+				}
+			},
+
+			"Debug": {
+				"Enabled": true,
+				"LogRoutine": true,
+				"LogMarkers": true,
+				"LogNavigation": false,
+				"LogActions": true
+			}
+		},
+
+		{
+			"RoleId": "test_oldman",
+
+			"Engine": {
+				"HytaleRole": "Test_Oldman"
+			},
+
+			"Display": {
+				"FallbackName": "test Oldman",
+				"NameTranslationKey": "keystone.npc.roles.test_oldman.name"
+			},
+
+			"Profiles": {
+				"Appearance": "npc/test/appearances/test_appearance2.json",
+				"Routine": "npc/test/routines/test_routine.json",
+				"Actions": "npc/test/actions/test_actions.json"
+			},
+
+			"Markers": {
+				"RequiredMarkers": [
+					"bed",
+					"chest",
+					"food",
+					"work"
+				],
+				"MarkerRoles": {
+					"bed": "BED",
+					"chest": "CHEST",
+					"food": "FOOD",
+					"work": "WORK"
+				}
+			},
+
+			"Debug": {
+				"Enabled": true,
+				"LogRoutine": true,
+				"LogMarkers": true,
+				"LogNavigation": false,
+				"LogActions": true
+			}
+		},
+
+		{
+			"RoleId": "test_oldwife",
+
+			"Engine": {
+				"HytaleRole": "Test_Oldwife"
+			},
+
+			"Display": {
+				"FallbackName": "test Oldwife",
+				"NameTranslationKey": "keystone.npc.roles.test_oldwife.name"
+			},
+
+			"Profiles": {
+				"Appearance": "npc/test/appearances/test_appearance3.json",
+				"Routine": "npc/test/routines/test_routine.json",
+				"Actions": "npc/test/actions/test_actions.json"
+			},
+
+			"Markers": {
+				"RequiredMarkers": [
+					"bed",
+					"chest",
+					"food",
+					"work"
+				],
+				"MarkerRoles": {
+					"bed": "BED",
+					"chest": "CHEST",
+					"food": "FOOD",
+					"work": "WORK"
+				}
+			},
+
+			"Debug": {
+				"Enabled": true,
+				"LogRoutine": true,
+				"LogMarkers": true,
+				"LogNavigation": false,
+				"LogActions": true
+			}
+		}
+	]
 }

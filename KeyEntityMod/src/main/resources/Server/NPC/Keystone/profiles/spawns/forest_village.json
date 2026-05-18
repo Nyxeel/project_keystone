@@ -1,0 +1,10 @@
+{
+  "Id": "forest_village",
+  "AllowedBiomes": [
+    "forest"
+  ],
+  "BlockedStructureTags": [],
+  "SpawnMode": "structure_bound",
+  "MaxPerChunkArea": 2,
+  "DespawnWhenFarFromPlayers": false
+}

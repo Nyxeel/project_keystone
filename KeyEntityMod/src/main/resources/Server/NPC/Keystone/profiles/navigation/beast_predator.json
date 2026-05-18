@@ -1,0 +1,10 @@
+{
+  "Id": "beast_predator",
+  "Version": 1,
+  "PathStyle": "direct",
+  "DoorPolicy": "never",
+  "DangerPolicy": "ignore",
+  "TargetPolicy": "chase_target",
+  "ShortcutPolicy": "prefer_natural",
+  "ClimbPolicy": "if_possible"
+}

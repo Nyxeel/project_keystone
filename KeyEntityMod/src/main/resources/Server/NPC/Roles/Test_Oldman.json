@@ -4,6 +4,6 @@
   "Modify": {
     "Appearance": "Player",
     "MaxHealth": 100,
-    "NameTranslationKey": "server.npcRoles.test.name"
+    "NameTranslationKey": "server.npcRoles.test_oldman.name"
   }
 }

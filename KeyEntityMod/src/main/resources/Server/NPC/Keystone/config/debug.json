@@ -1,0 +1,32 @@
+{
+	"Id": "npc_debug",
+	"Version": 1,
+	"Type": "DebugConfig",
+
+	"Enabled": true,
+
+	"LogDefinitions": true,
+	"LogStateLoad": true,
+	"LogStateSave": true,
+
+	"LogWorlds": true,
+	"LogBootstrap": true,
+	"LogCommands": true,
+
+	"LogMarkers": false,
+	"LogMarkerAssignments": false,
+
+	"LogRoutine": false,
+	"LogActions": false,
+	"LogNavigation": false,
+	"LogDoors": false,
+
+	"LogPersistence": true,
+	"LogRespawn": true,
+	"LogRelink": true,
+
+	"LogTick": false,
+	"LogPerformance": false,
+
+	"CooldownMs": 5000
+}

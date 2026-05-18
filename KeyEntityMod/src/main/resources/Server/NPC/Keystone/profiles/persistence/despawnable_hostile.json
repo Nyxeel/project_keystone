@@ -1,0 +1,11 @@
+{
+	"Id": "despawnable_hostile",
+	"Version": 1,
+	"Persistent": false,
+	"SavePosition": false,
+	"SaveState": false,
+	"SaveHome": false,
+	"SaveRoutineProgress": false,
+	"RespawnAfterRestart": false,
+	"DespawnWhenFarAway": true
+}
