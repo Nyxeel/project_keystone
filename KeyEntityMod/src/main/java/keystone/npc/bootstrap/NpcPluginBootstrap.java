@@ -31,7 +31,7 @@ public final class NpcPluginBootstrap {
 		}
         System.out.println("[KeystoneNPC] setup...");
 
-		// 1) Services bauen
+		// Phase 1) Services bauen
 		// Hier wird die zentrale Service-Schaltzentrale erstellt.
 		// NpcServices erzeugt und verbindet alle NPC-Abteilungen:
 		// - StateStore für state.json
@@ -41,10 +41,10 @@ public final class NpcPluginBootstrap {
 		// - Tick / Navigation
 		// - Commands
 	    createServices();
-		
+
 
 		////////////////////////////////////////////////////////
-		// 2) World States aus den state.json laden
+		// Phase 2) World States aus den state.json laden
  		// Bereitet das World-System vor.
 		// Hier wird der gespeicherte Zustand geladen.
 		// Also z. B.:
@@ -58,7 +58,7 @@ public final class NpcPluginBootstrap {
 		//TODOS in BootstrapJava.md
 
 
-		// 3) Definitionen laden
+		// Phase 3) Definitionen laden
 		// Hier werden die NPC-Baupläne geladen.
 		// Also z. B.:
 		// - Welche NPC-Rollen existieren?
@@ -74,7 +74,7 @@ public final class NpcPluginBootstrap {
 
 
 
-		// 4) Geladene Welt-Daten gegen Definitionen prüfen
+		// Phase 4) Geladene Welt-Daten gegen Definitionen prüfen
 		// Hier wird geprüft, ob die bereits geladene state.json
 		// noch zu den aktuell geladenen NPC-Bauplänen passt.
 		// Also z. B.:
@@ -95,7 +95,7 @@ public final class NpcPluginBootstrap {
 
 
 
-		// 5) Commands registrieren
+		// Phase 5) Commands registrieren
 		// Hier werden Admin-Befehle registriert.
 		// Zum Beispiel später:
 		// /knpc spawn
@@ -110,7 +110,7 @@ public final class NpcPluginBootstrap {
 
 
 
-		// 6) Events registrieren
+		// Phase 6) Events registrieren
 		// Diese Events sagen: Die Welten oder NPC-Daten der Engine sind jetzt geladen.
 		// Erst dann darf ein sicherer Relink/Respawn-Check geplant werden.
 		//
