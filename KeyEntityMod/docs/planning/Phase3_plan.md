@@ -37,7 +37,7 @@ NICHT IN P3:
 - keine EntityRef
 - keine RuntimeNpc-Logik
 - keine Pools auswürfeln
-- kein DataStore<T>
+- kein DataStore(T)
 - keine MarkerAssignments schreiben
 - keine state.json-Änderung
 - kein automatischer Repair
@@ -160,7 +160,7 @@ NpcProfileRefs:
 Sondern:
 
 NpcProfileRefs:
-- Map<String, NpcProfileRef> profiles
+- Map(String, NpcProfileRef) profiles
 
 Warum:
 Neue Profile-Keys wie Dialogue, Trading, Reputation, Events, SeasonalOutfits oder CustomSomething sollen später ergänzt werden können, ohne dass NpcProfileRefs als Java-Klasse jedes Mal geändert werden muss.
@@ -297,7 +297,7 @@ Duplicate namespacedRoleId = Fehler
 Duplicate HytaleRole = erlaubt
 
 Kein dynamisches:
-setRoleName("KeystoneNPC_<npcId>_<roleId>_Role")
+setRoleName("KeystoneNPC_npcId_roleId_Role")
 
 HytaleRole muss echte Role-Datei sein oder eine valide Base-Reference nutzen.
 
@@ -496,7 +496,7 @@ LoadedNpcDefinition:
 - sourcePath optional
 
 NpcProfileRefs:
-- Map<String, NpcProfileRef> profiles
+- Map(String, NpcProfileRef) profiles
 
 NpcProfileRef:
 - profileKey
@@ -517,7 +517,7 @@ ProfileTypeRule:
 - handlerKey optional später
 
 ProfileTypeRegistry:
-- Map<String, ProfileTypeRule>
+- Map(String, ProfileTypeRule)
 - Required-Core-Regeln
 - Optional-Core-Regeln
 - Fallback-Regel für Custom-Profile
@@ -565,7 +565,7 @@ REVIEW:
 - Modelle enthalten nur Definition-/Resource-Daten.
 - Keine Runtime-Daten wurden hineingemischt.
 - Keine Persistenzdaten wurden hineingemischt.
-- NpcProfileRefs nutzt Map<String, NpcProfileRef>.
+- NpcProfileRefs nutzt Map(String, NpcProfileRef)
 - ProfileTypeRegistry bildet Required/Optional/Custom ab.
 - namespacedRoleId ist Registry-Key.
 - Compile-Gate:
@@ -599,7 +599,7 @@ Duplicate-Regeln:
 - Duplicate HytaleRole höchstens Info/Warnung, kein harter Fehler
 
 METHODEN:
-- replaceAll(Collection<LoadedNpcDefinition>)
+- replaceAll(Collection(LoadedNpcDefinition))
 - hasRoleId(String roleId)
 - hasNamespacedRoleId(String namespacedRoleId)
 - getByRoleId(String roleId)
@@ -652,7 +652,7 @@ PFADREGELN:
 - Structure-/Prefab-Pfade sind relativ zu KeystoneRoot
 - Contract-Pfade sind relativ zu KeystoneRoot
 - Territory-Pfade sind relativ zu KeystoneRoot
-- Engine.HytaleRole verweist auf Server/NPC/Roles/<HytaleRole>.json
+- Engine.HytaleRole verweist auf Server/NPC/Roles/(HytaleRole).json
 - Global Debug liegt unter Server/NPC/Keystone/config/debug.json
 
 GENERIC-PROFILE-REGEL:
@@ -757,7 +757,7 @@ Parse pro Variant:
 - Engine.HytaleRole
 - Display.FallbackName
 - Display.NameTranslationKey
-- Profiles als Map<String, String>
+- Profiles als Map(String, String)
 - Markers.RequiredMarkers
 - Markers.MarkerRoles
 - Markers.RoutineMarkers optional
@@ -816,7 +816,7 @@ P3.6 — HytaleRole + Reference prüfen
 
 AGENT-AUFGABE:
 Für jede LoadedNpcDefinition:
-- Server/NPC/Roles/<HytaleRole>.json muss existieren oder als Base-Reference erlaubt sein.
+- Server/NPC/Roles/(HytaleRole).json muss existieren oder als Base-Reference erlaubt sein.
 - Role-Datei lesen.
 - Wenn "Reference" vorhanden ist:
   - lokale Reference prüfen, falls sie im Mod liegen soll
