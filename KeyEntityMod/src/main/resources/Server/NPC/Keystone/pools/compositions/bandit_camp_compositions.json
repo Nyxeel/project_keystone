@@ -1,0 +1,43 @@
+{
+	"Id": "bandit_camp_compositions",
+	"Version": 1,
+	"Type": "CompositionPool",
+
+	"Entries": [
+		{
+			"Id": "bandit_camp_small",
+			"Weight": 100,
+
+			"RequiredContracts": [
+				"TerritoryGuardContract"
+			],
+
+			"RequiredSlots": {
+				"SpawnAnchors": 2,
+				"PatrolSlots": 2
+			},
+
+			"Npcs": [
+				{
+					"RoleId": "keystone:bandit_guard",
+					"SpawnAnchor": "guard_spawn_1",
+					"PatrolSlot": "patrol_1"
+				},
+				{
+					"RoleId": "keystone:bandit_guard",
+					"SpawnAnchor": "guard_spawn_2",
+					"PatrolSlot": "patrol_2"
+				}
+			]
+		}
+	],
+
+	"Safety": {
+		"EntriesMustHaveStableIds": true,
+		"NeverRerollOnRestart": true,
+		"RequiresMatchingTerritoryContracts": true,
+		"RequiresEnoughSpawnAnchors": true,
+		"RequiresEnoughPatrolSlots": true,
+		"NeverCreateNpcStateInP3": true
+	}
+}

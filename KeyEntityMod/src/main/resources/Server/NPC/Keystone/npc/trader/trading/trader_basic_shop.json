@@ -1,0 +1,91 @@
+src/main/resources/Server/NPC/Keystone/npc/trader/trading/trader_basic_shop.json
+{
+	"Id": "trader_basic_shop",
+	"Version": 1,
+	"Type": "TradingProfile",
+
+	"TradingProfileId": "trader_basic_shop",
+
+	"Shop": {
+		"ShopId": "basic_trader_shop",
+		"DisplayName": "Basic Trader",
+		"NameTranslationKey": "keystone.trading.basic_trader.name",
+
+		"Enabled": true,
+		"RequiresNpcActive": true,
+		"RequiresShopMarker": true,
+		"RequiredMarker": "counter"
+	},
+
+	"Currency": {
+		"AllowedCurrencies": [
+			"Copper",
+			"Silver"
+		],
+		"GoldGenerationAllowed": false
+	},
+
+	"Trades": [
+		{
+			"Id": "buy_bread",
+			"Enabled": true,
+			"Mode": "NpcSellsToPlayer",
+			"ItemId": "hytale:bread",
+			"Amount": 1,
+			"Price": {
+				"Currency": "Copper",
+				"Amount": 8
+			}
+		},
+		{
+			"Id": "buy_torch_bundle",
+			"Enabled": true,
+			"Mode": "NpcSellsToPlayer",
+			"ItemId": "hytale:torch",
+			"Amount": 8,
+			"Price": {
+				"Currency": "Copper",
+				"Amount": 12
+			}
+		},
+		{
+			"Id": "buy_basic_bandage",
+			"Enabled": true,
+			"Mode": "NpcSellsToPlayer",
+			"ItemId": "keystone:basic_bandage",
+			"Amount": 1,
+			"Price": {
+				"Currency": "Copper",
+				"Amount": 15
+			}
+		}
+	],
+
+	"Stock": {
+		"UsesStock": true,
+		"RestockMode": "Daily",
+		"RestockTime": "06:00",
+
+		"DefaultStockPerTrade": {
+			"buy_bread": 12,
+			"buy_torch_bundle": 6,
+			"buy_basic_bandage": 4
+		}
+	},
+
+	"Restrictions": {
+		"PlayerSellingEnabled": false,
+		"CreatesCurrency": false,
+		"AllowsGlobalAuction": false,
+		"RequiresNearbyNpc": true
+	},
+
+	"Safety": {
+		"TradeIdsMustBeStable": true,
+		"NeverExecuteTradingInP3": true,
+		"NeverCreateGoldFromTrading": true,
+		"MissingTradingHandlerDisablesTradingOnly": true,
+		"MissingRequiredMarkerBlocksTradingOnly": true,
+		"NeverDeleteNpcOnTradingError": true
+	}
+}

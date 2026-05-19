@@ -1,0 +1,38 @@
+{
+	"Id": "simple_worker_house_blacksmith_compositions",
+	"Version": 1,
+	"Type": "CompositionPool",
+
+	"Entries": [
+		{
+			"Id": "blacksmith_single",
+			"Weight": 100,
+
+			"RequiredContracts": [
+				"ResidenceContract",
+				"BlacksmithWorkstationContract"
+			],
+
+			"RequiredSlots": {
+				"ResidenceSlots": 1,
+				"BlacksmithWorkstationSlots": 1
+			},
+
+			"Npcs": [
+				{
+					"RoleId": "keystone:blacksmith",
+					"HomeSlot": "resident_1",
+					"WorkSlot": "blacksmith_work_1"
+				}
+			]
+		}
+	],
+
+	"Safety": {
+		"EntriesMustHaveStableIds": true,
+		"NeverRerollOnRestart": true,
+		"RequiresMatchingStructureContracts": true,
+		"RequiresEnoughSlots": true,
+		"NeverCreateNpcStateInP3": true
+	}
+}
