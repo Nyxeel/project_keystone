@@ -1,0 +1,122 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1300" viewBox="0 0 1800 1300">
+<defs>
+	<filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+		<feDropShadow dx="0" dy="6" stdDeviation="7" flood-color="#000000" flood-opacity="0.16"/>
+	</filter>
+	<marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+		<path d="M 0 0 L 10 5 L 0 10 z" fill="#36454F"/>
+	</marker>
+</defs>
+<rect width="100%" height="100%" fill="#ffffff"/>
+
+<text x="900" y="42" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="30" font-weight="800" fill="#1f2937">Phase 3 Mindmap — Definition-Loader-Durchlauf</text>
+<text x="900" y="73" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="17" fill="#4b5563">Von loadDefinitions() bis zur atomisch ersetzten NpcDefinitionRegistry — ohne Spawn, ohne Runtime, ohne state.json-Änderung</text>
+
+<path d="M 390 135.0 C 567.5 135.0, 567.5 130.0, 745 130.0" fill="none" stroke="#36454F" stroke-width="3" opacity="0.62" marker-end="url(#arrow)"/>
+<path d="M 745 130.0 C 567.5 130.0, 567.5 352.5, 390 352.5" fill="none" stroke="#36454F" stroke-width="3" opacity="0.62" marker-end="url(#arrow)"/>
+<path d="M 390 352.5 C 437.5 352.5, 437.5 347.5, 485 347.5" fill="none" stroke="#36454F" stroke-width="3" opacity="0.62" marker-end="url(#arrow)"/>
+<path d="M 795 347.5 C 842.5 347.5, 842.5 357.5, 890 357.5" fill="none" stroke="#36454F" stroke-width="3" opacity="0.62" marker-end="url(#arrow)"/>
+<path d="M 1200 357.5 C 1247.5 357.5, 1247.5 352.5, 1295 352.5" fill="none" stroke="#36454F" stroke-width="3" opacity="0.62" marker-end="url(#arrow)"/>
+<path d="M 1295 352.5 C 877.5 352.5, 877.5 615.0, 460 615.0" fill="none" stroke="#36454F" stroke-width="3" opacity="0.62" marker-end="url(#arrow)"/>
+<path d="M 460 615.0 C 500.0 615.0, 500.0 610.0, 540 610.0" fill="none" stroke="#36454F" stroke-width="3" opacity="0.62" marker-end="url(#arrow)"/>
+<path d="M 880 610.0 C 920.0 610.0, 920.0 615.0, 960 615.0" fill="none" stroke="#36454F" stroke-width="3" opacity="0.62" marker-end="url(#arrow)"/>
+<path d="M 1300 615.0 C 1340.0 615.0, 1340.0 615.0, 1380 615.0" fill="none" stroke="#36454F" stroke-width="3" opacity="0.62" marker-end="url(#arrow)"/>
+<path d="M 1380 615.0 C 920.0 615.0, 920.0 875.0, 460 875.0" fill="none" stroke="#36454F" stroke-width="3" opacity="0.62" marker-end="url(#arrow)"/>
+<path d="M 460 875.0 C 500.0 875.0, 500.0 875.0, 540 875.0" fill="none" stroke="#36454F" stroke-width="3" opacity="0.62" marker-end="url(#arrow)"/>
+<path d="M 880 875.0 C 920.0 875.0, 920.0 880.0, 960 880.0" fill="none" stroke="#36454F" stroke-width="3" opacity="0.62" marker-end="url(#arrow)"/>
+<path d="M 1300 880.0 C 1340.0 880.0, 1340.0 877.5, 1380 877.5" fill="none" stroke="#36454F" stroke-width="3" opacity="0.62" marker-end="url(#arrow)"/>
+<path d="M 1380 877.5 C 1102.5 877.5, 1102.5 1152.5, 825 1152.5" fill="none" stroke="#36454F" stroke-width="3" opacity="0.62" marker-end="url(#arrow)"/>
+<path d="M 825 1152.5 C 897.5 1152.5, 897.5 1152.5, 970 1152.5" fill="none" stroke="#36454F" stroke-width="3" opacity="0.62" marker-end="url(#arrow)"/>
+<path d="M 1140.0 1080 C 1220.0 890, 990.0 360, 900.0 190" fill="none" stroke="#36454F" stroke-width="3" opacity="0.62" marker-end="url(#arrow)"/>
+<rect x="80" y="80" width="310" height="110" rx="22" fill="#CFE8FF" stroke="#334155" stroke-width="2" filter="url(#shadow)"/>
+<text x="102" y="114" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="800" fill="#111827">0. Bootstrap</text>
+<text x="102" y="146" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">KeystoneNpcPlugin →</text>
+<text x="102" y="167" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">NpcPluginBootstrap → NpcServices</text>
+<text x="102" y="188" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">→</text>
+<text x="102" y="209" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">NpcDefinition.loadDefinitions()</text>
+<rect x="745" y="70" width="310" height="120" rx="22" fill="#BEE3DB" stroke="#334155" stroke-width="2" filter="url(#shadow)"/>
+<text x="767" y="104" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="800" fill="#111827">1. Einstieg</text>
+<text x="767" y="136" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">NpcDefinition.java startet Phase</text>
+<text x="767" y="157" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">3.</text>
+<text x="767" y="178" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">Keine Detailarbeit direkt hier.</text>
+<rect x="80" y="285" width="310" height="135" rx="22" fill="#D9F7BE" stroke="#334155" stroke-width="2" filter="url(#shadow)"/>
+<text x="102" y="319" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="800" fill="#111827">2. Sources finden</text>
+<text x="102" y="351" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">DefinitionSourceDiscovery</text>
+<text x="102" y="372" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">ResourceDefinitionSource</text>
+<text x="102" y="393" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">später: AssetPack / AssetStore</text>
+<rect x="485" y="285" width="310" height="125" rx="22" fill="#FFF1B8" stroke="#334155" stroke-width="2" filter="url(#shadow)"/>
+<text x="507" y="319" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="800" fill="#111827">3. index.json laden</text>
+<text x="507" y="351" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">NpcIndexParser liest Groups[]</text>
+<text x="507" y="372" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">aus Server/NPC/Keystone/npc/inde</text>
+<text x="507" y="393" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">x.json</text>
+<rect x="890" y="285" width="310" height="145" rx="22" fill="#FFE0B2" stroke="#334155" stroke-width="2" filter="url(#shadow)"/>
+<text x="912" y="319" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="800" fill="#111827">4. Groups + Variants</text>
+<text x="912" y="351" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">NpcGroupParser liest Namespace,</text>
+<text x="912" y="372" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">SharedProfiles, Variants.</text>
+<text x="912" y="393" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">1 Variant = 1 RoleId.</text>
+<rect x="1295" y="285" width="310" height="135" rx="22" fill="#FFD6E7" stroke="#334155" stroke-width="2" filter="url(#shadow)"/>
+<text x="1317" y="319" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="800" fill="#111827">5. Profile mergen</text>
+<text x="1317" y="351" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">SharedProfiles +</text>
+<text x="1317" y="372" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">Variant.Profiles.</text>
+<text x="1317" y="393" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">Variant gewinnt bei gleichem</text>
+<text x="1317" y="414" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">Key.</text>
+<rect x="120" y="540" width="340" height="150" rx="22" fill="#E6D7FF" stroke="#334155" stroke-width="2" filter="url(#shadow)"/>
+<text x="142" y="574" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="800" fill="#111827">6. ProfileRefs bauen</text>
+<text x="142" y="606" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">ProfileTypeRegistry prüft</text>
+<text x="142" y="627" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">Required / Optional / Custom.</text>
+<text x="142" y="648" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">NpcProfileRefSet sammelt alle</text>
+<text x="142" y="669" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">Profile.</text>
+<rect x="540" y="540" width="340" height="140" rx="22" fill="#C8F7F5" stroke="#334155" stroke-width="2" filter="url(#shadow)"/>
+<text x="562" y="574" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="800" fill="#111827">7. HytaleRole prüfen</text>
+<text x="562" y="606" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">HytaleRoleGateway nutzt später</text>
+<text x="562" y="627" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">NPCPlugin / BuilderManager.</text>
+<text x="562" y="648" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">Kein Spawn, keine NPCEntity.</text>
+<rect x="960" y="540" width="340" height="150" rx="22" fill="#FDE2E4" stroke="#334155" stroke-width="2" filter="url(#shadow)"/>
+<text x="982" y="574" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="800" fill="#111827">8. Profile prüfen</text>
+<text x="982" y="606" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">Routine, Actions, Movement,</text>
+<text x="982" y="627" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">Navigation, Persistence.</text>
+<text x="982" y="648" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">CustomProfile nur basic</text>
+<text x="982" y="669" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">validieren.</text>
+<rect x="1380" y="540" width="340" height="150" rx="22" fill="#DDF4FF" stroke="#334155" stroke-width="2" filter="url(#shadow)"/>
+<text x="1402" y="574" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="800" fill="#111827">9. Pools prüfen</text>
+<text x="1402" y="606" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">SpeciesPool, BodyPool,</text>
+<text x="1402" y="627" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">AppearancePool, OutfitPool,</text>
+<text x="1402" y="648" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">CompositionPool.</text>
+<text x="1402" y="669" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">Nicht würfeln.</text>
+<rect x="120" y="800" width="340" height="150" rx="22" fill="#E2F0CB" stroke="#334155" stroke-width="2" filter="url(#shadow)"/>
+<text x="142" y="834" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="800" fill="#111827">10. Structures prüfen</text>
+<text x="142" y="866" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">Contracts, Prefabs, Tags.</text>
+<text x="142" y="887" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">P3 erzeugt keine</text>
+<text x="142" y="908" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">StructureInstance.</text>
+<rect x="540" y="800" width="340" height="150" rx="22" fill="#F9D5E5" stroke="#334155" stroke-width="2" filter="url(#shadow)"/>
+<text x="562" y="834" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="800" fill="#111827">11. Territories prüfen</text>
+<text x="562" y="866" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">TerritoryProfile, Radius,</text>
+<text x="562" y="887" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">RolePool, RequiredContracts.</text>
+<text x="562" y="908" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">Keine SpawnAnchor-Instanz.</text>
+<rect x="960" y="800" width="340" height="160" rx="22" fill="#FCE1A8" stroke="#334155" stroke-width="2" filter="url(#shadow)"/>
+<text x="982" y="834" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="800" fill="#111827">12. Cross-Validation</text>
+<text x="982" y="866" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">Routine → Actions</text>
+<text x="982" y="887" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">Routine → Marker</text>
+<text x="982" y="908" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">Prefab → Contracts</text>
+<text x="982" y="929" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">Composition → RoleIds</text>
+<rect x="1380" y="800" width="340" height="155" rx="22" fill="#D6EADF" stroke="#334155" stroke-width="2" filter="url(#shadow)"/>
+<text x="1402" y="834" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="800" fill="#111827">13. Definition bauen</text>
+<text x="1402" y="866" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">LoadedNpcDefinition bündelt</text>
+<text x="1402" y="887" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">Engine, Display, ProfileRefs,</text>
+<text x="1402" y="908" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">Marker, Debug.</text>
+<rect x="485" y="1080" width="340" height="145" rx="22" fill="#B7C9E2" stroke="#334155" stroke-width="2" filter="url(#shadow)"/>
+<text x="507" y="1114" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="800" fill="#111827">14. Registry ersetzen</text>
+<text x="507" y="1146" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">NpcDefinitionRegistry.replaceAll</text>
+<text x="507" y="1167" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">()</text>
+<text x="507" y="1188" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">atomisch: alles oder nichts.</text>
+<rect x="970" y="1080" width="340" height="145" rx="22" fill="#F3C4FB" stroke="#334155" stroke-width="2" filter="url(#shadow)"/>
+<text x="992" y="1114" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="800" fill="#111827">15. Zurück zum Bootstrap</text>
+<text x="992" y="1146" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">Debug/Diagnose.</text>
+<text x="992" y="1167" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">Bootstrap macht weiter oder</text>
+<text x="992" y="1188" font-family="Inter, Arial, sans-serif" font-size="15" fill="#1f2937">stoppt bei Fehler.</text>
+<rect x="80" y="1140" width="330" height="90" rx="18" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="2"/>
+<text x="100" y="1170" font-family="Inter, Arial, sans-serif" font-size="17" font-weight="800" fill="#111827">Legende</text>
+<text x="100" y="1197" font-family="Inter, Arial, sans-serif" font-size="14" fill="#334155">P3 lädt nur Baupläne und prüft sie.</text>
+<text x="100" y="1218" font-family="Inter, Arial, sans-serif" font-size="14" fill="#334155">Kein Spawn · keine EntityRef · kein Save</text>
+<text x="900" y="1270" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="13" fill="#64748b">SVG-Vektorgrafik ohne Rasterhintergrund</text>
+</svg>
