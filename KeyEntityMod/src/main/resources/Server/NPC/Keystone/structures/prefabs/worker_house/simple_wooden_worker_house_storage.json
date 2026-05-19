@@ -1,0 +1,95 @@
+{
+	"Id": "simple_wooden_worker_house_storage",
+	"Version": 1,
+	"Type": "StructurePrefab",
+
+	"PrefabId": "simple_wooden_worker_house_storage",
+	"PrefabPath": "Server/NPC/Keystone/structures/prefabs/worker_house/simple_wooden_worker_house_storage.prefab",
+
+	"ProvidesContracts": [
+		"ResidenceContract",
+		"StorageWorkContract"
+	],
+
+	"Tags": [
+		"wood",
+		"village",
+		"worker",
+		"medium",
+		"storage"
+	],
+
+	"Slots": {
+		"ResidenceSlots": [
+			"resident_1",
+			"resident_2"
+		],
+		"StorageWorkSlots": [
+			"storage_work_1"
+		]
+	},
+
+	"Markers": {
+		"resident_1.bed": {
+			"MarkerType": "BED",
+			"Usage": "Exclusive",
+			"SlotId": "resident_1"
+		},
+		"resident_1.table_seat": {
+			"MarkerType": "TABLE_SEAT",
+			"Usage": "Exclusive",
+			"SlotId": "resident_1"
+		},
+		"resident_1.idle": {
+			"MarkerType": "IDLE",
+			"Usage": "Exclusive",
+			"SlotId": "resident_1"
+		},
+		"resident_2.bed": {
+			"MarkerType": "BED",
+			"Usage": "Exclusive",
+			"SlotId": "resident_2"
+		},
+		"resident_2.table_seat": {
+			"MarkerType": "TABLE_SEAT",
+			"Usage": "Exclusive",
+			"SlotId": "resident_2"
+		},
+		"resident_2.idle": {
+			"MarkerType": "IDLE",
+			"Usage": "Exclusive",
+			"SlotId": "resident_2"
+		},
+		"door": {
+			"MarkerType": "DOOR",
+			"Usage": "Shared"
+		},
+		"safety_zone": {
+			"MarkerType": "SAFETY_ZONE",
+			"Usage": "Shared"
+		},
+		"food_source": {
+			"MarkerType": "FOOD_SOURCE",
+			"Usage": "Shared"
+		},
+		"storage_work_1.storage": {
+			"MarkerType": "STORAGE",
+			"Usage": "Shared",
+			"SlotId": "storage_work_1"
+		},
+		"storage_work_1.workbench": {
+			"MarkerType": "WORKBENCH",
+			"Usage": "Exclusive",
+			"SlotId": "storage_work_1"
+		}
+	},
+
+	"CompositionPools": [],
+
+	"Safety": {
+		"RequiresAllContractMarkers": true,
+		"RequiresUniqueResidentSlots": true,
+		"RequiresUniqueWorkSlots": true,
+		"NeverCreateNpcStateInP3": true
+	}
+}

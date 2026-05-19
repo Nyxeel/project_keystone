@@ -1,5 +1,5 @@
 {
-	"Id": "lumberjack_group",
+	"Id": "blacksmith_group",
 	"Version": 1,
 	"Type": "NpcGroup",
 
@@ -19,21 +19,21 @@
 
 	"Variants": [
 		{
-			"RoleId": "lumberjack",
+			"RoleId": "blacksmith",
 
 			"Engine": {
 				"HytaleRole": "Keystone_Human_Worker"
 			},
 
 			"Display": {
-				"FallbackName": "Lumberjack",
-				"NameTranslationKey": "keystone.npc.roles.lumberjack.name"
+				"FallbackName": "Blacksmith",
+				"NameTranslationKey": "keystone.npc.roles.blacksmith.name"
 			},
 
 			"Profiles": {
-				"OutfitPool": "pools/outfits/lumberjack_outfit_pool.json",
-				"Routine": "npc/lumberjack/routines/lumberjack_day_cycle.json",
-				"Actions": "npc/lumberjack/actions/lumberjack_actions.json"
+				"OutfitPool": "pools/outfits/blacksmith_outfit_pool.json",
+				"Routine": "npc/blacksmith/routines/blacksmith_day_cycle.json",
+				"Actions": "npc/blacksmith/actions/blacksmith_actions.json"
 			},
 
 			"Markers": {
@@ -44,8 +44,9 @@
 					"door",
 					"safety_zone",
 					"food_source",
-					"chop_spot",
-					"log_storage"
+					"anvil",
+					"forge",
+					"cooling_barrel"
 				],
 				"MarkerRoles": {
 					"bed": "BED",
@@ -54,17 +55,19 @@
 					"door": "DOOR",
 					"safety_zone": "SAFETY_ZONE",
 					"food_source": "FOOD_SOURCE",
-					"chop_spot": "CHOP_SPOT",
-					"log_storage": "LOG_STORAGE"
+					"anvil": "ANVIL",
+					"forge": "FORGE",
+					"cooling_barrel": "COOLING_BARREL"
 				},
 				"EventMarkers": [
 					"safety_zone",
 					"gather_point"
 				],
 				"OptionalMarkers": [
-					"market_stall",
-					"well",
-					"washing_place"
+					"tool_storage",
+					"ore_storage",
+					"finished_goods_storage",
+					"market_stall"
 				]
 			},
 

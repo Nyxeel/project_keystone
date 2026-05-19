@@ -1,0 +1,65 @@
+{
+	"Id": "guard_group",
+	"Version": 1,
+	"Type": "NpcGroup",
+
+	"Namespace": "keystone",
+
+	"SharedProfiles": {
+		"SpeciesPool": "pools/species/human_worker_species_pool.json",
+		"BodyPool": "pools/body/human_worker_body_pool.json",
+		"Movement": "profiles/movement/human_walk.json",
+		"Navigation": "profiles/navigation/guard_patrol.json",
+		"Combat": "profiles/combat/defensive_guard.json",
+		"Spawn": "profiles/spawn/territory_bound.json",
+		"Persistence": "profiles/persistence/persistent_citizen.json",
+		"Events": "profiles/events/guard_events.json"
+	},
+
+	"Variants": [
+		{
+			"RoleId": "guard",
+
+			"Engine": {
+				"HytaleRole": "Keystone_Human_Guard"
+			},
+
+			"Display": {
+				"FallbackName": "Guard",
+				"NameTranslationKey": "keystone.npc.roles.guard.name"
+			},
+
+			"Profiles": {
+				"OutfitPool": "pools/outfits/worker_common_outfit_pool.json"
+			},
+
+			"Markers": {
+				"RequiredMarkers": [
+					"territory_center",
+					"return_anchor"
+				],
+				"MarkerRoles": {
+					"territory_center": "TERRITORY_CENTER",
+					"return_anchor": "RETURN_ANCHOR"
+				},
+				"EventMarkers": [
+					"defense_point",
+					"alarm_point"
+				],
+				"OptionalMarkers": [
+					"patrol_1",
+					"patrol_2",
+					"patrol_3"
+				]
+			},
+
+			"Debug": {
+				"Enabled": true,
+				"LogRoutine": false,
+				"LogMarkers": true,
+				"LogNavigation": true,
+				"LogActions": false
+			}
+		}
+	]
+}

@@ -1,0 +1,40 @@
+{
+	"Id": "blacksmith_workstation_contract",
+	"Version": 1,
+	"Type": "StructureContract",
+
+	"ContractId": "BlacksmithWorkstationContract",
+
+	"Purpose": "Provides a blacksmith workstation for smithing NPC roles.",
+
+	"RequiredSlots": {
+		"BlacksmithWorkstationSlots": 1
+	},
+
+	"RequiredMarkersPerWorkSlot": [
+		"anvil",
+		"forge",
+		"cooling_barrel"
+	],
+
+	"OptionalMarkers": [
+		"tool_storage",
+		"ore_storage",
+		"finished_goods_storage"
+	],
+
+	"MarkerUsage": {
+		"anvil": "Exclusive",
+		"forge": "Exclusive",
+		"cooling_barrel": "Exclusive",
+		"tool_storage": "Shared",
+		"ore_storage": "Shared",
+		"finished_goods_storage": "Shared"
+	},
+
+	"Safety": {
+		"RequiresUniqueWorkSlotPerWorker": true,
+		"BlockWorkRoutineIfRequiredMarkerMissing": true,
+		"DoNotDeleteNpcIfWorkstationMissing": true
+	}
+}

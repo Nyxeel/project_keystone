@@ -1,0 +1,102 @@
+{
+	"Id": "simple_stone_worker_house_blacksmith",
+	"Version": 1,
+	"Type": "StructurePrefab",
+
+	"PrefabId": "simple_stone_worker_house_blacksmith",
+	"PrefabPath": "Server/NPC/Keystone/structures/prefabs/worker_house/simple_stone_worker_house_blacksmith.prefab",
+
+	"ProvidesContracts": [
+		"ResidenceContract",
+		"BlacksmithWorkstationContract"
+	],
+
+	"Tags": [
+		"stone",
+		"city",
+		"worker",
+		"medium",
+		"blacksmith"
+	],
+
+	"Slots": {
+		"ResidenceSlots": [
+			"resident_1",
+			"resident_2"
+		],
+		"BlacksmithWorkstationSlots": [
+			"blacksmith_work_1"
+		]
+	},
+
+	"Markers": {
+		"resident_1.bed": {
+			"MarkerType": "BED",
+			"Usage": "Exclusive",
+			"SlotId": "resident_1"
+		},
+		"resident_1.table_seat": {
+			"MarkerType": "TABLE_SEAT",
+			"Usage": "Exclusive",
+			"SlotId": "resident_1"
+		},
+		"resident_1.idle": {
+			"MarkerType": "IDLE",
+			"Usage": "Exclusive",
+			"SlotId": "resident_1"
+		},
+		"resident_2.bed": {
+			"MarkerType": "BED",
+			"Usage": "Exclusive",
+			"SlotId": "resident_2"
+		},
+		"resident_2.table_seat": {
+			"MarkerType": "TABLE_SEAT",
+			"Usage": "Exclusive",
+			"SlotId": "resident_2"
+		},
+		"resident_2.idle": {
+			"MarkerType": "IDLE",
+			"Usage": "Exclusive",
+			"SlotId": "resident_2"
+		},
+		"door": {
+			"MarkerType": "DOOR",
+			"Usage": "Shared"
+		},
+		"safety_zone": {
+			"MarkerType": "SAFETY_ZONE",
+			"Usage": "Shared"
+		},
+		"food_source": {
+			"MarkerType": "FOOD_SOURCE",
+			"Usage": "Shared"
+		},
+		"blacksmith_work_1.anvil": {
+			"MarkerType": "ANVIL",
+			"Usage": "Exclusive",
+			"SlotId": "blacksmith_work_1"
+		},
+		"blacksmith_work_1.forge": {
+			"MarkerType": "FORGE",
+			"Usage": "Exclusive",
+			"SlotId": "blacksmith_work_1"
+		},
+		"blacksmith_work_1.cooling_barrel": {
+			"MarkerType": "COOLING_BARREL",
+			"Usage": "Exclusive",
+			"SlotId": "blacksmith_work_1"
+		}
+	},
+
+	"CompositionPools": [
+		"pools/compositions/simple_worker_house_blacksmith_compositions.json"
+	],
+
+	"Safety": {
+		"RequiresAllContractMarkers": true,
+		"RequiresUniqueResidentSlots": true,
+		"RequiresUniqueWorkSlots": true,
+		"NeverCreateNpcStateInP3": true
+	}
+}

@@ -1,0 +1,40 @@
+{
+	"Id": "storage_work_contract",
+	"Version": 1,
+	"Type": "StructureContract",
+
+	"ContractId": "StorageWorkContract",
+
+	"Purpose": "Provides a generic storage or utility work area for worker NPC roles.",
+
+	"RequiredSlots": {
+		"StorageWorkSlots": 1
+	},
+
+	"RequiredMarkersPerWorkSlot": [
+		"storage",
+		"workbench"
+	],
+
+	"OptionalMarkers": [
+		"crate_stack",
+		"tool_rack",
+		"sorting_table",
+		"delivery_spot"
+	],
+
+	"MarkerUsage": {
+		"storage": "Shared",
+		"workbench": "Exclusive",
+		"crate_stack": "Shared",
+		"tool_rack": "Shared",
+		"sorting_table": "Exclusive",
+		"delivery_spot": "Shared"
+	},
+
+	"Safety": {
+		"RequiresUniqueWorkSlotPerWorker": true,
+		"BlockWorkRoutineIfRequiredMarkerMissing": true,
+		"DoNotDeleteNpcIfStorageMissing": true
+	}
+}

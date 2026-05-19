@@ -1,5 +1,5 @@
 {
-	"Id": "lumberjack_group",
+	"Id": "trader_group",
 	"Version": 1,
 	"Type": "NpcGroup",
 
@@ -19,21 +19,22 @@
 
 	"Variants": [
 		{
-			"RoleId": "lumberjack",
+			"RoleId": "trader",
 
 			"Engine": {
 				"HytaleRole": "Keystone_Human_Worker"
 			},
 
 			"Display": {
-				"FallbackName": "Lumberjack",
-				"NameTranslationKey": "keystone.npc.roles.lumberjack.name"
+				"FallbackName": "Trader",
+				"NameTranslationKey": "keystone.npc.roles.trader.name"
 			},
 
 			"Profiles": {
-				"OutfitPool": "pools/outfits/lumberjack_outfit_pool.json",
-				"Routine": "npc/lumberjack/routines/lumberjack_day_cycle.json",
-				"Actions": "npc/lumberjack/actions/lumberjack_actions.json"
+				"OutfitPool": "pools/outfits/trader_outfit_pool.json",
+				"Routine": "npc/trader/routines/trader_day_cycle.json",
+				"Actions": "npc/trader/actions/trader_actions.json",
+				"Trading": "npc/trader/trading/trader_basic_shop.json"
 			},
 
 			"Markers": {
@@ -44,8 +45,9 @@
 					"door",
 					"safety_zone",
 					"food_source",
-					"chop_spot",
-					"log_storage"
+					"counter",
+					"customer_spot",
+					"storage"
 				],
 				"MarkerRoles": {
 					"bed": "BED",
@@ -54,17 +56,20 @@
 					"door": "DOOR",
 					"safety_zone": "SAFETY_ZONE",
 					"food_source": "FOOD_SOURCE",
-					"chop_spot": "CHOP_SPOT",
-					"log_storage": "LOG_STORAGE"
+					"counter": "COUNTER",
+					"customer_spot": "CUSTOMER_SPOT",
+					"storage": "STORAGE"
 				},
 				"EventMarkers": [
 					"safety_zone",
 					"gather_point"
 				],
 				"OptionalMarkers": [
-					"market_stall",
-					"well",
-					"washing_place"
+					"shelf",
+					"display_table",
+					"cashbox",
+					"backroom_storage",
+					"market_stall"
 				]
 			},
 

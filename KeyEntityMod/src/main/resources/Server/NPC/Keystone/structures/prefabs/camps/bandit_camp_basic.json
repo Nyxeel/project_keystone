@@ -1,0 +1,101 @@
+{
+	"Id": "bandit_camp_basic",
+	"Version": 1,
+	"Type": "TerritoryPrefab",
+
+	"PrefabId": "bandit_camp_basic",
+	"PrefabPath": "Server/NPC/Keystone/structures/prefabs/camps/bandit_camp_basic.prefab",
+
+	"ProvidesContracts": [
+		"TerritoryGuardContract"
+	],
+
+	"Tags": [
+		"camp",
+		"hostile",
+		"bandit",
+		"wilderness",
+		"medium"
+	],
+
+	"Territory": {
+		"DefaultRadius": 40.0,
+		"PatrolRadius": 24.0,
+		"ChaseRadius": 36.0,
+		"ReturnRadius": 52.0
+	},
+
+	"Anchors": {
+		"SpawnAnchors": [
+			"guard_spawn_1",
+			"guard_spawn_2",
+			"guard_spawn_3",
+			"leader_spawn_1"
+		],
+		"PatrolSlots": [
+			"patrol_1",
+			"patrol_2",
+			"patrol_3"
+		],
+		"LeaderAnchors": [
+			"leader_spawn_1"
+		]
+	},
+
+	"Markers": {
+		"territory_center": {
+			"MarkerType": "TERRITORY_CENTER",
+			"Usage": "Shared"
+		},
+		"return_anchor": {
+			"MarkerType": "RETURN_ANCHOR",
+			"Usage": "Shared"
+		},
+		"guard_spawn_1": {
+			"MarkerType": "SPAWN_ANCHOR",
+			"Usage": "Exclusive",
+			"SlotId": "guard_spawn_1"
+		},
+		"guard_spawn_2": {
+			"MarkerType": "SPAWN_ANCHOR",
+			"Usage": "Exclusive",
+			"SlotId": "guard_spawn_2"
+		},
+		"guard_spawn_3": {
+			"MarkerType": "SPAWN_ANCHOR",
+			"Usage": "Exclusive",
+			"SlotId": "guard_spawn_3"
+		},
+		"leader_spawn_1": {
+			"MarkerType": "SPAWN_ANCHOR",
+			"Usage": "Exclusive",
+			"SlotId": "leader_spawn_1"
+		},
+		"patrol_1": {
+			"MarkerType": "PATROL_POINT",
+			"Usage": "Temporary",
+			"SlotId": "patrol_1"
+		},
+		"patrol_2": {
+			"MarkerType": "PATROL_POINT",
+			"Usage": "Temporary",
+			"SlotId": "patrol_2"
+		},
+		"patrol_3": {
+			"MarkerType": "PATROL_POINT",
+			"Usage": "Temporary",
+			"SlotId": "patrol_3"
+		}
+	},
+
+	"CompositionPools": [
+		"pools/compositions/bandit_camp_compositions.json"
+	],
+
+	"Safety": {
+		"RequiresTerritoryCenter": true,
+		"RequiresSpawnAnchors": true,
+		"RequiresEnoughPatrolSlots": true,
+		"NeverCreateNpcStateInP3": true
+	}
+}

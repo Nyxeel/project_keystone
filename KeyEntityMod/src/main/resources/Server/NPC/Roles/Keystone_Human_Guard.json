@@ -1,0 +1,22 @@
+{
+	"Id": "Keystone_Human_Guard",
+	"Version": 1,
+	"Type": "NpcRole",
+
+	"Reference": "Template_Human_Friendly",
+
+	"Description": "Generic Keystone human guard engine role. Keystone RoleIds such as guard, city_guard or defensive_guard may share this HytaleRole and customize behavior through Keystone combat, patrol and navigation profiles.",
+
+	"Appearance": "Player",
+
+	"MotionControllerList": [
+		"Walk"
+	],
+
+	"Instructions": {
+		"UsePathfinder": true,
+		"CanOpenDoors": true,
+		"CanUseBasicInteractions": true,
+		"CanUseCombatInteractions": true
+	}
+}

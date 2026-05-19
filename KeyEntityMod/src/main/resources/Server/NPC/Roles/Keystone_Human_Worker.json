@@ -1,0 +1,21 @@
+{
+	"Id": "Keystone_Human_Worker",
+	"Version": 1,
+	"Type": "NpcRole",
+
+	"Reference": "Template_Human_Friendly",
+
+	"Description": "Generic Keystone human worker engine role. Keystone RoleIds such as lumberjack, blacksmith, trader or worker_spouse may share this HytaleRole and customize behavior through Keystone profile JSONs.",
+
+	"Appearance": "Player",
+
+	"MotionControllerList": [
+		"Walk"
+	],
+
+	"Instructions": {
+		"UsePathfinder": true,
+		"CanOpenDoors": true,
+		"CanUseBasicInteractions": true
+	}
+}

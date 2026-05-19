@@ -1,0 +1,26 @@
+{
+	"Id": "city",
+	"Version": 1,
+	"Type": "StructureTag",
+
+	"TagId": "city",
+
+	"Purpose": "Marks structures that are suitable for city-style generation or city districts.",
+
+	"Category": "RegionStyle",
+
+	"CompatibleTags": [
+		"stone",
+		"worker",
+		"medium",
+		"large"
+	],
+
+	"PreferredFor": [
+		"trader",
+		"blacksmith",
+		"guard",
+		"aristocrat",
+		"citizen"
+	]
+}

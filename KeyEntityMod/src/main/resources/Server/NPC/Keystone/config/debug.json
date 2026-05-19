@@ -1,5 +1,5 @@
 {
-	"Id": "npc_debug",
+	"Id": "keystone_npc_debug",
 	"Version": 1,
 	"Type": "DebugConfig",
 
@@ -30,3 +30,5 @@
 
 	"CooldownMs": 5000
 }
+
+

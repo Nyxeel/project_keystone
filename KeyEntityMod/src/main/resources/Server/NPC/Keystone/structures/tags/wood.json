@@ -1,0 +1,26 @@
+{
+	"Id": "wood",
+	"Version": 1,
+	"Type": "StructureTag",
+
+	"TagId": "wood",
+
+	"Purpose": "Marks structures built mainly from wood or suitable for rural and village-style buildings.",
+
+	"Category": "MaterialStyle",
+
+	"CompatibleTags": [
+		"village",
+		"worker",
+		"small",
+		"medium"
+	],
+
+	"PreferredFor": [
+		"lumberjack",
+		"farmer",
+		"worker_spouse",
+		"citizen",
+		"child"
+	]
+}

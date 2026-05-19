@@ -1,0 +1,25 @@
+{
+	"Id": "stone",
+	"Version": 1,
+	"Type": "StructureTag",
+
+	"TagId": "stone",
+
+	"Purpose": "Marks structures built mainly from stone or suitable for more stable city-style buildings.",
+
+	"Category": "MaterialStyle",
+
+	"CompatibleTags": [
+		"city",
+		"worker",
+		"medium",
+		"large"
+	],
+
+	"PreferredFor": [
+		"blacksmith",
+		"trader",
+		"guard",
+		"citizen"
+	]
+}

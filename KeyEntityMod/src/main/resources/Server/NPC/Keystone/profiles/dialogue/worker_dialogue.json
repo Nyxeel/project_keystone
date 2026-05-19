@@ -1,0 +1,38 @@
+{
+	"Id": "worker_dialogue",
+	"Version": 1,
+	"Type": "DialogueProfile",
+
+	"DialogueId": "worker_dialogue",
+
+	"Tags": [
+		"worker",
+		"civilian",
+		"friendly"
+	],
+
+	"DefaultGreeting": {
+		"TextKey": "keystone.dialogue.worker.greeting",
+		"FallbackText": "Hello there."
+	},
+
+	"Topics": {
+		"Work": {
+			"Enabled": true,
+			"TextKey": "keystone.dialogue.worker.work",
+			"FallbackText": "There is always work to do."
+		},
+
+		"Village": {
+			"Enabled": true,
+			"TextKey": "keystone.dialogue.worker.village",
+			"FallbackText": "This place is our home."
+		}
+	},
+
+	"Safety": {
+		"MissingTranslationUsesFallback": true,
+		"DialogueIsOptional": true,
+		"NeverBlockNpcSpawn": true
+	}
+}

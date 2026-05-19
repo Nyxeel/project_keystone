@@ -1,0 +1,58 @@
+{
+	"Id": "wolf_forest_territory",
+	"Version": 1,
+	"Type": "TerritoryProfile",
+
+	"TerritoryId": "wolf_forest_territory",
+
+	"Tags": [
+		"hostile",
+		"animal",
+		"wolf",
+		"forest"
+	],
+
+	"Binding": {
+		"BindingType": "TerritoryBound",
+		"RequiresSpawnAnchor": true,
+		"RequiresTerritoryCenter": true,
+		"RequiresStructureInstance": false
+	},
+
+	"Radius": {
+		"TerritoryRadius": 48.0,
+		"PatrolRadius": 32.0,
+		"ChaseRadius": 42.0,
+		"ReturnRadius": 60.0
+	},
+
+	"Spawning": {
+		"MaxNpcCount": 5,
+		"RespawnAllowed": true,
+		"RespawnDelayTicks": 3600,
+		"SpawnOnlyIfChunkLoaded": true
+	},
+
+	"RolePool": [
+		{
+			"RoleId": "keystone:wolf",
+			"Weight": 90
+		},
+		{
+			"RoleId": "keystone:alpha_wolf",
+			"Weight": 10
+		}
+	],
+
+	"RequiredContracts": [
+		"TerritoryGuardContract"
+	],
+
+	"Safety": {
+		"NeverCreateNpcStateInP3": true,
+		"BlockSpawnIfAnchorMissing": true,
+		"BlockSpawnIfTerritoryMissing": true,
+		"ReturnNpcIfOutsideReturnRadius": true,
+		"DoNotDeleteNpcIfTerritoryMissing": true
+	}
+}

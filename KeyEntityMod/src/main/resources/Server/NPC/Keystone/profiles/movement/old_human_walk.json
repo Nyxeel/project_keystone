@@ -1,36 +1,37 @@
 {
-	"Id": "human_walk",
+	"Id": "old_human_walk",
 	"Version": 1,
 	"Type": "MovementProfile",
 
-	"MovementId": "human_walk",
+	"MovementId": "old_human_walk",
 
 	"Tags": [
 		"human",
 		"walk",
 		"ground",
-		"default"
+		"old",
+		"slow"
 	],
 
 	"Walk": {
-		"BaseSpeed": 1.0,
-		"SlowSpeed": 0.55,
-		"FastSpeed": 1.25,
-		"TurnSpeed": 1.0
+		"BaseSpeed": 0.7,
+		"SlowSpeed": 0.4,
+		"FastSpeed": 0.95,
+		"TurnSpeed": 0.75
 	},
 
 	"Pathing": {
 		"CanUsePathfinder": true,
 		"CanOpenDoors": true,
 		"CanUseStairs": true,
-		"CanJumpSmallObstacles": true,
+		"CanJumpSmallObstacles": false,
 		"AvoidWater": true,
 		"AvoidDanger": true
 	},
 
 	"Arrival": {
-		"StopDistance": 0.5,
-		"SlowDownDistance": 1.5,
-		"RepathDistance": 2.0
+		"StopDistance": 0.6,
+		"SlowDownDistance": 2.0,
+		"RepathDistance": 2.5
 	}
 }

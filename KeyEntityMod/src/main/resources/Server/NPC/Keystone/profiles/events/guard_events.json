@@ -1,0 +1,43 @@
+{
+	"Id": "guard_events",
+	"Version": 1,
+	"Type": "EventProfile",
+
+	"EventProfileId": "guard_events",
+
+	"Tags": [
+		"guard",
+		"defensive",
+		"friendly",
+		"patrol"
+	],
+
+	"Events": {
+		"Raid": {
+			"Enabled": true,
+			"Behavior": "DefendArea",
+			"RequiredMarker": "defense_point",
+			"FallbackBehavior": "Patrol"
+		},
+
+		"Alarm": {
+			"Enabled": true,
+			"Behavior": "MoveToAlarmPoint",
+			"RequiredMarker": "alarm_point",
+			"FallbackBehavior": "DefendCurrentPosition"
+		},
+
+		"GateThreat": {
+			"Enabled": true,
+			"Behavior": "GuardGate",
+			"RequiredPoi": "gate",
+			"FallbackBehavior": "Patrol"
+		}
+	},
+
+	"Safety": {
+		"MissingOptionalEventMarkerIsNotFatal": true,
+		"MissingRequiredEventMarkerBlocksOnlyThatEvent": true,
+		"NeverDeleteNpcOnMissingEventMarker": true
+	}
+}

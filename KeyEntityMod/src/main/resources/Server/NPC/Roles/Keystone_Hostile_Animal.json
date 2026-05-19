@@ -1,0 +1,23 @@
+{
+	"Id": "Keystone_Hostile_Animal",
+	"Version": 1,
+	"Type": "NpcRole",
+
+	"Reference": "Template_Animal_Hostile",
+
+	"Description": "Generic Keystone hostile animal engine role. Keystone RoleIds such as wolf, alpha_wolf or hostile_beast may share this HytaleRole and customize behavior through species, body, movement, combat and territory profiles.",
+
+	"Appearance": "Animal",
+
+	"MotionControllerList": [
+		"Walk"
+	],
+
+	"Instructions": {
+		"UsePathfinder": true,
+		"CanOpenDoors": false,
+		"CanUseBasicInteractions": false,
+		"CanUseCombatInteractions": true,
+		"HostileByDefault": true
+	}
+}

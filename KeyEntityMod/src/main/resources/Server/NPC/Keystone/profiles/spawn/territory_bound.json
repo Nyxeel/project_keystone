@@ -1,0 +1,34 @@
+{
+	"Id": "territory_bound",
+	"Version": 1,
+	"Type": "SpawnProfile",
+
+	"SpawnId": "territory_bound",
+
+	"Binding": {
+		"BindingType": "TerritoryBound",
+		"RequiresStructureInstance": false,
+		"RequiresSpawnAnchor": true,
+		"RequiresTerritory": true,
+		"RequiresMarkerAssignments": false
+	},
+
+	"SpawnRules": {
+		"SpawnOnTerritoryLoad": true,
+		"SpawnOnWorldgenDiscovery": true,
+		"RespawnOnlyIfPersistenceAllows": true,
+		"DoNotSpawnWithoutValidDefinition": true
+	},
+
+	"RequiredStateLinks": [
+		"TerritoryId",
+		"SpawnAnchorId"
+	],
+
+	"Safety": {
+		"BlockIfTerritoryMissing": true,
+		"BlockIfSpawnAnchorMissing": true,
+		"BlockIfOutsideTerritory": true,
+		"NeverCreateStateInP3": true
+	}
+}

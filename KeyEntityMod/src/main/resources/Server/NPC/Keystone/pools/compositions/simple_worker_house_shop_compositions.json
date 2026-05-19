@@ -1,0 +1,96 @@
+{
+	"Id": "simple_worker_house_shop_compositions",
+	"Version": 1,
+	"Type": "CompositionPool",
+
+	"Entries": [
+		{
+			"Id": "trader_single",
+			"Weight": 30,
+
+			"RequiredContracts": [
+				"ResidenceContract",
+				"ShopContract"
+			],
+
+			"RequiredSlots": {
+				"ResidenceSlots": 1,
+				"ShopWorkstationSlots": 1
+			},
+
+			"Npcs": [
+				{
+					"RoleId": "keystone:trader",
+					"HomeSlot": "resident_1",
+					"WorkSlot": "shop_work_1"
+				}
+			]
+		},
+		{
+			"Id": "trader_couple",
+			"Weight": 50,
+
+			"RequiredContracts": [
+				"ResidenceContract",
+				"ShopContract"
+			],
+
+			"RequiredSlots": {
+				"ResidenceSlots": 2,
+				"ShopWorkstationSlots": 1
+			},
+
+			"Npcs": [
+				{
+					"RoleId": "keystone:trader",
+					"HomeSlot": "resident_1",
+					"WorkSlot": "shop_work_1"
+				},
+				{
+					"RoleId": "keystone:worker_spouse",
+					"HomeSlot": "resident_2",
+					"WorkSlot": null
+				}
+			]
+		},
+		{
+			"Id": "trader_family_small",
+			"Weight": 20,
+
+			"RequiredContracts": [
+				"ResidenceContract",
+				"ShopContract"
+			],
+
+			"RequiredSlots": {
+				"ResidenceSlots": 3,
+				"ShopWorkstationSlots": 1
+			},
+
+			"Npcs": [
+				{
+					"RoleId": "keystone:trader",
+					"HomeSlot": "resident_1",
+					"WorkSlot": "shop_work_1"
+				},
+				{
+					"RoleId": "keystone:worker_spouse",
+					"HomeSlot": "resident_2",
+					"WorkSlot": null
+				},
+				{
+					"RoleId": "keystone:child",
+					"HomeSlot": "resident_3",
+					"WorkSlot": null
+				}
+			]
+		}
+	],
+
+	"Safety": {
+		"EntriesMustHaveStableIds": true,
+		"NeverRerollOnRestart": true,
+		"RequiresMatchingStructureContracts": true,
+		"RequiresEnoughSlots": true
+	}
+}
