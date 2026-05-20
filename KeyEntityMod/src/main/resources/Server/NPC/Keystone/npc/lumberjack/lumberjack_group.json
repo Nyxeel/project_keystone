@@ -7,7 +7,12 @@
 
 	"SharedProfiles": {
 		"SpeciesPool": "pools/species/human_worker_species_pool.json",
-		"BodyPool": "pools/body/human_worker_body_pool.json",
+		"FolkPool": "pools/folk/human_folk_pool.json",
+		"BodyPool": "pools/body/human_body_pool.json",
+		"NamePool": "pools/names/human_name_pool.json",
+		"AppearancePool": "pools/appearance/human_appearance_pool.json",
+		"OutfitPool": "pools/outfits/human_outfit_pool.json",
+
 		"Movement": "profiles/movement/human_walk.json",
 		"Navigation": "profiles/navigation/friendly_worker.json",
 		"Combat": "profiles/combat/peaceful.json",
@@ -21,6 +26,12 @@
 		{
 			"RoleId": "lumberjack",
 
+			"SelectionTags": [
+				"human",
+				"worker",
+				"lumberjack"
+			],
+
 			"Engine": {
 				"HytaleRole": "Keystone_Human_Worker"
 			},
@@ -31,7 +42,6 @@
 			},
 
 			"Profiles": {
-				"OutfitPool": "pools/outfits/lumberjack_outfit_pool.json",
 				"Routine": "npc/lumberjack/routines/lumberjack_day_cycle.json",
 				"Actions": "npc/lumberjack/actions/lumberjack_actions.json"
 			},
@@ -42,7 +52,6 @@
 					"table_seat",
 					"idle",
 					"door",
-					"safety_zone",
 					"food_source",
 					"chop_spot",
 					"log_storage"
@@ -52,13 +61,16 @@
 					"table_seat": "TABLE_SEAT",
 					"idle": "IDLE",
 					"door": "DOOR",
-					"safety_zone": "SAFETY_ZONE",
 					"food_source": "FOOD_SOURCE",
 					"chop_spot": "CHOP_SPOT",
-					"log_storage": "LOG_STORAGE"
+					"log_storage": "LOG_STORAGE",
+					"safety_zone": "SAFETY_ZONE",
+					"gather_point": "GATHER_POINT"
 				},
+				"SafetyMarkers": [
+					"safety_zone"
+				],
 				"EventMarkers": [
-					"safety_zone",
 					"gather_point"
 				],
 				"OptionalMarkers": [

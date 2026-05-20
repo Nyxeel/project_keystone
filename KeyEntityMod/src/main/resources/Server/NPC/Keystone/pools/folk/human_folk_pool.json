@@ -1,0 +1,46 @@
+{
+	"Id": "human_folk_pool",
+	"Version": 1,
+	"Type": "FolkPool",
+
+	"Entries": [
+		{
+			"Id": "human_sand",
+			"Weight": 100,
+			"AllowedBiomes": [
+				"sand_desert",
+				"dry_plains",
+				"oasis"
+			],
+			"Tags": [
+				"human",
+				"sand"
+			]
+		},
+		{
+			"Id": "human_forest",
+			"Weight": 100,
+			"AllowedBiomes": [
+				"forest",
+				"deep_forest",
+				"sand_desert"
+			],
+			"Tags": [
+				"human",
+				"forest"
+			]
+		},
+		{
+			"Id": "human_mountain",
+			"Weight": 100,
+			"AllowedBiomes": [
+				"mountain",
+				"highlands"
+			],
+			"Tags": [
+				"human",
+				"mountain"
+			]
+		}
+	]
+}

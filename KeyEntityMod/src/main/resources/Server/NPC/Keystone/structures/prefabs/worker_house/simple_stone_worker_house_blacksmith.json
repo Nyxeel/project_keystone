@@ -1,22 +1,49 @@
 {
-	"Id": "simple_stone_worker_house_blacksmith",
+	"Id": "simple_stone_worker_house_storage",
 	"Version": 1,
 	"Type": "StructurePrefab",
 
-	"PrefabId": "simple_stone_worker_house_blacksmith",
-	"PrefabPath": "Server/NPC/Keystone/structures/prefabs/worker_house/simple_stone_worker_house_blacksmith.prefab",
+	"PrefabId": "simple_stone_worker_house_storage",
+	"PrefabPath": "Server/NPC/Keystone/structures/prefabs/worker_house/simple_stone_worker_house_storage.prefab",
+
+	"AllowedBiomes": [
+		"forest",
+		"deep_forest",
+		"sand_desert",
+		"dry_plains",
+		"mountain",
+		"highlands",
+		"darklands"
+	],
+
+	"DefaultMaterialPalette": "structures/material_palettes/simple_stone_worker_house_forest_palette.json",
+
+	"MaterialPalettes": {
+		"forest": "structures/material_palettes/simple_stone_worker_house_forest_palette.json",
+		"deep_forest": "structures/material_palettes/simple_stone_worker_house_forest_palette.json",
+		"sand_desert": "structures/material_palettes/simple_stone_worker_house_sand_palette.json",
+		"dry_plains": "structures/material_palettes/simple_stone_worker_house_sand_palette.json",
+		"mountain": "structures/material_palettes/simple_stone_worker_house_mountain_palette.json",
+		"highlands": "structures/material_palettes/simple_stone_worker_house_mountain_palette.json",
+		"darklands": "structures/material_palettes/simple_stone_worker_house_darklands_palette.json"
+	},
+
+	"PopulationPolicy": {
+		"Mode": "biome_folk"
+	},
 
 	"ProvidesContracts": [
 		"ResidenceContract",
-		"BlacksmithWorkstationContract"
+		"StorageWorkstationContract"
 	],
 
 	"Tags": [
+		"adaptive_material",
 		"stone",
-		"city",
 		"worker",
 		"medium",
-		"blacksmith"
+		"storage",
+		"house"
 	],
 
 	"Slots": {
@@ -24,8 +51,8 @@
 			"resident_1",
 			"resident_2"
 		],
-		"BlacksmithWorkstationSlots": [
-			"blacksmith_work_1"
+		"StorageWorkstationSlots": [
+			"storage_work_1"
 		]
 	},
 
@@ -72,31 +99,33 @@
 			"MarkerType": "FOOD_SOURCE",
 			"Usage": "Shared"
 		},
-		"blacksmith_work_1.anvil": {
-			"MarkerType": "ANVIL",
+		"storage_work_1.chest": {
+			"MarkerType": "STORAGE_CHEST",
 			"Usage": "Exclusive",
-			"SlotId": "blacksmith_work_1"
+			"SlotId": "storage_work_1"
 		},
-		"blacksmith_work_1.forge": {
-			"MarkerType": "FORGE",
+		"storage_work_1.shelf": {
+			"MarkerType": "STORAGE_SHELF",
 			"Usage": "Exclusive",
-			"SlotId": "blacksmith_work_1"
+			"SlotId": "storage_work_1"
 		},
-		"blacksmith_work_1.cooling_barrel": {
-			"MarkerType": "COOLING_BARREL",
+		"storage_work_1.crate": {
+			"MarkerType": "STORAGE_CRATE",
 			"Usage": "Exclusive",
-			"SlotId": "blacksmith_work_1"
+			"SlotId": "storage_work_1"
 		}
 	},
 
 	"CompositionPools": [
-		"pools/compositions/simple_worker_house_blacksmith_compositions.json"
+		"pools/compositions/simple_worker_house_storage_compositions.json"
 	],
 
 	"Safety": {
 		"RequiresAllContractMarkers": true,
 		"RequiresUniqueResidentSlots": true,
 		"RequiresUniqueWorkSlots": true,
-		"NeverCreateNpcStateInP3": true
+		"RequiresMaterialPaletteForBiome": true,
+		"NeverCreateNpcStateInP3": true,
+		"NeverPlacePrefabInP3": true
 	}
 }

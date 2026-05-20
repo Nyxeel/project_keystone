@@ -9,6 +9,8 @@ import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
 
 import keystone.npc.bootstrap.NpcPluginBootstrap;
 import keystone.npc.service.NpcServices;
+import keystone.npc.logging.KeyNpcLogger;
+
 
 /**
  * Main plugin entrypoint for NPCMod / KeystoneNPC.
@@ -53,7 +55,7 @@ public class KeystoneNpcPlugin extends JavaPlugin {
                 this::queueInitialRespawnIfNeeded
         	).setupNpcMod();
 		} catch (IllegalStateException e) {
-			System.err.println("[KeystoneNPC][SETUP_FAILED] " + e.getMessage());
+			KeyNpcLogger.error("[SETUP FAILED] ", e.getMessage(), e);
 			throw e;
 		}
 
@@ -66,7 +68,7 @@ public class KeystoneNpcPlugin extends JavaPlugin {
      */
     @Override
     protected void start() {
-        System.out.println("[KeystoneNPC] start...");
+		KeyNpcLogger.info("[LOADING SETUP FINISHED] ", " starting ...");
 
         NpcServices services = requireServices();
 
@@ -80,7 +82,7 @@ public class KeystoneNpcPlugin extends JavaPlugin {
          * damit Welten und NPC-Daten der Engine wirklich geladen sind.
          */
 
-        System.out.println("[KeystoneNPC] started.");
+		KeyNpcLogger.info("[KEYSTONE STARTED] ", "Keystone Entity Mod is running ... ");
     }
 
     /*
@@ -92,7 +94,7 @@ public class KeystoneNpcPlugin extends JavaPlugin {
 
         if (initialRespawnQueued) {
             System.out.println("[KeystoneNPC] Initial respawn already queued; skipping duplicate trigger "
-                    + checkedTrigger + ".");
+                    + cFAILEDheckedTrigger + ".");
             return;
         }
 

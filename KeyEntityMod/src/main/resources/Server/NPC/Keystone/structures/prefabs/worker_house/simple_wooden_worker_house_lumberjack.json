@@ -1,10 +1,10 @@
 {
-	"Id": "simple_wooden_worker_house_storage",
+	"Id": "simple_wooden_worker_house_lumberjack",
 	"Version": 1,
 	"Type": "StructurePrefab",
 
-	"PrefabId": "simple_wooden_worker_house_storage",
-	"PrefabPath": "Server/NPC/Keystone/structures/prefabs/worker_house/simple_wooden_worker_house_storage.prefab",
+	"PrefabId": "simple_wooden_worker_house_lumberjack",
+	"PrefabPath": "Server/NPC/Keystone/structures/prefabs/worker_house/simple_wooden_worker_house_lumberjack.prefab",
 
 	"AllowedBiomes": [
 		"forest",
@@ -34,7 +34,7 @@
 
 	"ProvidesContracts": [
 		"ResidenceContract",
-		"StorageWorkstationContract"
+		"LumberjackWorkstationContract"
 	],
 
 	"Tags": [
@@ -42,7 +42,7 @@
 		"wooden",
 		"worker",
 		"medium",
-		"storage",
+		"lumberjack",
 		"house"
 	],
 
@@ -51,8 +51,8 @@
 			"resident_1",
 			"resident_2"
 		],
-		"StorageWorkstationSlots": [
-			"storage_work_1"
+		"LumberjackWorkstationSlots": [
+			"lumberjack_work_1"
 		]
 	},
 
@@ -99,25 +99,25 @@
 			"MarkerType": "FOOD_SOURCE",
 			"Usage": "Shared"
 		},
-		"storage_work_1.chest": {
-			"MarkerType": "STORAGE_CHEST",
+		"lumberjack_work_1.chop_spot": {
+			"MarkerType": "CHOP_SPOT",
 			"Usage": "Exclusive",
-			"SlotId": "storage_work_1"
+			"SlotId": "lumberjack_work_1"
 		},
-		"storage_work_1.shelf": {
-			"MarkerType": "STORAGE_SHELF",
+		"lumberjack_work_1.log_storage": {
+			"MarkerType": "LOG_STORAGE",
 			"Usage": "Exclusive",
-			"SlotId": "storage_work_1"
+			"SlotId": "lumberjack_work_1"
 		},
-		"storage_work_1.crate": {
-			"MarkerType": "STORAGE_CRATE",
+		"lumberjack_work_1.wood_pile": {
+			"MarkerType": "WOOD_PILE",
 			"Usage": "Exclusive",
-			"SlotId": "storage_work_1"
+			"SlotId": "lumberjack_work_1"
 		}
 	},
 
 	"CompositionPools": [
-		"pools/compositions/simple_worker_house_storage_compositions.json"
+		"pools/compositions/simple_worker_house_lumberjack_compositions.json"
 	],
 
 	"Safety": {

@@ -495,10 +495,10 @@ LoadedNpcDefinition:
 - debug
 - sourcePath optional
 
-NpcProfileRefs:
-- Map(String, NpcProfileRef) profiles
+NpcProfileMap:
+- Map(String, NpcProfile) profiles
 
-NpcProfileRef:
+NpcProfile:
 - profileKey
 - path
 - namespace optional

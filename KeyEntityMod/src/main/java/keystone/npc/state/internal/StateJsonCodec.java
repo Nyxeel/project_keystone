@@ -4,9 +4,6 @@ import java.util.regex.Pattern;
 
 import keystone.npc.model.PersistedWorldState;
 
-
-
-
 /*
  * StateJsonCodec ist nur für JSON-Umwandlung zuständig.
  *
@@ -51,6 +48,7 @@ public final class StateJsonCodec {
         return """
                 {
                   "version": 1,
+				  "worldKey": [],
                   "npcs": [],
                   "markers": []
                 }
