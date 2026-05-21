@@ -21,12 +21,26 @@
 				{
 					"RoleId": "keystone:bandit_guard",
 					"SpawnAnchor": "guard_spawn_1",
-					"PatrolSlot": "patrol_1"
+					"PatrolSlot": "patrol_1",
+					"RequiredSex": "any",
+					"RequiredTags": [
+						"adult",
+						"hostile",
+						"bandit",
+						"guard"
+					]
 				},
 				{
 					"RoleId": "keystone:bandit_guard",
 					"SpawnAnchor": "guard_spawn_2",
-					"PatrolSlot": "patrol_2"
+					"PatrolSlot": "patrol_2",
+					"RequiredSex": "any",
+					"RequiredTags": [
+						"adult",
+						"hostile",
+						"bandit",
+						"guard"
+					]
 				}
 			]
 		}
@@ -38,6 +52,8 @@
 		"RequiresMatchingTerritoryContracts": true,
 		"RequiresEnoughSpawnAnchors": true,
 		"RequiresEnoughPatrolSlots": true,
+		"RequiredSexMustBeKnown": true,
+		"RequiredTagsMustMatchBodyPool": true,
 		"NeverCreateNpcStateInP3": true
 	}
 }

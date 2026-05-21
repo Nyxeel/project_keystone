@@ -1,0 +1,134 @@
+{
+	"Id": "human_body_pool",
+	"Version": 1,
+	"Type": "BodyPool",
+
+	"Entries": [
+		{
+			"Id": "human_sand_male_adult_worker",
+			"Weight": 50,
+			"Profile": "profiles/body/human_male.json",
+			"BodyTheme": "sand",
+			"Sex": "male",
+			"Age": "adult",
+			"Tags": [
+				"human",
+				"sand",
+				"male",
+				"adult",
+				"worker"
+			]
+		},
+		{
+			"Id": "human_sand_female_adult_worker",
+			"Weight": 50,
+			"Profile": "profiles/body/human_female.json",
+			"BodyTheme": "sand",
+			"Sex": "female",
+			"Age": "adult",
+			"Tags": [
+				"human",
+				"sand",
+				"female",
+				"adult",
+				"worker"
+			]
+		},
+		{
+			"Id": "human_forest_male_adult_worker",
+			"Weight": 50,
+			"Profile": "profiles/body/human_male.json",
+			"BodyTheme": "forest",
+			"Sex": "male",
+			"Age": "adult",
+			"Tags": [
+				"human",
+				"forest",
+				"male",
+				"adult",
+				"worker"
+			]
+		},
+		{
+			"Id": "human_forest_female_adult_worker",
+			"Weight": 50,
+			"Profile": "profiles/body/human_female.json",
+			"BodyTheme": "forest",
+			"Sex": "female",
+			"Age": "adult",
+			"Tags": [
+				"human",
+				"forest",
+				"female",
+				"adult",
+				"worker"
+			]
+		},
+		{
+			"Id": "human_mountain_male_adult_worker",
+			"Weight": 50,
+			"Profile": "profiles/body/human_male.json",
+			"BodyTheme": "mountain",
+			"Sex": "male",
+			"Age": "adult",
+			"Tags": [
+				"human",
+				"mountain",
+				"male",
+				"adult",
+				"worker"
+			]
+		},
+		{
+			"Id": "human_mountain_female_adult_worker",
+			"Weight": 50,
+			"Profile": "profiles/body/human_female.json",
+			"BodyTheme": "mountain",
+			"Sex": "female",
+			"Age": "adult",
+			"Tags": [
+				"human",
+				"mountain",
+				"female",
+				"adult",
+				"worker"
+			]
+		},
+		{
+			"Id": "human_darklands_male_adult_worker",
+			"Weight": 50,
+			"Profile": "profiles/body/human_male.json",
+			"BodyTheme": "darklands",
+			"Sex": "male",
+			"Age": "adult",
+			"Tags": [
+				"human",
+				"darklands",
+				"male",
+				"adult",
+				"worker"
+			]
+		},
+		{
+			"Id": "human_darklands_female_adult_worker",
+			"Weight": 50,
+			"Profile": "profiles/body/human_female.json",
+			"BodyTheme": "darklands",
+			"Sex": "female",
+			"Age": "adult",
+			"Tags": [
+				"human",
+				"darklands",
+				"female",
+				"adult",
+				"worker"
+			]
+		}
+	],
+
+	"Safety": {
+		"EntriesMustHaveStableIds": true,
+		"NeverRerollOnRestart": true,
+		"NeverCreateNpcStateInP3": true
+	}
+}

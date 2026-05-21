@@ -1,24 +1,24 @@
 {
-	"Id": "simple_worker_house_blacksmith_compositions",
+	"Id": "simple_worker_house_lumberjack_compositions",
 	"Version": 1,
 	"Type": "CompositionPool",
 
 	"Entries": [
 		{
-			"Id": "blacksmith_couple",
+			"Id": "lumberjack_couple",
 			"Weight": 100,
 
 			"Slots": [
 				{
 					"SlotId": "main_worker",
-					"RoleId": "keystone:blacksmith",
+					"RoleId": "keystone:lumberjack",
 					"HomeSlot": "resident_1",
-					"WorkSlot": "blacksmith_work_1",
+					"WorkSlot": "lumberjack_work_1",
 					"RequiredSex": "male",
 					"RequiredTags": [
 						"adult",
 						"worker",
-						"blacksmith"
+						"lumberjack"
 					]
 				},
 				{

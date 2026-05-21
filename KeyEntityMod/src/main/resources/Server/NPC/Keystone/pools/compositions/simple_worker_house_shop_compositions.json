@@ -10,7 +10,7 @@
 
 			"RequiredContracts": [
 				"ResidenceContract",
-				"ShopContract"
+				"ShopWorkstationContract"
 			],
 
 			"RequiredSlots": {
@@ -22,17 +22,23 @@
 				{
 					"RoleId": "keystone:trader",
 					"HomeSlot": "resident_1",
-					"WorkSlot": "shop_work_1"
+					"WorkSlot": "shop_work_1",
+					"RequiredSex": "any",
+					"RequiredTags": [
+						"adult",
+						"worker",
+						"trader"
+					]
 				}
 			]
 		},
 		{
 			"Id": "trader_couple",
-			"Weight": 50,
+			"Weight": 70,
 
 			"RequiredContracts": [
 				"ResidenceContract",
-				"ShopContract"
+				"ShopWorkstationContract"
 			],
 
 			"RequiredSlots": {
@@ -44,44 +50,23 @@
 				{
 					"RoleId": "keystone:trader",
 					"HomeSlot": "resident_1",
-					"WorkSlot": "shop_work_1"
+					"WorkSlot": "shop_work_1",
+					"RequiredSex": "male",
+					"RequiredTags": [
+						"adult",
+						"worker",
+						"trader"
+					]
 				},
 				{
 					"RoleId": "keystone:worker_spouse",
 					"HomeSlot": "resident_2",
-					"WorkSlot": null
-				}
-			]
-		},
-		{
-			"Id": "trader_family_small",
-			"Weight": 20,
-
-			"RequiredContracts": [
-				"ResidenceContract",
-				"ShopContract"
-			],
-
-			"RequiredSlots": {
-				"ResidenceSlots": 3,
-				"ShopWorkstationSlots": 1
-			},
-
-			"Npcs": [
-				{
-					"RoleId": "keystone:trader",
-					"HomeSlot": "resident_1",
-					"WorkSlot": "shop_work_1"
-				},
-				{
-					"RoleId": "keystone:worker_spouse",
-					"HomeSlot": "resident_2",
-					"WorkSlot": null
-				},
-				{
-					"RoleId": "keystone:child",
-					"HomeSlot": "resident_3",
-					"WorkSlot": null
+					"WorkSlot": null,
+					"RequiredSex": "female",
+					"RequiredTags": [
+						"adult",
+						"spouse"
+					]
 				}
 			]
 		}
@@ -91,6 +76,9 @@
 		"EntriesMustHaveStableIds": true,
 		"NeverRerollOnRestart": true,
 		"RequiresMatchingStructureContracts": true,
-		"RequiresEnoughSlots": true
+		"RequiresEnoughSlots": true,
+		"RequiredSexMustBeKnown": true,
+		"RequiredTagsMustMatchBodyPool": true,
+		"NeverCreateNpcStateInP3": true
 	}
 }
