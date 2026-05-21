@@ -1,0 +1,59 @@
+{
+	"Id": "human_body_pool_group",
+	"Version": 1,
+	"Type": "BodyPoolGroup",
+
+	"Entries": [
+		{
+			"BodyTheme": "sand",
+			"Sex": "male",
+			"Pool": "pools/body/human/sand_male_body_pool.json"
+		},
+		{
+			"BodyTheme": "sand",
+			"Sex": "female",
+			"Pool": "pools/body/human/sand_female_body_pool.json"
+		},
+
+		{
+			"BodyTheme": "forest",
+			"Sex": "male",
+			"Pool": "pools/body/human/forest_male_body_pool.json"
+		},
+		{
+			"BodyTheme": "forest",
+			"Sex": "female",
+			"Pool": "pools/body/human/forest_female_body_pool.json"
+		},
+
+		{
+			"BodyTheme": "mountain",
+			"Sex": "male",
+			"Pool": "pools/body/human/mountain_male_body_pool.json"
+		},
+		{
+			"BodyTheme": "mountain",
+			"Sex": "female",
+			"Pool": "pools/body/human/mountain_female_body_pool.json"
+		},
+
+		{
+			"BodyTheme": "darklands",
+			"Sex": "male",
+			"Pool": "pools/body/human/darklands_male_body_pool.json"
+		},
+		{
+			"BodyTheme": "darklands",
+			"Sex": "female",
+			"Pool": "pools/body/human/darklands_female_body_pool.json"
+		}
+	],
+
+	"Safety": {
+		"RequiresMatchingBodyTheme": true,
+		"RequiresMatchingSex": true,
+		"EntriesMustHaveStableIds": true,
+		"NeverRerollOnRestart": true,
+		"NeverCreateNpcStateInP3": true
+	}
+}

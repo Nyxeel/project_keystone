@@ -7,18 +7,27 @@
 
 	"SharedProfiles": {
 		"SpeciesPool": "pools/species/human_worker_species_pool.json",
-		"BodyPool": "pools/body/human_worker_body_pool.json",
+		"BodyPool": "pools/body/human_body_pool.json",
+		"NamePool": "pools/names/human/human_name_pool_group.json",
+		"OutfitPool": "pools/outfits/human_outfit_pool_group.json",
+
 		"Movement": "profiles/movement/human_walk.json",
 		"Navigation": "profiles/navigation/guard_patrol.json",
 		"Combat": "profiles/combat/defensive_guard.json",
 		"Spawn": "profiles/spawn/territory_bound.json",
 		"Persistence": "profiles/persistence/persistent_citizen.json",
-		"Events": "profiles/events/guard_events.json"
+		"Events": "profiles/events/guard_events.json",
+		"Dialogue": "profiles/dialogue/worker_dialogue.json"
 	},
 
 	"Variants": [
 		{
 			"RoleId": "guard",
+
+			"SelectionTags": [
+				"human",
+				"guard"
+			],
 
 			"Engine": {
 				"HytaleRole": "Keystone_Human_Guard"
@@ -29,9 +38,7 @@
 				"NameTranslationKey": "keystone.npc.roles.guard.name"
 			},
 
-			"Profiles": {
-				"OutfitPool": "pools/outfits/worker_common_outfit_pool.json"
-			},
+			"Profiles": {},
 
 			"Markers": {
 				"RequiredMarkers": [
@@ -40,8 +47,16 @@
 				],
 				"MarkerRoles": {
 					"territory_center": "TERRITORY_CENTER",
-					"return_anchor": "RETURN_ANCHOR"
+					"return_anchor": "RETURN_ANCHOR",
+					"defense_point": "DEFENSE_POINT",
+					"alarm_point": "ALARM_POINT",
+					"patrol_1": "PATROL_POINT",
+					"patrol_2": "PATROL_POINT",
+					"patrol_3": "PATROL_POINT"
 				},
+				"SafetyMarkers": [
+					"return_anchor"
+				],
 				"EventMarkers": [
 					"defense_point",
 					"alarm_point"

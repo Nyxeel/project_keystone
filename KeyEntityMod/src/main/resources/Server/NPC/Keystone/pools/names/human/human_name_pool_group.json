@@ -5,49 +5,49 @@
 
 	"Entries": [
 		{
-			"Folk": "human_sand",
+			"NameTheme": "sand",
 			"Sex": "male",
 			"Pool": "pools/names/human/human_sand_male_name_pool.json"
 		},
 		{
-			"Folk": "human_sand",
+			"NameTheme": "sand",
 			"Sex": "female",
 			"Pool": "pools/names/human/human_sand_female_name_pool.json"
 		},
 		{
-			"Folk": "human_forest",
+			"NameTheme": "forest",
 			"Sex": "male",
 			"Pool": "pools/names/human/human_forest_male_name_pool.json"
 		},
 		{
-			"Folk": "human_forest",
+			"NameTheme": "forest",
 			"Sex": "female",
 			"Pool": "pools/names/human/human_forest_female_name_pool.json"
 		},
 		{
-			"Folk": "human_mountain",
+			"NameTheme": "mountain",
 			"Sex": "male",
 			"Pool": "pools/names/human/human_mountain_male_name_pool.json"
 		},
 		{
-			"Folk": "human_mountain",
+			"NameTheme": "mountain",
 			"Sex": "female",
 			"Pool": "pools/names/human/human_mountain_female_name_pool.json"
 		},
 		{
-			"Folk": "human_darklands",
+			"NameTheme": "darklands",
 			"Sex": "male",
 			"Pool": "pools/names/human/human_darklands_male_name_pool.json"
 		},
 		{
-			"Folk": "human_darklands",
+			"NameTheme": "darklands",
 			"Sex": "female",
 			"Pool": "pools/names/human/human_darklands_female_name_pool.json"
 		}
 	],
 
 	"Safety": {
-		"RequiresMatchingFolk": true,
+		"RequiresMatchingNameTheme": true,
 		"RequiresMatchingSex": true,
 		"EntriesMustHaveStableIds": true,
 		"NeverRerollOnRestart": true,

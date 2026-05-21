@@ -1,0 +1,68 @@
+{
+	"Id": "darklands_male_body_pool",
+	"Version": 1,
+	"Type": "BodyPool",
+	"BodyTheme": "darklands",
+	"Sex": "male",
+
+	"Entries": [
+		{
+			"Id": "darklands_male_adult_01",
+			"Weight": 40,
+			"BodyProfile": "human_male_lean",
+			"Age": "adult",
+			"SkinTone": "ash_pale",
+			"HairStyle": "short_rough",
+			"HairColor": "black",
+			"EyeColor": "ember",
+			"FaceProfile": "sharp_darklands_face",
+			"Tags": [
+				"human",
+				"darklands",
+				"male",
+				"adult"
+			]
+		},
+		{
+			"Id": "darklands_male_adult_02",
+			"Weight": 35,
+			"BodyProfile": "human_male_sturdy",
+			"Age": "adult",
+			"SkinTone": "grey_olive",
+			"HairStyle": "medium_tied",
+			"HairColor": "dark_brown",
+			"EyeColor": "pale_green",
+			"FaceProfile": "scarred_darklands_face",
+			"Tags": [
+				"human",
+				"darklands",
+				"male",
+				"adult",
+				"worker"
+			]
+		},
+		{
+			"Id": "darklands_male_adult_03",
+			"Weight": 25,
+			"BodyProfile": "human_male_average",
+			"Age": "adult",
+			"SkinTone": "smoke_tan",
+			"HairStyle": "long_wild",
+			"HairColor": "charcoal",
+			"EyeColor": "grey",
+			"FaceProfile": "grim_darklands_face",
+			"Tags": [
+				"human",
+				"darklands",
+				"male",
+				"adult"
+			]
+		}
+	],
+
+	"Safety": {
+		"EntriesMustHaveStableIds": true,
+		"NeverRerollOnRestart": true,
+		"NeverCreateNpcStateInP3": true
+	}
+}

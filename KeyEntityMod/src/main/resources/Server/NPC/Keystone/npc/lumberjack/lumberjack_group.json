@@ -9,8 +9,7 @@
 		"SpeciesPool": "pools/species/human_worker_species_pool.json",
 		"BodyPool": "pools/body/human_body_pool.json",
 		"NamePool": "pools/names/human/human_name_pool_group.json",
-
-
+		"OutfitPool": "pools/outfits/human_outfit_pool_group.json",
 
 		"Movement": "profiles/movement/human_walk.json",
 		"Navigation": "profiles/navigation/friendly_worker.json",
@@ -42,7 +41,6 @@
 
 			"Profiles": {
 				"Routine": "npc/lumberjack/routines/lumberjack_day_cycle.json",
-				"OutfitPool": "pools/outfits/human_outfit_pool.json",
 				"Actions": "npc/lumberjack/actions/lumberjack_actions.json"
 			},
 

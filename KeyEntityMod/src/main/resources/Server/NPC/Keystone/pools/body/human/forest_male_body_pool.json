@@ -1,0 +1,68 @@
+{
+	"Id": "forest_male_body_pool",
+	"Version": 1,
+	"Type": "BodyPool",
+	"BodyTheme": "forest",
+	"Sex": "male",
+
+	"Entries": [
+		{
+			"Id": "forest_male_adult_01",
+			"Weight": 40,
+			"BodyProfile": "human_male_average",
+			"Age": "adult",
+			"SkinTone": "warm_light",
+			"HairStyle": "short_messy",
+			"HairColor": "brown",
+			"EyeColor": "green",
+			"FaceProfile": "soft_forest_face",
+			"Tags": [
+				"human",
+				"forest",
+				"male",
+				"adult"
+			]
+		},
+		{
+			"Id": "forest_male_adult_02",
+			"Weight": 35,
+			"BodyProfile": "human_male_sturdy",
+			"Age": "adult",
+			"SkinTone": "sun_touched",
+			"HairStyle": "medium_tied",
+			"HairColor": "dark_brown",
+			"EyeColor": "hazel",
+			"FaceProfile": "rugged_forest_face",
+			"Tags": [
+				"human",
+				"forest",
+				"male",
+				"adult",
+				"worker"
+			]
+		},
+		{
+			"Id": "forest_male_adult_03",
+			"Weight": 25,
+			"BodyProfile": "human_male_lean",
+			"Age": "adult",
+			"SkinTone": "fair",
+			"HairStyle": "long_loose",
+			"HairColor": "auburn",
+			"EyeColor": "grey_green",
+			"FaceProfile": "calm_forest_face",
+			"Tags": [
+				"human",
+				"forest",
+				"male",
+				"adult"
+			]
+		}
+	],
+
+	"Safety": {
+		"EntriesMustHaveStableIds": true,
+		"NeverRerollOnRestart": true,
+		"NeverCreateNpcStateInP3": true
+	}
+}

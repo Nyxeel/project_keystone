@@ -1,0 +1,68 @@
+{
+	"Id": "sand_male_body_pool",
+	"Version": 1,
+	"Type": "BodyPool",
+	"BodyTheme": "sand",
+	"Sex": "male",
+
+	"Entries": [
+		{
+			"Id": "sand_male_adult_01",
+			"Weight": 40,
+			"BodyProfile": "human_male_lean",
+			"Age": "adult",
+			"SkinTone": "sun_bronzed",
+			"HairStyle": "short_dark",
+			"HairColor": "black",
+			"EyeColor": "amber",
+			"FaceProfile": "sharp_desert_face",
+			"Tags": [
+				"human",
+				"sand",
+				"male",
+				"adult"
+			]
+		},
+		{
+			"Id": "sand_male_adult_02",
+			"Weight": 35,
+			"BodyProfile": "human_male_sturdy",
+			"Age": "adult",
+			"SkinTone": "warm_olive",
+			"HairStyle": "medium_tied",
+			"HairColor": "dark_brown",
+			"EyeColor": "hazel",
+			"FaceProfile": "weathered_desert_face",
+			"Tags": [
+				"human",
+				"sand",
+				"male",
+				"adult",
+				"worker"
+			]
+		},
+		{
+			"Id": "sand_male_adult_03",
+			"Weight": 25,
+			"BodyProfile": "human_male_average",
+			"Age": "adult",
+			"SkinTone": "deep_tan",
+			"HairStyle": "wrapped_hair",
+			"HairColor": "black",
+			"EyeColor": "dark_brown",
+			"FaceProfile": "calm_desert_face",
+			"Tags": [
+				"human",
+				"sand",
+				"male",
+				"adult"
+			]
+		}
+	],
+
+	"Safety": {
+		"EntriesMustHaveStableIds": true,
+		"NeverRerollOnRestart": true,
+		"NeverCreateNpcStateInP3": true
+	}
+}

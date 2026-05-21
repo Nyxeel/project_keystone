@@ -1,1 +1,17 @@
 
+{
+	"Id": "sand",
+	"Version": 1,
+	"Type": "BiomeTheme",
+
+	"StructureTheme": "sand",
+	"BodyTheme": "sand",
+	"OutfitTheme": "sand",
+	"NameTheme": "sand",
+
+	"Safety": {
+		"ThemeIdsMustBeStable": true,
+		"NeverRerollOnRestart": true,
+		"NeverCreateNpcStateInP3": true
+	}
+}

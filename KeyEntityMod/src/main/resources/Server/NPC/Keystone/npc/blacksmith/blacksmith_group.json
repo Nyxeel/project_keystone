@@ -7,7 +7,10 @@
 
 	"SharedProfiles": {
 		"SpeciesPool": "pools/species/human_worker_species_pool.json",
-		"BodyPool": "pools/body/human_worker_body_pool.json",
+		"BodyPool": "pools/body/human_body_pool.json",
+		"NamePool": "pools/names/human/human_name_pool_group.json",
+		"OutfitPool": "pools/outfits/human_outfit_pool_group.json",
+
 		"Movement": "profiles/movement/human_walk.json",
 		"Navigation": "profiles/navigation/friendly_worker.json",
 		"Combat": "profiles/combat/peaceful.json",
@@ -21,6 +24,12 @@
 		{
 			"RoleId": "blacksmith",
 
+			"SelectionTags": [
+				"human",
+				"worker",
+				"blacksmith"
+			],
+
 			"Engine": {
 				"HytaleRole": "Keystone_Human_Worker"
 			},
@@ -31,7 +40,6 @@
 			},
 
 			"Profiles": {
-				"OutfitPool": "pools/outfits/blacksmith_outfit_pool.json",
 				"Routine": "npc/blacksmith/routines/blacksmith_day_cycle.json",
 				"Actions": "npc/blacksmith/actions/blacksmith_actions.json"
 			},
@@ -42,7 +50,6 @@
 					"table_seat",
 					"idle",
 					"door",
-					"safety_zone",
 					"food_source",
 					"anvil",
 					"forge",
@@ -53,14 +60,17 @@
 					"table_seat": "TABLE_SEAT",
 					"idle": "IDLE",
 					"door": "DOOR",
-					"safety_zone": "SAFETY_ZONE",
 					"food_source": "FOOD_SOURCE",
 					"anvil": "ANVIL",
 					"forge": "FORGE",
-					"cooling_barrel": "COOLING_BARREL"
+					"cooling_barrel": "COOLING_BARREL",
+					"safety_zone": "SAFETY_ZONE",
+					"gather_point": "GATHER_POINT"
 				},
+				"SafetyMarkers": [
+					"safety_zone"
+				],
 				"EventMarkers": [
-					"safety_zone",
 					"gather_point"
 				],
 				"OptionalMarkers": [
