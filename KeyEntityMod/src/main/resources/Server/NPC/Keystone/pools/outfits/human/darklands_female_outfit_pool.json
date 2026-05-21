@@ -4,6 +4,17 @@
 	"Type": "OutfitPool",
 	"OutfitTheme": "darklands",
 	"Sex": "female",
+	"SupportedTags": [
+		"worker",
+		"citizen",
+		"noble",
+		"magic",
+		"guard",
+		"trader",
+		"lumberjack",
+		"blacksmith"
+	],
+
 
 	"Entries": [
 		{
@@ -30,6 +41,7 @@
 			"Id": "darklands_female_lumberjack_black",
 			"Weight": 30,
 			"RequiredTags": [
+				"worker",
 				"lumberjack"
 			],
 			"OutfitParts": {
@@ -50,6 +62,7 @@
 			"Id": "darklands_female_blacksmith_ash",
 			"Weight": 20,
 			"RequiredTags": [
+				"worker",
 				"blacksmith"
 			],
 			"OutfitParts": {
@@ -70,6 +83,7 @@
 			"Id": "darklands_female_trader_shadow",
 			"Weight": 15,
 			"RequiredTags": [
+				"worker",
 				"trader"
 			],
 			"OutfitParts": {
@@ -105,7 +119,68 @@
 				"Gloves": "WorkerGloves.Black",
 				"Cape": null
 			}
+		},
+		{
+			"Id": "darklands_female_citizen_ash",
+			"Weight": 20,
+			"RequiredTags": [
+				"citizen"
+			],
+			"OutfitParts": {
+				"Underwear": "Suit.Turquoise",
+				"Pants": "CostumePants.DarkGrey",
+				"Overpants": null,
+				"Undertop": "Crinkled_Top.Grey",
+				"Overtop": "CommonerTunic.DarkBrown",
+				"Shoes": "BasicShoes_Buckle.Black",
+				"HeadAccessory": null,
+				"FaceAccessory": null,
+				"EarAccessory": null,
+				"Gloves": null,
+				"Cape": null
+			}
+		},
+		{
+			"Id": "darklands_female_noble_obsidian",
+			"Weight": 8,
+			"RequiredTags": [
+				"noble"
+			],
+			"OutfitParts": {
+				"Underwear": "Suit.Turquoise",
+				"Pants": "CostumePants.Black",
+				"Overpants": null,
+				"Undertop": "FineShirt.DarkPurple",
+				"Overtop": "NobleCoat.Obsidian",
+				"Shoes": "FineBoots.Black",
+				"HeadAccessory": null,
+				"FaceAccessory": null,
+				"EarAccessory": "Earring.DarkSilver",
+				"Gloves": "FineGloves.Black",
+				"Cape": "Cape.DarkPurple"
+			}
+		},
+		{
+			"Id": "darklands_female_magic_ember",
+			"Weight": 8,
+			"RequiredTags": [
+				"magic"
+			],
+			"OutfitParts": {
+				"Underwear": "Suit.Turquoise",
+				"Pants": "CostumePants.Black",
+				"Overpants": null,
+				"Undertop": "MageUndertop.DarkGrey",
+				"Overtop": "MageRobe.EmberBlack",
+				"Shoes": "BasicShoes_Buckle.Black",
+				"HeadAccessory": null,
+				"FaceAccessory": null,
+				"EarAccessory": null,
+				"Gloves": "MageGloves.Black",
+				"Cape": "Cape.EmberDark"
+			}
 		}
+
 	],
 
 	"Safety": {

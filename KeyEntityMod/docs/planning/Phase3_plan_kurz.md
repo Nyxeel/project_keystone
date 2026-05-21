@@ -1,3 +1,145 @@
+AUSWAHLREIHENFOLGE: BIOM → NPC
+
+1. Spieler / Chunk ist in einem Biom
+   Beispiel:
+   sand_desert
+
+2. Biome-Datei sagt, welches Theme gilt
+   Beispiel:
+   StructureTheme = sand
+   BodyTheme     = sand
+   OutfitTheme   = sand
+   NameTheme     = sand
+
+3. StructurePool sucht passende Gebäude
+   Filter:
+   StructureTheme = sand
+
+   Ergebnis:
+   sand_worker_house_shop
+   sand_worker_house_blacksmith
+   sand_worker_house_storage
+
+4. Eine Structure wird gewählt
+   Beispiel:
+   sand_worker_house_shop
+
+5. Structure sagt, welche Composition möglich ist
+   Beispiel:
+   simple_worker_house_shop_compositions.json
+
+6. Composition sagt, welche NPCs gebraucht werden
+   Beispiel:
+   trader:
+     RoleId = keystone:trader
+     HomeSlot = resident_1
+     WorkSlot = shop_work_1
+     RequiredSex = male
+     RequiredTags = worker, trader
+
+   spouse:
+     RoleId = keystone:worker_spouse
+     HomeSlot = resident_2
+     RequiredSex = female
+     RequiredTags = citizen
+
+7. NPC-Definition wird über RoleId geladen
+   Beispiel:
+   keystone:trader
+
+   Daraus kommen:
+   - HytaleRole
+   - Routine
+   - Actions
+   - Movement
+   - Navigation
+   - Persistence
+   - SelectionTags
+
+8. BodyPoolGroup wählt passende Body-Datei
+   Filter:
+   BodyTheme = sand
+   Sex = male
+
+   Ergebnis:
+   pools/body/human/sand_male_body_pool.json
+
+9. Aus der Body-Datei wird ein konkreter Body gewählt
+   Beispiel:
+   sand_male_adult_02
+
+   Enthält:
+   - Körperform
+   - Haut
+   - Haare
+   - Haarfarbe
+   - Augenfarbe
+   - Gesicht
+
+10. NamePoolGroup wählt passende Namen-Datei
+   Filter:
+   NameTheme = sand
+   Sex = male
+
+   Ergebnis:
+   pools/names/human/sand_male_name_pool.json
+
+11. Ein Name wird gewählt
+   Beispiel:
+   Kharim
+
+12. OutfitPoolGroup wählt passende Outfit-Datei
+   Filter:
+   OutfitTheme = sand
+   Sex = male
+
+   Ergebnis:
+   pools/outfits/human/sand_male_outfit_pool.json
+
+13. Outfit-Datei filtert nach RequiredTags / SelectionTags
+   Beispiel:
+   trader braucht:
+   - worker
+   - trader
+
+   Ergebnis:
+   sand_male_trader_outfit_01
+
+14. Marker aus der Structure werden zugewiesen
+   Beispiel:
+   bed        -> resident_1.bed
+   table_seat -> resident_1.table_seat
+   door       -> door
+   counter    -> shop_work_1.counter
+   storage    -> shop_work_1.storage
+
+15. state.json speichert später die konkrete Auswahl
+   Beispiel:
+   roleId
+   selectedBodyId
+   selectedNameId
+   currentOutfitId
+   selectedPrefabId
+   selectedCompositionId
+   structureInstanceId
+   markerAssignments
+
+MERKSATZ:
+Biome wählt Theme.
+Theme wählt Gebäude, Body, Name und Outfit.
+Composition wählt Rollen und male/female.
+RoleId wählt Verhalten.
+state.json speichert die konkrete NPC-Instanz.
+
+
+######
+######
+######
+######
+###### 
+
+
+
 P3 ACTION PLAN — loadDefinitions() / DefinitionLoader / DefinitionRegistry
 UPDATED: Hytale-API-bewusst, modular, AssetStore-ready, neue JSON-Keys/Files erweiterbar
 

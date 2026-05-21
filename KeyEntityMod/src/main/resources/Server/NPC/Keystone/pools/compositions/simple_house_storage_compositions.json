@@ -1,0 +1,59 @@
+{
+	"Id": "simple_house_storage_compositions",
+	"Version": 1,
+	"Type": "CompositionPool",
+
+	"Entries": [
+		{
+			"Id": "storage_worker_single",
+			"Weight": 70,
+			"Npcs": [
+				{
+					"RoleId": "keystone:trader",
+					"HomeSlot": "resident_1",
+					"WorkSlot": "storage_work_1",
+					"RequiredSex": "any",
+					"RequiredTags": [
+						"adult",
+						"worker",
+						"trader"
+					]
+				}
+			]
+		},
+		{
+			"Id": "storage_worker_with_citizen",
+			"Weight": 30,
+			"Npcs": [
+				{
+					"RoleId": "keystone:trader",
+					"HomeSlot": "resident_1",
+					"WorkSlot": "storage_work_1",
+					"RequiredSex": "any",
+					"RequiredTags": [
+						"adult",
+						"worker",
+						"trader"
+					]
+				},
+				{
+					"RoleId": "keystone:citizen",
+					"HomeSlot": "resident_2",
+					"WorkSlot": null,
+					"RequiredSex": "any",
+					"RequiredTags": [
+						"adult",
+						"citizen"
+					]
+				}
+			]
+		}
+	],
+
+	"Safety": {
+		"EntriesMustHaveStableIds": true,
+		"RequiresUniqueHomeSlots": true,
+		"RequiresUniqueWorkSlots": true,
+		"NeverCreateNpcStateInP3": true
+	}
+}

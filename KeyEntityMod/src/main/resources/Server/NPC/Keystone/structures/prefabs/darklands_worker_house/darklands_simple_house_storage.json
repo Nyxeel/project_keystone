@@ -1,0 +1,109 @@
+{
+	"Id": "darklands_simple_house_storage",
+	"Version": 1,
+	"Type": "StructurePrefab",
+
+	"PrefabId": "darklands_simple_house_storage",
+	"PrefabPath": "Server/NPC/Keystone/structures/prefabs/darklands_worker_house/darklands_simple_house_storage.prefab",
+
+	"StructureTheme": "darklands",
+
+	"AllowedBiomes": [
+		"darklands"
+	],
+
+	"ProvidesContracts": [
+		"ResidenceContract",
+		"StorageContract"
+	],
+
+	"Tags": [
+		"darklands",
+		"worker",
+		"medium",
+		"storage",
+		"house"
+	],
+
+	"Slots": {
+		"ResidenceSlots": [
+			"resident_1",
+			"resident_2"
+		],
+		"StorageWorkstationSlots": [
+			"storage_work_1"
+		]
+	},
+
+	"Markers": {
+		"resident_1.bed": {
+			"MarkerType": "BED",
+			"Usage": "Exclusive",
+			"SlotId": "resident_1"
+		},
+		"resident_1.table_seat": {
+			"MarkerType": "TABLE_SEAT",
+			"Usage": "Exclusive",
+			"SlotId": "resident_1"
+		},
+		"resident_1.idle": {
+			"MarkerType": "IDLE",
+			"Usage": "Exclusive",
+			"SlotId": "resident_1"
+		},
+		"resident_2.bed": {
+			"MarkerType": "BED",
+			"Usage": "Exclusive",
+			"SlotId": "resident_2"
+		},
+		"resident_2.table_seat": {
+			"MarkerType": "TABLE_SEAT",
+			"Usage": "Exclusive",
+			"SlotId": "resident_2"
+		},
+		"resident_2.idle": {
+			"MarkerType": "IDLE",
+			"Usage": "Exclusive",
+			"SlotId": "resident_2"
+		},
+		"door": {
+			"MarkerType": "DOOR",
+			"Usage": "Shared"
+		},
+		"safety_zone": {
+			"MarkerType": "SAFETY_ZONE",
+			"Usage": "Shared"
+		},
+		"food_source": {
+			"MarkerType": "FOOD_SOURCE",
+			"Usage": "Shared"
+		},
+		"storage_work_1.chest": {
+			"MarkerType": "STORAGE_CHEST",
+			"Usage": "Exclusive",
+			"SlotId": "storage_work_1"
+		},
+		"storage_work_1.shelf": {
+			"MarkerType": "STORAGE_SHELF",
+			"Usage": "Exclusive",
+			"SlotId": "storage_work_1"
+		},
+		"storage_work_1.crate": {
+			"MarkerType": "STORAGE_CRATE",
+			"Usage": "Exclusive",
+			"SlotId": "storage_work_1"
+		}
+	},
+
+	"CompositionPools": [
+		"pools/compositions/simple_house_storage_compositions.json"
+	],
+
+	"Safety": {
+		"RequiresAllContractMarkers": true,
+		"RequiresUniqueResidentSlots": true,
+		"RequiresUniqueWorkSlots": true,
+		"NeverCreateNpcStateInP3": true,
+		"NeverPlacePrefabInP3": true
+	}
+}

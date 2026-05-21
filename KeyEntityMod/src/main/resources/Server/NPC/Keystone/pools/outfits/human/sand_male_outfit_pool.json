@@ -4,6 +4,17 @@
 	"Type": "OutfitPool",
 	"OutfitTheme": "sand",
 	"Sex": "male",
+	"SupportedTags": [
+		"worker",
+		"citizen",
+		"noble",
+		"magic",
+		"guard",
+		"trader",
+		"lumberjack",
+		"blacksmith"
+	],
+
 
 	"Entries": [
 		{
@@ -104,6 +115,66 @@
 				"EarAccessory": null,
 				"Gloves": "WorkerGloves.Black",
 				"Cape": null
+			}
+		},
+		{
+			"Id": "sand_male_citizen_linen",
+			"Weight": 20,
+			"RequiredTags": [
+				"citizen"
+			],
+			"OutfitParts": {
+				"Underwear": "Suit.Turquoise",
+				"Pants": "CostumePants.Sand",
+				"Overpants": null,
+				"Undertop": "Crinkled_Top.LightGrey",
+				"Overtop": "CommonerTunic.Sand",
+				"Shoes": "BasicShoes_Buckle.Brown",
+				"HeadAccessory": "HeadWrap.Sand",
+				"FaceAccessory": null,
+				"EarAccessory": null,
+				"Gloves": null,
+				"Cape": null
+			}
+		},
+		{
+			"Id": "sand_male_noble_suncloth",
+			"Weight": 8,
+			"RequiredTags": [
+				"noble"
+			],
+			"OutfitParts": {
+				"Underwear": "Suit.Turquoise",
+				"Pants": "CostumePants.Cream",
+				"Overpants": null,
+				"Undertop": "FineShirt.White",
+				"Overtop": "NobleCoat.GoldSand",
+				"Shoes": "FineBoots.Brown",
+				"HeadAccessory": "HeadWrap.Gold",
+				"FaceAccessory": null,
+				"EarAccessory": null,
+				"Gloves": "FineGloves.Cream",
+				"Cape": "Cape.SandGold"
+			}
+		},
+		{
+			"Id": "sand_male_magic_sunfire",
+			"Weight": 8,
+			"RequiredTags": [
+				"magic"
+			],
+			"OutfitParts": {
+				"Underwear": "Suit.Turquoise",
+				"Pants": "CostumePants.Sand",
+				"Overpants": null,
+				"Undertop": "MageUndertop.Cream",
+				"Overtop": "MageRobe.Sunfire",
+				"Shoes": "BasicShoes_Buckle.Brown",
+				"HeadAccessory": "Hood.Sand",
+				"FaceAccessory": null,
+				"EarAccessory": null,
+				"Gloves": "MageGloves.Sand",
+				"Cape": "Cape.Sunfire"
 			}
 		}
 	],

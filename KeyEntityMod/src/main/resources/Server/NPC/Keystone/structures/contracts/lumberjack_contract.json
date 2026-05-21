@@ -1,0 +1,36 @@
+{
+	"Id": "lumberjack_contract",
+	"Version": 1,
+	"Type": "StructureContract",
+
+	"ContractId": "LumberjackContract",
+
+	"Purpose": "Provides a lumberjack work area for lumberjack NPC roles.",
+
+	"RequiredSlots": {
+		"LumberjackWorkstationSlots": 1
+	},
+
+	"RequiredMarkersPerWorkSlot": [
+		"chop_spot",
+		"log_storage"
+	],
+
+	"OptionalMarkers": [
+		"wood_pile",
+		"tool_storage"
+	],
+
+	"MarkerUsage": {
+		"chop_spot": "Exclusive",
+		"log_storage": "Exclusive",
+		"wood_pile": "Shared",
+		"tool_storage": "Shared"
+	},
+
+	"Safety": {
+		"RequiresUniqueWorkSlotPerWorker": true,
+		"BlockWorkRoutineIfRequiredMarkerMissing": true,
+		"DoNotDeleteNpcIfWorkstationMissing": true
+	}
+}

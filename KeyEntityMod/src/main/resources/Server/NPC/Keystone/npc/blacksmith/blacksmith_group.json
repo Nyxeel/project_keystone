@@ -7,7 +7,7 @@
 
 	"SharedProfiles": {
 		"SpeciesPool": "pools/species/human_worker_species_pool.json",
-		"BodyPool": "pools/body/human_body_pool.json",
+		"BodyPool": "pools/body/human_body_pool_group.json",
 		"NamePool": "pools/names/human/human_name_pool_group.json",
 		"OutfitPool": "pools/outfits/human_outfit_pool_group.json",
 

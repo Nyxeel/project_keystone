@@ -6,43 +6,22 @@
 	"PrefabId": "human_forest_outpost",
 	"PrefabPath": "Server/NPC/Keystone/structures/prefabs/outposts/human_forest_outpost.prefab",
 
+	"StructureTheme": "forest",
+
 	"AllowedBiomes": [
 		"forest",
-		"deep_forest",
-		"sand_desert",
-		"dry_plains",
-		"mountain",
-		"highlands"
+		"deep_forest"
 	],
-
-	"DefaultMaterialPalette": "structures/material_palettes/outpost_forest_palette.json",
-
-	"MaterialPalettes": {
-		"forest": "structures/material_palettes/outpost_forest_palette.json",
-		"deep_forest": "structures/material_palettes/outpost_forest_palette.json",
-		"sand_desert": "structures/material_palettes/outpost_sand_palette.json",
-		"dry_plains": "structures/material_palettes/outpost_sand_palette.json",
-		"mountain": "structures/material_palettes/outpost_mountain_palette.json",
-		"highlands": "structures/material_palettes/outpost_mountain_palette.json"
-	},
-
-	"PopulationPolicy": {
-		"Mode": "fixed_folk",
-		"AllowedFolks": [
-			"human_forest"
-		]
-	},
 
 	"ProvidesContracts": [
 		"OutpostContract",
 		"ResidenceContract",
-		"GuardPostContract"
+		"GuardContract"
 	],
 
 	"Tags": [
-		"adaptive_material",
+		"forest",
 		"outpost",
-		"forest_folk",
 		"guard",
 		"medium"
 	],
@@ -71,12 +50,12 @@
 			"SlotId": "resident_2"
 		},
 		"guard_1.patrol_a": {
-			"MarkerType": "PATROL_A",
+			"MarkerType": "PATROL_POINT",
 			"Usage": "Exclusive",
 			"SlotId": "guard_1"
 		},
 		"guard_2.patrol_b": {
-			"MarkerType": "PATROL_B",
+			"MarkerType": "PATROL_POINT",
 			"Usage": "Exclusive",
 			"SlotId": "guard_2"
 		},
@@ -111,7 +90,6 @@
 		"RequiresAllContractMarkers": true,
 		"RequiresUniqueResidentSlots": true,
 		"RequiresUniqueWorkSlots": true,
-		"RequiresMaterialPaletteForBiome": true,
 		"NeverCreateNpcStateInP3": true,
 		"NeverPlacePrefabInP3": true
 	}

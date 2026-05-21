@@ -10,46 +10,46 @@
 		"Sex"
 	],
 
-	"Pools": [
+	"Entries": [
 		{
 			"OutfitTheme": "sand",
 			"Sex": "male",
-			"PoolFile": "human/sand_male_outfit_pool.json"
+			"Pool": "pools/outfits/human/sand_male_outfit_pool.json"
 		},
 		{
 			"OutfitTheme": "sand",
 			"Sex": "female",
-			"PoolFile": "human/sand_female_outfit_pool.json"
+			"Pool": "pools/outfits/human/sand_female_outfit_pool.json"
 		},
 		{
 			"OutfitTheme": "forest",
 			"Sex": "male",
-			"PoolFile": "human/forest_male_outfit_pool.json"
+			"Pool": "pools/outfits/human/forest_male_outfit_pool.json"
 		},
 		{
 			"OutfitTheme": "forest",
 			"Sex": "female",
-			"PoolFile": "human/forest_female_outfit_pool.json"
+			"Pool": "pools/outfits/human/forest_female_outfit_pool.json"
 		},
 		{
 			"OutfitTheme": "mountain",
 			"Sex": "male",
-			"PoolFile": "human/mountain_male_outfit_pool.json"
+			"Pool": "pools/outfits/human/mountain_male_outfit_pool.json"
 		},
 		{
 			"OutfitTheme": "mountain",
 			"Sex": "female",
-			"PoolFile": "human/mountain_female_outfit_pool.json"
+			"Pool": "pools/outfits/human/mountain_female_outfit_pool.json"
 		},
 		{
 			"OutfitTheme": "darklands",
 			"Sex": "male",
-			"PoolFile": "human/darklands_male_outfit_pool.json"
+			"Pool": "pools/outfits/human/darklands_male_outfit_pool.json"
 		},
 		{
 			"OutfitTheme": "darklands",
 			"Sex": "female",
-			"PoolFile": "human/darklands_female_outfit_pool.json"
+			"Pool": "pools/outfits/human/darklands_female_outfit_pool.json"
 		}
 	],
 

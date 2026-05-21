@@ -26,12 +26,12 @@ public final class ProfileTypeRegistry {
 	public ProfileTypeRegistry() {
 		this.rules = createDefaultRules();
 		this.customFallbackRule = new ProfileTypeRule(
-			"Custom", 		// Technischer Name für unbekannte Profile.
-			false, 			// Custom-Profile sind nicht automatisch Pflicht.
-			null, 			// Kein fester erwarteter JSON-Type.
-			"basic", 		// Custom-Profile werden nur grob geprüft.
-			false, 			// Custom ist kein bekannter Core-Profiltyp.
-			null 			// Kein Handler-Key, solange kein System dafür existiert.
+			"Custom",		// Technischer Name für unbekannte Profile.
+			false,			// Custom-Profile sind nicht automatisch Pflicht.
+			null,			// Kein fester erwarteter JSON-Type.
+			"basic",		// Custom-Profile werden nur grob geprüft.
+			false,			// Custom ist kein bekannter Core-Profiltyp.
+			null			// Kein Handler-Key, solange kein System dafür existiert.
 		);
 	}
 
@@ -46,7 +46,7 @@ public final class ProfileTypeRegistry {
 		ProfileTypeRule rule = rules.get(profileKey.trim());
 
 		if (rule == null) {
-			return customFallbackRuleFor(profileKey);
+			return customFallbackFor(profileKey);
 		}
 
 		return rule;
@@ -96,12 +96,12 @@ public final class ProfileTypeRegistry {
 		addOptional(result, "Reputation", "ReputationProfile", "basic", "reputation");
 		addOptional(result, "SeasonalOutfits", "SeasonalOutfitProfile", "basic", "seasonal_outfits");
 		addOptional(result, "Spawn", "SpawnProfile", "basic", "spawn");
+
 		addOptional(result, "SpeciesPool", "SpeciesPool", "basic", null);
-		addOptional(result, "BodyPool", "BodyPool", "basic", null);
-		addOptional(result, "OutfitPool", "OutfitPool", "basic", null);
+		addOptional(result, "BodyPool", "BodyPoolGroup", "basic", null);
+		addOptional(result, "NamePool", "NamePoolGroup", "basic", null);
+		addOptional(result, "OutfitPool", "OutfitPoolGroup", "basic", null);
 		addOptional(result, "CompositionPool", "CompositionPool", "basic", null);
-		addOptional(result, "Appearance", "AppearanceProfile", "basic", null);
-		addOptional(result, "AppearancePool", "AppearancePool", "basic", null);
 
 		return Collections.unmodifiableMap(result);
 	}
@@ -110,11 +110,11 @@ public final class ProfileTypeRegistry {
 	 * Fügt eine Pflicht-Regel hinzu.
 	 */
 	private static void addRequired(
-		Map<String, ProfileTypeRule> rules, // Ziel-Map für die Regel.
-		String profileKey, 					// Name des Profil-Typs.
-		String expectedType, 				// Erwarteter JSON-Type.
-		String validationMode, 				// Validierungsart.
-		String handlerKey 					// Optionaler Handler-Key.
+		Map<String, ProfileTypeRule> rules,	// Ziel-Map für die Regel.
+		String profileKey,					// Name des Profil-Typs.
+		String expectedType,				// Erwarteter JSON-Type.
+		String validationMode,				// Validierungsart.
+		String handlerKey					// Optionaler Handler-Key.
 	) {
 		rules.put(profileKey, new ProfileTypeRule(
 			profileKey,
@@ -130,11 +130,11 @@ public final class ProfileTypeRegistry {
 	 * Fügt eine optionale Regel hinzu.
 	 */
 	private static void addOptional(
-		Map<String, ProfileTypeRule> rules, // Ziel-Map für die Regel.
-		String profileKey, // Name des Profil-Typs.
-		String expectedType, // Erwarteter JSON-Type.
-		String validationMode, // Validierungsart.
-		String handlerKey // Optionaler Handler-Key.
+		Map<String, ProfileTypeRule> rules,	// Ziel-Map für die Regel.
+		String profileKey,					// Name des Profil-Typs.
+		String expectedType,				// Erwarteter JSON-Type.
+		String validationMode,				// Validierungsart.
+		String handlerKey					// Optionaler Handler-Key.
 	) {
 		rules.put(profileKey, new ProfileTypeRule(
 			profileKey,

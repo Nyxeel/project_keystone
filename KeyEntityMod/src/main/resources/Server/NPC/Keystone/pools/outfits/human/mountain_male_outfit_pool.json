@@ -4,6 +4,16 @@
 	"Type": "OutfitPool",
 	"OutfitTheme": "mountain",
 	"Sex": "male",
+	"SupportedTags": [
+		"worker",
+		"citizen",
+		"noble",
+		"magic",
+		"guard",
+		"trader",
+		"lumberjack",
+		"blacksmith"
+	],
 
 	"Entries": [
 		{
@@ -105,7 +115,68 @@
 				"Gloves": "WorkerGloves.Black",
 				"Cape": null
 			}
+		},
+		{
+			"Id": "mountain_male_citizen_wool",
+			"Weight": 20,
+			"RequiredTags": [
+				"citizen"
+			],
+			"OutfitParts": {
+				"Underwear": "Suit.Turquoise",
+				"Pants": "CostumePants.DarkBrown",
+				"Overpants": null,
+				"Undertop": "Crinkled_Top.Grey",
+				"Overtop": "CommonerTunic.WoolBrown",
+				"Shoes": "BasicShoes_Buckle.DarkBrown",
+				"HeadAccessory": null,
+				"FaceAccessory": null,
+				"EarAccessory": null,
+				"Gloves": "WorkerGloves.Brown",
+				"Cape": null
+			}
+		},
+		{
+			"Id": "mountain_male_noble_fur",
+			"Weight": 8,
+			"RequiredTags": [
+				"noble"
+			],
+			"OutfitParts": {
+				"Underwear": "Suit.Turquoise",
+				"Pants": "CostumePants.BlackBrown",
+				"Overpants": null,
+				"Undertop": "FineShirt.Grey",
+				"Overtop": "NobleCoat.FurGrey",
+				"Shoes": "FineBoots.DarkBrown",
+				"HeadAccessory": null,
+				"FaceAccessory": null,
+				"EarAccessory": null,
+				"Gloves": "FineGloves.DarkBrown",
+				"Cape": "Cape.FurGrey"
+			}
+		},
+		{
+			"Id": "mountain_male_magic_frost",
+			"Weight": 8,
+			"RequiredTags": [
+				"magic"
+			],
+			"OutfitParts": {
+				"Underwear": "Suit.Turquoise",
+				"Pants": "CostumePants.DarkGrey",
+				"Overpants": null,
+				"Undertop": "MageUndertop.Grey",
+				"Overtop": "MageRobe.FrostGrey",
+				"Shoes": "BasicShoes_Buckle.Black",
+				"HeadAccessory": null,
+				"FaceAccessory": null,
+				"EarAccessory": null,
+				"Gloves": "MageGloves.Grey",
+				"Cape": "Cape.FrostGrey"
+			}
 		}
+
 	],
 
 	"Safety": {

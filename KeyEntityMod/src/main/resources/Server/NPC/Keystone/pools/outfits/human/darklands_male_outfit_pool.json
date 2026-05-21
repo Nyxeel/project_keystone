@@ -4,6 +4,16 @@
 	"Type": "OutfitPool",
 	"OutfitTheme": "darklands",
 	"Sex": "male",
+	"SupportedTags": [
+		"worker",
+		"citizen",
+		"noble",
+		"magic",
+		"guard",
+		"trader",
+		"lumberjack",
+		"blacksmith"
+	],
 
 	"Entries": [
 		{
@@ -104,6 +114,66 @@
 				"EarAccessory": null,
 				"Gloves": "WorkerGloves.Black",
 				"Cape": null
+			}
+		},
+		{
+			"Id": "darklands_male_citizen_ash",
+			"Weight": 20,
+			"RequiredTags": [
+				"citizen"
+			],
+			"OutfitParts": {
+				"Underwear": "Suit.Turquoise",
+				"Pants": "CostumePants.DarkGrey",
+				"Overpants": null,
+				"Undertop": "Crinkled_Top.Grey",
+				"Overtop": "CommonerTunic.DarkBrown",
+				"Shoes": "BasicShoes_Buckle.Black",
+				"HeadAccessory": null,
+				"FaceAccessory": null,
+				"EarAccessory": null,
+				"Gloves": null,
+				"Cape": null
+			}
+		},
+		{
+			"Id": "darklands_male_noble_obsidian",
+			"Weight": 8,
+			"RequiredTags": [
+				"noble"
+			],
+			"OutfitParts": {
+				"Underwear": "Suit.Turquoise",
+				"Pants": "CostumePants.Black",
+				"Overpants": null,
+				"Undertop": "FineShirt.DarkPurple",
+				"Overtop": "NobleCoat.Obsidian",
+				"Shoes": "FineBoots.Black",
+				"HeadAccessory": null,
+				"FaceAccessory": null,
+				"EarAccessory": "Earring.DarkSilver",
+				"Gloves": "FineGloves.Black",
+				"Cape": "Cape.DarkPurple"
+			}
+		},
+		{
+			"Id": "darklands_male_magic_ember",
+			"Weight": 8,
+			"RequiredTags": [
+				"magic"
+			],
+			"OutfitParts": {
+				"Underwear": "Suit.Turquoise",
+				"Pants": "CostumePants.Black",
+				"Overpants": null,
+				"Undertop": "MageUndertop.DarkGrey",
+				"Overtop": "MageRobe.EmberBlack",
+				"Shoes": "BasicShoes_Buckle.Black",
+				"HeadAccessory": null,
+				"FaceAccessory": null,
+				"EarAccessory": null,
+				"Gloves": "MageGloves.Black",
+				"Cape": "Cape.EmberDark"
 			}
 		}
 	],

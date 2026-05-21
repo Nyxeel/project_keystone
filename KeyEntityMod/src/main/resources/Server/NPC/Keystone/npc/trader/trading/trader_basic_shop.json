@@ -1,4 +1,3 @@
-src/main/resources/Server/NPC/Keystone/npc/trader/trading/trader_basic_shop.json
 {
 	"Id": "trader_basic_shop",
 	"Version": 1,

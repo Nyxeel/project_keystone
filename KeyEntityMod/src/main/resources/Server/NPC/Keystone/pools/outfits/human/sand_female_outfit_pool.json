@@ -4,6 +4,16 @@
 	"Type": "OutfitPool",
 	"OutfitTheme": "sand",
 	"Sex": "female",
+	"SupportedTags": [
+		"worker",
+		"citizen",
+		"noble",
+		"magic",
+		"guard",
+		"trader",
+		"blacksmith"
+	],
+
 
 	"Entries": [
 		{
@@ -27,10 +37,10 @@
 			}
 		},
 		{
-			"Id": "sand_female_lumberjack_brown",
+			"Id": "sand_female_worker_brown",
 			"Weight": 30,
 			"RequiredTags": [
-				"lumberjack"
+				"worker"
 			],
 			"OutfitParts": {
 				"Underwear": "Suit.Turquoise",
@@ -105,7 +115,68 @@
 				"Gloves": "WorkerGloves.Black",
 				"Cape": null
 			}
+		},
+		{
+			"Id": "sand_female_citizen_linen",
+			"Weight": 20,
+			"RequiredTags": [
+				"citizen"
+			],
+			"OutfitParts": {
+				"Underwear": "Suit.Turquoise",
+				"Pants": "CostumePants.Sand",
+				"Overpants": null,
+				"Undertop": "Crinkled_Top.LightGrey",
+				"Overtop": "CommonerTunic.Sand",
+				"Shoes": "BasicShoes_Buckle.Brown",
+				"HeadAccessory": "HeadScarf.Sand",
+				"FaceAccessory": null,
+				"EarAccessory": null,
+				"Gloves": null,
+				"Cape": null
+			}
+		},
+		{
+			"Id": "sand_female_noble_suncloth",
+			"Weight": 8,
+			"RequiredTags": [
+				"noble"
+			],
+			"OutfitParts": {
+				"Underwear": "Suit.Turquoise",
+				"Pants": "CostumePants.Cream",
+				"Overpants": null,
+				"Undertop": "FineShirt.White",
+				"Overtop": "NobleCoat.GoldSand",
+				"Shoes": "FineBoots.Brown",
+				"HeadAccessory": "HeadScarf.Gold",
+				"FaceAccessory": null,
+				"EarAccessory": "Earring.GoldSmall",
+				"Gloves": "FineGloves.Cream",
+				"Cape": "Cape.SandGold"
+			}
+		},
+		{
+			"Id": "sand_female_magic_sunfire",
+			"Weight": 8,
+			"RequiredTags": [
+				"magic"
+			],
+			"OutfitParts": {
+				"Underwear": "Suit.Turquoise",
+				"Pants": "CostumePants.Sand",
+				"Overpants": null,
+				"Undertop": "MageUndertop.Cream",
+				"Overtop": "MageRobe.Sunfire",
+				"Shoes": "BasicShoes_Buckle.Brown",
+				"HeadAccessory": "Hood.Sand",
+				"FaceAccessory": null,
+				"EarAccessory": null,
+				"Gloves": "MageGloves.Sand",
+				"Cape": "Cape.Sunfire"
+			}
 		}
+
 	],
 
 	"Safety": {

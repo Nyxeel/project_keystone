@@ -43,6 +43,58 @@
 					]
 				}
 			]
+		},
+		{
+			"Id": "bandit_camp_patrol",
+			"Weight": 50,
+
+			"RequiredContracts": [
+				"TerritoryGuardContract"
+			],
+
+			"RequiredSlots": {
+				"SpawnAnchors": 3,
+				"PatrolSlots": 3
+			},
+
+			"Npcs": [
+				{
+					"RoleId": "keystone:bandit_guard",
+					"SpawnAnchor": "guard_spawn_1",
+					"PatrolSlot": "patrol_1",
+					"RequiredSex": "any",
+					"RequiredTags": [
+						"adult",
+						"hostile",
+						"bandit",
+						"guard"
+					]
+				},
+				{
+					"RoleId": "keystone:bandit_guard",
+					"SpawnAnchor": "guard_spawn_2",
+					"PatrolSlot": "patrol_2",
+					"RequiredSex": "any",
+					"RequiredTags": [
+						"adult",
+						"hostile",
+						"bandit",
+						"guard"
+					]
+				},
+				{
+					"RoleId": "keystone:bandit_scout",
+					"SpawnAnchor": "scout_spawn_1",
+					"PatrolSlot": "patrol_3",
+					"RequiredSex": "any",
+					"RequiredTags": [
+						"adult",
+						"hostile",
+						"bandit",
+						"scout"
+					]
+				}
+			]
 		}
 	],
 
@@ -54,6 +106,7 @@
 		"RequiresEnoughPatrolSlots": true,
 		"RequiredSexMustBeKnown": true,
 		"RequiredTagsMustMatchBodyPool": true,
+		"RequiredTagsMustMatchOutfitPool": true,
 		"NeverCreateNpcStateInP3": true
 	}
 }

@@ -3,7 +3,7 @@
 	"Version": 1,
 	"Type": "NamePool",
 
-	"Folk": "human_mountain",
+	"NameTheme": "mountain",
 	"Sex": "male",
 
 	"Entries": [

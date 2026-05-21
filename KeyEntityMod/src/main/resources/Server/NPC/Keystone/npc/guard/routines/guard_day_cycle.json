@@ -1,0 +1,87 @@
+{
+	"Id": "guard_day_cycle",
+	"Version": 1,
+	"Type": "RoutineProfile",
+
+	"RoutineId": "guard_day_cycle",
+
+	"Schedule": [
+		{
+			"Id": "morning_report",
+			"TimeStart": "06:00",
+			"TimeEnd": "07:00",
+			"TargetMarker": "territory_center",
+			"ActionId": "guard_report",
+			"FallbackMarker": "return_anchor",
+			"FallbackActionId": "stand_guard"
+		},
+		{
+			"Id": "morning_patrol_1",
+			"TimeStart": "07:00",
+			"TimeEnd": "10:00",
+			"TargetMarker": "patrol_1",
+			"ActionId": "patrol_area",
+			"FallbackMarker": "territory_center",
+			"FallbackActionId": "stand_guard"
+		},
+		{
+			"Id": "midday_watch",
+			"TimeStart": "10:00",
+			"TimeEnd": "13:00",
+			"TargetMarker": "territory_center",
+			"ActionId": "watch_territory",
+			"FallbackMarker": "return_anchor",
+			"FallbackActionId": "stand_guard"
+		},
+		{
+			"Id": "afternoon_patrol_2",
+			"TimeStart": "13:00",
+			"TimeEnd": "16:00",
+			"TargetMarker": "patrol_2",
+			"ActionId": "patrol_area",
+			"FallbackMarker": "territory_center",
+			"FallbackActionId": "stand_guard"
+		},
+		{
+			"Id": "evening_patrol_3",
+			"TimeStart": "16:00",
+			"TimeEnd": "19:00",
+			"TargetMarker": "patrol_3",
+			"ActionId": "patrol_area",
+			"FallbackMarker": "territory_center",
+			"FallbackActionId": "stand_guard"
+		},
+		{
+			"Id": "night_return_anchor",
+			"TimeStart": "19:00",
+			"TimeEnd": "06:00",
+			"TargetMarker": "return_anchor",
+			"ActionId": "night_watch",
+			"FallbackActionId": "stand_guard"
+		}
+	],
+
+	"EventFallbacks": {
+		"Raid": {
+			"TargetMarker": "defense_point",
+			"ActionId": "defend_area",
+			"FallbackMarker": "return_anchor",
+			"FallbackActionId": "stand_guard"
+		},
+		"Alarm": {
+			"TargetMarker": "alarm_point",
+			"ActionId": "raise_alarm",
+			"FallbackMarker": "territory_center",
+			"FallbackActionId": "stand_guard"
+		}
+	},
+
+	"Safety": {
+		"RoutineUsesOnlyKnownActionIds": true,
+		"RoutineUsesOnlyAllowedMarkers": true,
+		"MissingRequiredStepBlocksRoutine": true,
+		"OptionalPatrolMarkerMayFallback": true,
+		"NeverResumeOldRuntimeProgressBlindly": true,
+		"NeverExecuteRoutineInP3": true
+	}
+}

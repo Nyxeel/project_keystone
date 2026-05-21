@@ -4,6 +4,16 @@
 	"Type": "OutfitPool",
 	"OutfitTheme": "forest",
 	"Sex": "female",
+	"SupportedTags": [
+		"worker",
+		"citizen",
+		"noble",
+		"magic",
+		"guard",
+		"trader",
+		"lumberjack",
+		"blacksmith"
+	],
 
 	"Entries": [
 		{
@@ -105,7 +115,68 @@
 				"Gloves": "WorkerGloves.Black",
 				"Cape": null
 			}
+		},
+		{
+			"Id": "forest_female_citizen_moss",
+			"Weight": 20,
+			"RequiredTags": [
+				"citizen"
+			],
+			"OutfitParts": {
+				"Underwear": "Suit.Turquoise",
+				"Pants": "CostumePants.Brown",
+				"Overpants": null,
+				"Undertop": "Crinkled_Top.LightGrey",
+				"Overtop": "CommonerTunic.ForestGreen",
+				"Shoes": "BasicShoes_Buckle.Brown",
+				"HeadAccessory": null,
+				"FaceAccessory": null,
+				"EarAccessory": null,
+				"Gloves": null,
+				"Cape": null
+			}
+		},
+		{
+			"Id": "forest_female_noble_verdant",
+			"Weight": 8,
+			"RequiredTags": [
+				"noble"
+			],
+			"OutfitParts": {
+				"Underwear": "Suit.Turquoise",
+				"Pants": "CostumePants.DarkBrown",
+				"Overpants": null,
+				"Undertop": "FineShirt.Cream",
+				"Overtop": "NobleCoat.ForestGreen",
+				"Shoes": "FineBoots.Brown",
+				"HeadAccessory": null,
+				"FaceAccessory": null,
+				"EarAccessory": "Earring.GoldSmall",
+				"Gloves": "FineGloves.Brown",
+				"Cape": "Cape.ForestGreen"
+			}
+		},
+		{
+			"Id": "forest_female_magic_druidic",
+			"Weight": 8,
+			"RequiredTags": [
+				"magic"
+			],
+			"OutfitParts": {
+				"Underwear": "Suit.Turquoise",
+				"Pants": "CostumePants.DarkGreen",
+				"Overpants": null,
+				"Undertop": "MageUndertop.Brown",
+				"Overtop": "MageRobe.MossGreen",
+				"Shoes": "BasicShoes_Buckle.Brown",
+				"HeadAccessory": null,
+				"FaceAccessory": null,
+				"EarAccessory": null,
+				"Gloves": "MageGloves.Brown",
+				"Cape": "Cape.MossGreen"
+			}
 		}
+
 	],
 
 	"Safety": {

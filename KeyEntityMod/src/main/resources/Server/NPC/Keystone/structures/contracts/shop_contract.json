@@ -5,7 +5,7 @@
 
 	"ContractId": "ShopContract",
 
-	"Purpose": "Provides a shop workstation for trader NPC roles.",
+	"Purpose": "Provides a shop work area for trader NPC roles.",
 
 	"RequiredSlots": {
 		"ShopWorkstationSlots": 1

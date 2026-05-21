@@ -1,0 +1,59 @@
+{
+	"Id": "simple_house_lumberjack_compositions",
+	"Version": 1,
+	"Type": "CompositionPool",
+
+	"Entries": [
+		{
+			"Id": "lumberjack_single",
+			"Weight": 70,
+			"Npcs": [
+				{
+					"RoleId": "keystone:lumberjack",
+					"HomeSlot": "resident_1",
+					"WorkSlot": "lumberjack_work_1",
+					"RequiredSex": "any",
+					"RequiredTags": [
+						"adult",
+						"worker",
+						"lumberjack"
+					]
+				}
+			]
+		},
+		{
+			"Id": "lumberjack_with_citizen",
+			"Weight": 30,
+			"Npcs": [
+				{
+					"RoleId": "keystone:lumberjack",
+					"HomeSlot": "resident_1",
+					"WorkSlot": "lumberjack_work_1",
+					"RequiredSex": "any",
+					"RequiredTags": [
+						"adult",
+						"worker",
+						"lumberjack"
+					]
+				},
+				{
+					"RoleId": "keystone:citizen",
+					"HomeSlot": "resident_2",
+					"WorkSlot": null,
+					"RequiredSex": "any",
+					"RequiredTags": [
+						"adult",
+						"citizen"
+					]
+				}
+			]
+		}
+	],
+
+	"Safety": {
+		"EntriesMustHaveStableIds": true,
+		"RequiresUniqueHomeSlots": true,
+		"RequiresUniqueWorkSlots": true,
+		"NeverCreateNpcStateInP3": true
+	}
+}
