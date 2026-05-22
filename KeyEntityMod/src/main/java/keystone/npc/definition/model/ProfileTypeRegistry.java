@@ -103,9 +103,10 @@ public final class ProfileTypeRegistry {
 		addOptional(result, "SeasonalOutfits", "SeasonalOutfitProfile", "basic", "seasonal_outfits");
 		addOptional(result, "Spawn", "SpawnProfile", "basic", "spawn");
 
-		addOptional(result, "BodyPoolGroup", "BodyPoolGroup", "basic", null);
-		addOptional(result, "NamePoolGroup", "NamePoolGroup", "basic", null);
-		addOptional(result, "OutfitPoolGroup", "OutfitPoolGroup", "basic", null);
+		addOptional(result, "CreatureType", "CreatureTypeProfile", "basic", null);
+		addOptional(result, "BodyPool", "BodyPool", "basic", null);
+		addOptional(result, "NamePool", "NamePool", "basic", null);
+		addOptional(result, "OutfitPool", "OutfitPool", "basic", null);
 		addOptional(result, "StructurePool", "StructurePool", "basic", null);
 		addOptional(result, "CompositionPool", "CompositionPool", "basic", null);
 

@@ -1,13 +1,12 @@
 {
 	"Id": "human",
 	"Version": 1,
-	"Type": "SpeciesProfile",
-
-	"SpeciesId": "human",
+	"Type": "CreatureTypeProfile",
+	"CreatureTypeId": "human",
 
 	"Display": {
 		"FallbackName": "Human",
-		"NameTranslationKey": "keystone.species.human.name"
+		"NameTranslationKey": "keystone.creature.human.name"
 	},
 
 	"Tags": [
@@ -17,7 +16,7 @@
 		"city"
 	],
 
-	"AllowedBodyProfileTags": [
+	"AllowedBodyTags": [
 		"human"
 	]
 }
