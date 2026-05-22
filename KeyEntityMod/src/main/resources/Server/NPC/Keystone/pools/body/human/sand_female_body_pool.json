@@ -9,7 +9,7 @@
 		{
 			"Id": "sand_female_adult_01",
 			"Weight": 40,
-			"BodyProfile": "human_female_lean",
+			"BodyProfile": "human_female",
 			"Age": "adult",
 			"SkinTone": "sun_bronzed",
 			"HairStyle": "long_braided",
@@ -26,7 +26,7 @@
 		{
 			"Id": "sand_female_adult_02",
 			"Weight": 35,
-			"BodyProfile": "human_female_sturdy",
+			"BodyProfile": "human_female",
 			"Age": "adult",
 			"SkinTone": "warm_olive",
 			"HairStyle": "medium_tied",
@@ -44,7 +44,7 @@
 		{
 			"Id": "sand_female_adult_03",
 			"Weight": 25,
-			"BodyProfile": "human_female_average",
+			"BodyProfile": "human_female",
 			"Age": "adult",
 			"SkinTone": "deep_tan",
 			"HairStyle": "wrapped_hair",

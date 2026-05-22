@@ -1,0 +1,76 @@
+{
+	"Id": "worker_spouse_actions",
+	"Version": 1,
+	"Type": "ActionProfile",
+
+	"ActionProfileId": "worker_spouse_actions",
+
+	"Actions": {
+		"wake_up": {
+			"Animation": "worker_spouse.wake_up",
+			"Loop": false,
+			"Sound": null,
+			"RequiresCapability": null
+		},
+		"eat_meal": {
+			"Animation": "worker_spouse.eat",
+			"Loop": true,
+			"Sound": null,
+			"RequiresCapability": null
+		},
+		"idle_home": {
+			"Animation": "worker_spouse.idle_home",
+			"Loop": true,
+			"Sound": null,
+			"RequiresCapability": null
+		},
+		"do_house_work": {
+			"Animation": "worker_spouse.house_work",
+			"Loop": true,
+			"Sound": null,
+			"RequiresCapability": null
+		},
+		"fetch_water": {
+			"Animation": "worker_spouse.fetch_water",
+			"Loop": true,
+			"Sound": null,
+			"RequiresCapability": null
+		},
+		"support_worker_home": {
+			"Animation": "worker_spouse.support_worker",
+			"Loop": true,
+			"Sound": null,
+			"RequiresCapability": null
+		},
+		"sleep": {
+			"Animation": "worker_spouse.sleep",
+			"Loop": true,
+			"Sound": null,
+			"RequiresCapability": null
+		},
+		"flee_to_safety": {
+			"Animation": "worker_spouse.flee",
+			"Loop": true,
+			"Sound": "npc.worker_spouse.flee",
+			"RequiresCapability": null
+		},
+		"join_gathering": {
+			"Animation": "worker_spouse.gather",
+			"Loop": true,
+			"Sound": null,
+			"RequiresCapability": null
+		},
+		"visit_market": {
+			"Animation": "worker_spouse.market",
+			"Loop": true,
+			"Sound": null,
+			"RequiresCapability": null
+		}
+	},
+
+	"Safety": {
+		"ActionIdsMustBeStable": true,
+		"MissingActionBlocksRoutineStep": true,
+		"NeverExecuteActionsInP3": true
+	}
+}

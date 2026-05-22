@@ -11,7 +11,6 @@
 		"magic",
 		"guard",
 		"trader",
-		"lumberjack",
 		"blacksmith"
 	],
 
@@ -38,10 +37,10 @@
 			}
 		},
 		{
-			"Id": "sand_male_lumberjack_brown",
+			"Id": "sand_male_worker_brown",
 			"Weight": 30,
 			"RequiredTags": [
-				"lumberjack"
+				"worker"
 			],
 			"OutfitParts": {
 				"Underwear": "Suit.Turquoise",

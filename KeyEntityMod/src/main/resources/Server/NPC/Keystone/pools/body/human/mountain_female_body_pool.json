@@ -9,7 +9,7 @@
 		{
 			"Id": "mountain_female_adult_01",
 			"Weight": 40,
-			"BodyProfile": "human_female_sturdy",
+			"BodyProfile": "human_female",
 			"Age": "adult",
 			"SkinTone": "cold_fair",
 			"HairStyle": "thick_braided",
@@ -27,7 +27,7 @@
 		{
 			"Id": "mountain_female_adult_02",
 			"Weight": 35,
-			"BodyProfile": "human_female_strong",
+			"BodyProfile": "human_female",
 			"Age": "adult",
 			"SkinTone": "weathered_light",
 			"HairStyle": "medium_tied",
@@ -45,7 +45,7 @@
 		{
 			"Id": "mountain_female_adult_03",
 			"Weight": 25,
-			"BodyProfile": "human_female_heavy",
+			"BodyProfile": "human_female",
 			"Age": "adult",
 			"SkinTone": "frost_touched",
 			"HairStyle": "long_rough",

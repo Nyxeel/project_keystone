@@ -1,0 +1,90 @@
+{
+	"Id": "worker_spouse_group",
+	"Version": 1,
+	"Type": "NpcGroup",
+
+	"Namespace": "keystone",
+
+	"SharedProfiles": {
+		"SpeciesPool": "pools/species/human_worker_species_pool.json",
+		"BodyPool": "pools/body/human_body_pool_group.json",
+		"NamePool": "pools/names/human/human_name_pool_group.json",
+		"OutfitPool": "pools/outfits/human_outfit_pool_group.json",
+
+		"Movement": "profiles/movement/human_walk.json",
+		"Navigation": "profiles/navigation/friendly_worker.json",
+		"Combat": "profiles/combat/peaceful.json",
+		"Spawn": "profiles/spawn/structure_bound.json",
+		"Persistence": "profiles/persistence/persistent_citizen.json",
+		"Events": "profiles/events/worker_events.json",
+		"Dialogue": "profiles/dialogue/worker_dialogue.json"
+	},
+
+	"Variants": [
+		{
+			"RoleId": "worker_spouse",
+
+			"SelectionTags": [
+				"human",
+				"female",
+				"worker",
+				"worker_spouse"
+			],
+
+			"Engine": {
+				"HytaleRole": "Keystone_Human_Worker"
+			},
+
+			"Display": {
+				"FallbackName": "Worker Spouse",
+				"NameTranslationKey": "keystone.npc.roles.worker_spouse.name"
+			},
+
+			"Profiles": {
+				"Routine": "npc/worker_spouse/routines/worker_spouse_day_cycle.json",
+				"Actions": "npc/worker_spouse/actions/worker_spouse_actions.json"
+			},
+
+			"Markers": {
+				"RequiredMarkers": [
+					"bed",
+					"table_seat",
+					"idle",
+					"door",
+					"food_source"
+				],
+				"MarkerRoles": {
+					"bed": "BED",
+					"table_seat": "TABLE_SEAT",
+					"idle": "IDLE",
+					"door": "DOOR",
+					"food_source": "FOOD_SOURCE",
+					"safety_zone": "SAFETY_ZONE",
+					"gather_point": "GATHER_POINT",
+					"well": "WELL",
+					"market_stall": "MARKET_STALL",
+					"washing_place": "WASHING_PLACE"
+				},
+				"SafetyMarkers": [
+					"safety_zone"
+				],
+				"EventMarkers": [
+					"gather_point"
+				],
+				"OptionalMarkers": [
+					"well",
+					"market_stall",
+					"washing_place"
+				]
+			},
+
+			"Debug": {
+				"Enabled": true,
+				"LogRoutine": true,
+				"LogMarkers": true,
+				"LogNavigation": false,
+				"LogActions": true
+			}
+		}
+	]
+}

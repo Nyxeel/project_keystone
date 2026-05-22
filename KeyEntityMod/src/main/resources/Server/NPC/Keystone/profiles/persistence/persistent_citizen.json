@@ -13,8 +13,9 @@
 		"SaveHome": true,
 		"SaveRoutineProgress": false,
 		"SaveMarkerAssignments": true,
-		"SaveSelectedAppearance": true,
-		"SaveSelectedOutfit": true,
+		"SaveSelectedBody": true,
+		"SaveSelectedName": true,
+		"SaveCurrentOutfit": true,
 		"SaveSelectedComposition": true
 	},
 

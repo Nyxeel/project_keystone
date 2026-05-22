@@ -33,8 +33,7 @@
 		],
 		"GuardPostSlots": [
 			"guard_1",
-			"guard_2",
-			"scout_1"
+			"guard_2"
 		]
 	},
 
@@ -44,8 +43,28 @@
 			"Usage": "Exclusive",
 			"SlotId": "resident_1"
 		},
+		"resident_1.table_seat": {
+			"MarkerType": "TABLE_SEAT",
+			"Usage": "Exclusive",
+			"SlotId": "resident_1"
+		},
+		"resident_1.idle": {
+			"MarkerType": "IDLE",
+			"Usage": "Exclusive",
+			"SlotId": "resident_1"
+		},
 		"resident_2.bed": {
 			"MarkerType": "BED",
+			"Usage": "Exclusive",
+			"SlotId": "resident_2"
+		},
+		"resident_2.table_seat": {
+			"MarkerType": "TABLE_SEAT",
+			"Usage": "Exclusive",
+			"SlotId": "resident_2"
+		},
+		"resident_2.idle": {
+			"MarkerType": "IDLE",
 			"Usage": "Exclusive",
 			"SlotId": "resident_2"
 		},
@@ -54,15 +73,10 @@
 			"Usage": "Exclusive",
 			"SlotId": "guard_1"
 		},
-		"guard_2.patrol_b": {
+		"guard_2.patrol_a": {
 			"MarkerType": "PATROL_POINT",
 			"Usage": "Exclusive",
 			"SlotId": "guard_2"
-		},
-		"scout_1.watch_point": {
-			"MarkerType": "WATCH_POINT",
-			"Usage": "Exclusive",
-			"SlotId": "scout_1"
 		},
 		"door": {
 			"MarkerType": "DOOR",

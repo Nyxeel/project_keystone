@@ -9,7 +9,7 @@
 		{
 			"Id": "mountain_male_adult_01",
 			"Weight": 40,
-			"BodyProfile": "human_male_sturdy",
+			"BodyProfile": "human_male",
 			"Age": "adult",
 			"SkinTone": "cold_fair",
 			"HairStyle": "short_thick",
@@ -27,7 +27,7 @@
 		{
 			"Id": "mountain_male_adult_02",
 			"Weight": 35,
-			"BodyProfile": "human_male_strong",
+			"BodyProfile": "human_male",
 			"Age": "adult",
 			"SkinTone": "weathered_light",
 			"HairStyle": "medium_tied",
@@ -45,7 +45,7 @@
 		{
 			"Id": "mountain_male_adult_03",
 			"Weight": 25,
-			"BodyProfile": "human_male_heavy",
+			"BodyProfile": "human_male",
 			"Age": "adult",
 			"SkinTone": "frost_touched",
 			"HairStyle": "long_rough",

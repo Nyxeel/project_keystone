@@ -22,7 +22,7 @@
 			]
 		},
 		{
-			"Id": "shop_owner_with_citizen",
+			"Id": "shop_owner_with_assistent",
 			"Weight": 30,
 			"Npcs": [
 				{
@@ -37,13 +37,14 @@
 					]
 				},
 				{
-					"RoleId": "keystone:citizen",
+					"RoleId": "keystone:trader",
 					"HomeSlot": "resident_2",
 					"WorkSlot": null,
 					"RequiredSex": "any",
 					"RequiredTags": [
 						"adult",
-						"citizen"
+						"worker",
+						"trader"
 					]
 				}
 			]

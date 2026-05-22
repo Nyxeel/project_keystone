@@ -1,0 +1,41 @@
+{
+	"Id": "human_forest_outpost_compositions",
+	"Version": 1,
+	"Type": "CompositionPool",
+
+	"Entries": [
+		{
+			"Id": "forest_outpost_two_guards",
+			"Weight": 100,
+			"Npcs": [
+				{
+					"RoleId": "keystone:guard",
+					"HomeSlot": "resident_1",
+					"WorkSlot": "guard_1",
+					"RequiredSex": "any",
+					"RequiredTags": [
+						"adult",
+						"guard"
+					]
+				},
+				{
+					"RoleId": "keystone:guard",
+					"HomeSlot": "resident_2",
+					"WorkSlot": "guard_2",
+					"RequiredSex": "any",
+					"RequiredTags": [
+						"adult",
+						"guard"
+					]
+				}
+			]
+		}
+	],
+
+	"Safety": {
+		"EntriesMustHaveStableIds": true,
+		"RequiresUniqueHomeSlots": true,
+		"RequiresUniqueWorkSlots": true,
+		"NeverCreateNpcStateInP3": true
+	}
+}

@@ -9,7 +9,7 @@
 		{
 			"Id": "forest_female_adult_01",
 			"Weight": 40,
-			"BodyProfile": "human_female_average",
+			"BodyProfile": "human_female",
 			"Age": "adult",
 			"SkinTone": "warm_light",
 			"HairStyle": "long_braided",
@@ -24,9 +24,26 @@
 			]
 		},
 		{
+			"Id": "forest_female_young_01",
+			"Weight": 30,
+			"BodyProfile": "human_female",
+			"Age": "young",
+			"SkinTone": "warm_light",
+			"HairStyle": "long_braided",
+			"HairColor": "brown",
+			"EyeColor": "green",
+			"FaceProfile": "young_forest_face",
+			"Tags": [
+				"human",
+				"forest",
+				"female",
+				"young"
+			]
+		},
+		{
 			"Id": "forest_female_adult_02",
 			"Weight": 35,
-			"BodyProfile": "human_female_sturdy",
+			"BodyProfile": "human_female",
 			"Age": "adult",
 			"SkinTone": "sun_touched",
 			"HairStyle": "medium_tied",
@@ -44,7 +61,7 @@
 		{
 			"Id": "forest_female_adult_03",
 			"Weight": 25,
-			"BodyProfile": "human_female_lean",
+			"BodyProfile": "human_female",
 			"Age": "adult",
 			"SkinTone": "fair",
 			"HairStyle": "loose_wavy",

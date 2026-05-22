@@ -22,7 +22,7 @@
 			]
 		},
 		{
-			"Id": "storage_worker_with_citizen",
+			"Id": "storage_worker_with_assistant",
 			"Weight": 30,
 			"Npcs": [
 				{
@@ -37,13 +37,14 @@
 					]
 				},
 				{
-					"RoleId": "keystone:citizen",
+					"RoleId": "keystone:trader",
 					"HomeSlot": "resident_2",
 					"WorkSlot": null,
 					"RequiredSex": "any",
 					"RequiredTags": [
 						"adult",
-						"citizen"
+						"worker",
+						"trader"
 					]
 				}
 			]

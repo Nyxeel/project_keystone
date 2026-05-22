@@ -22,7 +22,7 @@
 			]
 		},
 		{
-			"Id": "lumberjack_with_citizen",
+			"Id": "lumberjack_with_spouse",
 			"Weight": 30,
 			"Npcs": [
 				{
@@ -37,15 +37,16 @@
 					]
 				},
 				{
-					"RoleId": "keystone:citizen",
+					"RoleId": "keystone:worker_spouse",
 					"HomeSlot": "resident_2",
 					"WorkSlot": null,
-					"RequiredSex": "any",
+					"RequiredSex": "female",
 					"RequiredTags": [
 						"adult",
-						"citizen"
+						"worker"
 					]
 				}
+
 			]
 		}
 	],

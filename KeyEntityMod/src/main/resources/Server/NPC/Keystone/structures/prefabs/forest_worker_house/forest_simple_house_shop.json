@@ -84,6 +84,11 @@
 			"Usage": "Exclusive",
 			"SlotId": "shop_work_1"
 		},
+		"shop_work_1.customer_spot": {
+			"MarkerType": "CUSTOMER_SPOT",
+			"Usage": "Shared",
+			"SlotId": "shop_work_1"
+		},
 		"shop_work_1.shelf": {
 			"MarkerType": "SHOP_SHELF",
 			"Usage": "Exclusive",

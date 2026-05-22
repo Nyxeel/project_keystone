@@ -9,7 +9,7 @@
 		{
 			"Id": "darklands_male_adult_01",
 			"Weight": 40,
-			"BodyProfile": "human_male_lean",
+			"BodyProfile": "human_male",
 			"Age": "adult",
 			"SkinTone": "ash_pale",
 			"HairStyle": "short_rough",
@@ -26,7 +26,7 @@
 		{
 			"Id": "darklands_male_adult_02",
 			"Weight": 35,
-			"BodyProfile": "human_male_sturdy",
+			"BodyProfile": "human_male",
 			"Age": "adult",
 			"SkinTone": "grey_olive",
 			"HairStyle": "medium_tied",
@@ -44,7 +44,7 @@
 		{
 			"Id": "darklands_male_adult_03",
 			"Weight": 25,
-			"BodyProfile": "human_male_average",
+			"BodyProfile": "human_male",
 			"Age": "adult",
 			"SkinTone": "smoke_tan",
 			"HairStyle": "long_wild",

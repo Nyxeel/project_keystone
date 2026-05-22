@@ -9,6 +9,7 @@
 		"lumberjack/lumberjack_group.json",
 		"blacksmith/blacksmith_group.json",
 		"trader/trader_group.json",
+		"worker_spouse/worker_spouse_group.json",
 		"guard/guard_group.json"
 	],
 

@@ -9,7 +9,7 @@
 		{
 			"Id": "forest_male_adult_01",
 			"Weight": 40,
-			"BodyProfile": "human_male_average",
+			"BodyProfile": "human_male",
 			"Age": "adult",
 			"SkinTone": "warm_light",
 			"HairStyle": "short_messy",
@@ -26,7 +26,7 @@
 		{
 			"Id": "forest_male_adult_02",
 			"Weight": 35,
-			"BodyProfile": "human_male_sturdy",
+			"BodyProfile": "human_male",
 			"Age": "adult",
 			"SkinTone": "sun_touched",
 			"HairStyle": "medium_tied",
@@ -44,7 +44,7 @@
 		{
 			"Id": "forest_male_adult_03",
 			"Weight": 25,
-			"BodyProfile": "human_male_lean",
+			"BodyProfile": "human_male",
 			"Age": "adult",
 			"SkinTone": "fair",
 			"HairStyle": "long_loose",

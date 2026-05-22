@@ -1,3 +1,27 @@
+Anpassen musst du besonders:
+
+Raus:
+- FolkPool als Hauptsystem
+- AppearancePool als aktives System
+- Appearance oder AppearancePool erlaubt
+- selectedAppearanceId gegen AppearancePool prüfen
+- simple_worker_house_* Namen
+
+Rein:
+- BodyPoolGroup
+- NamePoolGroup
+- OutfitPoolGroup
+- BodyTheme
+- NameTheme
+- OutfitTheme
+- StructureTheme
+- BodyPool = Körper + Haut + Haare + Gesicht + Augen
+- OutfitPool = Kleidung
+- keine Sand-Lumberjacks
+- simple_house_<job>_compositions.json
+
+
+
 P3 ACTION PLAN — loadDefinitions() / DefinitionLoader / DefinitionRegistry
 UPDATED: ausführliche Version mit Modularitätsregeln, Namespaces, ProfileRefs, Pools, Contracts, Structure-bound, Territory-bound und Restart-Regeln
 

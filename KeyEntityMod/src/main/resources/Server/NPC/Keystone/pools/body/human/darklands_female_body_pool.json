@@ -9,7 +9,7 @@
 		{
 			"Id": "darklands_female_adult_01",
 			"Weight": 40,
-			"BodyProfile": "human_female_lean",
+			"BodyProfile": "human_female",
 			"Age": "adult",
 			"SkinTone": "ash_pale",
 			"HairStyle": "long_straight",
@@ -26,7 +26,7 @@
 		{
 			"Id": "darklands_female_adult_02",
 			"Weight": 35,
-			"BodyProfile": "human_female_sturdy",
+			"BodyProfile": "human_female",
 			"Age": "adult",
 			"SkinTone": "grey_olive",
 			"HairStyle": "braided_dark",
@@ -44,7 +44,7 @@
 		{
 			"Id": "darklands_female_adult_03",
 			"Weight": 25,
-			"BodyProfile": "human_female_average",
+			"BodyProfile": "human_female",
 			"Age": "adult",
 			"SkinTone": "smoke_tan",
 			"HairStyle": "short_rough",
