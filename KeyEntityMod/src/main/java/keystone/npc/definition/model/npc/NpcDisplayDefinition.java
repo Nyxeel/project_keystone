@@ -1,4 +1,4 @@
-package keystone.npc.definition.model;
+package keystone.npc.definition.model.npc;
 
 /*
  * NpcDisplayDefinition beschreibt Anzeige-Daten einer NPC-Definition.

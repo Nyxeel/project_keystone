@@ -1,4 +1,4 @@
-package keystone.npc.definition.model;
+package keystone.npc.definition.model.profile;
 
 /*
  * ProfileTypeRule beschreibt die Regel für einen Profil-Typ.

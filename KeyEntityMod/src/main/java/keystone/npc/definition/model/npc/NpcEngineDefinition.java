@@ -1,4 +1,4 @@
-package keystone.npc.definition.model;
+package keystone.npc.definition.model.npc;
 
 /*
  * NpcEngineDefinition beschreibt die Hytale-Engine-Anbindung einer NPC-Definition.

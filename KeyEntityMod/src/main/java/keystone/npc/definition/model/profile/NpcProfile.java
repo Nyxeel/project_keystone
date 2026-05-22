@@ -1,4 +1,4 @@
-package keystone.npc.definition.model;
+package keystone.npc.definition.model.profile;
 
 /*
  * NpcProfile beschreibt einen einzelnen Profil-Verweis einer NPC-Definition.

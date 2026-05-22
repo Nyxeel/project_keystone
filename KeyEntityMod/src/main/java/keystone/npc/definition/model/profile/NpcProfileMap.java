@@ -1,4 +1,4 @@
-package keystone.npc.definition.model;
+package keystone.npc.definition.model.profile;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;

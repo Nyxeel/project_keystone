@@ -1,13 +1,20 @@
-
 {
 	"Id": "sand",
 	"Version": 1,
 	"Type": "BiomeTheme",
 
-	"StructureTheme": "sand",
-	"BodyTheme": "sand",
-	"OutfitTheme": "sand",
-	"NameTheme": "sand",
+	"BiomeIds": [
+		"sand_desert",
+		"sand_dunes",
+		"sand_rocky_desert"
+	],
+
+	"Themes": {
+		"StructureTheme": "sand",
+		"BodyTheme": "sand",
+		"OutfitTheme": "sand",
+		"NameTheme": "sand"
+	},
 
 	"Safety": {
 		"ThemeIdsMustBeStable": true,

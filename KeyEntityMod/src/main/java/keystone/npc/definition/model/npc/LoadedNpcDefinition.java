@@ -1,6 +1,8 @@
-package keystone.npc.definition.model;
+package keystone.npc.definition.model.npc;
 
 import java.util.Objects;
+
+import keystone.npc.definition.model.profile.NpcProfileMap;
 
 /*
  * LoadedNpcDefinition ist der fertige NPC-Bauplan nach dem Laden aus den Resource-JSONs.
