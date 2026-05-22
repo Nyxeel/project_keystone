@@ -23,7 +23,7 @@ public final class LoadedNpcDefinition {
 	private final String namespace;
 	private final NpcEngineDefinition engine;
 	private final NpcDisplayDefinition display;
-	private final NpcProfile profileRefs;
+	private final NpcProfileMap profileRefs;
 	private final NpcMarkerDefinition markers;
 	private final NpcDebugDefinition debug;
 	private final String sourcePath;
@@ -39,7 +39,7 @@ public final class LoadedNpcDefinition {
 		String namespace, 				// Namespace der Mod oder Resource, z. B. keystone.
 		NpcEngineDefinition engine, 	// Hytale-Engine-Anbindung, z. B. echte HytaleRole.
 		NpcDisplayDefinition display, 	// Anzeige-Daten, z. B. Fallback-Name oder Translation-Key.
-		NpcProfile profileRefs, 	// Verweise auf Profile wie Routine, Actions, Movement.
+		NpcProfileMap profileRefs, 		// Verweise auf Profile wie Routine, Actions, Movement.
 		NpcMarkerDefinition markers, 	// Marker-Regeln wie requiredMarkers und markerRoles.
 		NpcDebugDefinition debug, 		// Debug-Schalter für diese NPC-Definition.
 		String sourcePath 				// Optionaler Resource-Pfad für Fehlermeldungen oder Diagnose.
@@ -102,7 +102,7 @@ public final class LoadedNpcDefinition {
 	/*
 	 * Gibt alle Profil-Verweise zurück, zum Beispiel Routine, Actions und Movement.
 	 */
-	public NpcProfile profileRefs() {
+	public NpcProfileMap profileRefs() {
 		return profileRefs;
 	}
 

@@ -52,6 +52,7 @@ public final class NpcProfileMap {
 		if (profileKey == null || profileKey.isBlank()) {
 			return false;
 		}
+
 		return profiles.containsKey(profileKey.trim());
 	}
 
@@ -82,6 +83,14 @@ public final class NpcProfileMap {
 		for (Map.Entry<String, NpcProfile> entry : profiles.entrySet()) {
 			String key = requireProfileKey(entry.getKey());
 			NpcProfile value = Objects.requireNonNull(entry.getValue(), "profile must not be null");
+
+			if (!key.equals(value.profileKey())) {
+				throw new IllegalArgumentException("profile map key does not match profile.profileKey: " + key + " != " + value.profileKey());
+			}
+
+			if (copy.containsKey(key)) {
+				throw new IllegalArgumentException("duplicate profile key: " + key);
+			}
 
 			copy.put(key, value);
 		}

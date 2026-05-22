@@ -1,212 +1,698 @@
-Anpassen musst du besonders:
-
-Raus:
-- FolkPool als Hauptsystem
-- AppearancePool als aktives System
-- Appearance oder AppearancePool erlaubt
-- selectedAppearanceId gegen AppearancePool prüfen
-- simple_worker_house_* Namen
-
-Rein:
-- BodyPoolGroup
-- NamePoolGroup
-- OutfitPoolGroup
-- BodyTheme
-- NameTheme
-- OutfitTheme
-- StructureTheme
-- BodyPool = Körper + Haut + Haare + Gesicht + Augen
-- OutfitPool = Kleidung
-- keine Sand-Lumberjacks
-- simple_house_<job>_compositions.json
-
-
-
-P3 ACTION PLAN — loadDefinitions() / DefinitionLoader / DefinitionRegistry
-UPDATED: ausführliche Version mit Modularitätsregeln, Namespaces, ProfileRefs, Pools, Contracts, Structure-bound, Territory-bound und Restart-Regeln
+# P3 PLAN — DefinitionLoader / DefinitionRegistry
+# Neues Biom-, Theme- und PoolGroup-System
+# Version: P3 Biome-System v1
 
 ZIEL VON P3:
-NPC-Definitionen aus resources laden, prüfen und im RAM registrieren.
+NPC-, Biome-, Theme-, Pool-, Structure- und Composition-Definitionen aus resources laden,
+prüfen und im RAM registrieren.
 
 P3 lädt Baupläne.
 P3 erzeugt keine echten NPCs.
+P3 platziert keine Gebäude.
+P3 würfelt keine Pools aus.
+P3 schreibt keine state.json.
 
-WICHTIGE GRUNDREGEL:
-Resource-JSONs = Baupläne / Definitionen / Profile / Pools / Contracts / Prefabs / Territories
-state.json = konkrete Welt-/NPC-Instanzen
+Die wichtigste neue Regel:
 
-Pool laden ≠ Pool auswürfeln.
+Biom → Themes → PoolGroups/Pools → spätere konkrete Auswahl
 
-In P3 werden Pools, Profile, Definitionen, Contracts, Prefab-Definitionen und Territory-Definitionen nur geladen und geprüft.
-Eine konkrete Auswahl aus einem Pool passiert erst später beim Spawn einer echten NPC-Instanz.
+Nicht mehr:
 
-Beispiel:
-loadDefinitions()
-→ lädt SpeciesPool / BodyPool / AppearancePool / OutfitPool / CompositionPool
+Spielerposition → Biom → Gebäude
+AppearancePool → selectedAppearanceId
+FolkPool als Hauptsystem
+simple_worker_house_*
+sand_lumberjack
 
-spawn RoleId lumberjack
-→ wählt selectedSpeciesId / selectedBodyProfileId / selectedAppearanceId / currentOutfitId / selectedCompositionId
-→ speichert diese konkrete Auswahl später in state.json
+Sondern:
 
-Restart
-→ lädt gespeicherte Auswahl aus state.json
-→ würfelt NICHT neu
+Placement-Position → Biom → StructureTheme
+BodyTheme → BodyPoolGroup → BodyPool
+NameTheme → NamePoolGroup → NamePool
+OutfitTheme → OutfitPoolGroup → OutfitPool
+StructureTheme → StructurePool → Structure/Prefab
+RoleId bleibt unabhängig vom Biom
 
 
-NICHT IN P3:
+################################################################################
+1. GRUNDREGEL: RESOURCE VS STATE
+################################################################################
+
+Resource-JSONs sind Baupläne.
+
+Beispiele:
+- NPC-Groups
+- Profile
+- Biome-Definitionen
+- Theme-Bindings
+- BodyPoolGroups
+- NamePoolGroups
+- OutfitPoolGroups
+- StructurePools
+- BodyPools
+- NamePools
+- OutfitPools
+- CompositionPools
+- Contracts
+- Prefabs
+- Territories
+
+state.json speichert konkrete Welt-/NPC-Instanzen.
+
+Beispiele:
+- npcId
+- roleId
+- entityUuid
+- worldId
+- selectedBodyId
+- selectedNameId
+- currentOutfitId
+- selectedCompositionId
+- selectedPrefabId
+- structureInstanceId
+- markerAssignments
+
+P3 lädt nur resources.
+P3 verändert keine state.json.
+
+Merksatz:
+
+Resource = Was kann es geben?
+state.json = Was gibt es wirklich in dieser Welt?
+
+
+################################################################################
+2. NICHT IN P3
+################################################################################
+
+In P3 gibt es nicht:
+
 - kein Spawn
 - kein Relink
-- kein NpcRecord aus state.json aktivieren
+- kein Auto-Respawn
+- kein NPC aus state.json aktivieren
 - kein saveStateSafely()
 - keine EntityRef
 - keine RuntimeNpc-Logik
-- keine Pools auswürfeln
-- kein DataStore(T)
+- keine Pool-Auswahl
+- kein Zufallswurf
+- kein DataStore<T>
 - keine MarkerAssignments schreiben
 - keine state.json-Änderung
 - kein automatischer Repair
-- kein Outfit-Wechsel-System ausführen
+- kein Outfit-Wechsel ausführen
 - keine StructureInstance erzeugen
 - keine TerritoryInstance erzeugen
 - keine SpawnAnchor-Instanz erzeugen
 - keine MarkerRecords erzeugen
 - keine NPC-Entity erzeugen
+- keine Spielerposition als Biome-Wahrheit verwenden
 
 
 ################################################################################
-################################################################################
-GLOBALE P3-GRUNDREGELN
-################################################################################
+3. NEUES BIOM-/THEME-GRUNDSYSTEM
 ################################################################################
 
-────────────────────────────────────────
-1. Eine Variant = genau eine RoleId
-────────────────────────────────────────
+Biome-Dateien bestimmen Themes.
 
-Eine Variant ist genau ein Bauplan.
+Beispiel:
 
-Richtig:
+Biome:
+sand_desert
 
-Variants:
-- RoleId: lumberjack
-- RoleId: lumberjack_wife
-- RoleId: blacksmith
-- RoleId: trader
+Theme-Bindung:
+StructureTheme = sand
+BodyTheme     = sand
+OutfitTheme   = sand
+NameTheme     = sand
+
+Diese Themes werden später benutzt, um passende Pools zu finden.
+
+Beispiel-Ablauf später:
+
+1. Placement-System plant ein Gebäude.
+2. Es gibt eine geplante Gebäude-Position.
+3. An dieser Gebäude-Position wird das Biom geprüft.
+4. Dieses Biom liefert StructureTheme.
+5. StructureTheme filtert passende Gebäude.
+6. Gebäude wird nur erlaubt, wenn es wirklich zum Theme passt.
+
+Wichtig:
+
+Nicht die Spielerposition entscheidet.
+Die geplante Gebäude-Position entscheidet.
 
 Falsch:
 
-Eine Variant mit:
-RoleIds:
-- lumberjack
-- lumberjack_wife
+PlayerPosition → Biome → StructureTheme → Gebäude
+
+Richtig:
+
+PlacementCandidatePosition → Biome → StructureTheme → Gebäude
 
 Warum:
+
+Wenn ein Spieler an der Grenze zwischen sand und darklands läuft,
+darf auf sand kein darklands-Gebäude spawnen
+und in darklands kein sand-Gebäude.
+
+Darum muss das Biom dort geprüft werden,
+wo das Gebäude wirklich stehen soll.
+
+
+################################################################################
+4. BIOM-GRENZREGEL FÜR STRUCTURES
+################################################################################
+
+Ein Gebäude darf nicht nur wegen der Spielerposition ausgewählt werden.
+
+Für Structure-Placement gilt später:
+
+- Kandidatenposition bestimmen
+- Biom an Kandidatenposition prüfen
+- StructureTheme aus diesem Biom lesen
+- StructurePool nach diesem StructureTheme filtern
+- nur passende Structures erlauben
+
+Bei größeren Gebäuden reicht nicht immer nur die Mitte.
+
+Sichere spätere Regel:
+
+Prüfe den Footprint:
+- Center
+- Ecke vorne links
+- Ecke vorne rechts
+- Ecke hinten links
+- Ecke hinten rechts
+- optional weitere Randpunkte
+
+Wenn Pflichtpunkte unterschiedliche StructureThemes haben:
+
+- normale Platzierung blockieren
+- oder nur spezielle Übergangs-Strukturen erlauben
+
+Beispiel:
+
+sand_house darf nur spawnen, wenn der geprüfte Footprint sand ist.
+
+darklands_house darf nur spawnen, wenn der geprüfte Footprint darklands ist.
+
+P3 selbst macht diese Abfrage noch nicht.
+P3 lädt nur die Regeln, damit spätere Systeme sie sauber anwenden können.
+
+
+################################################################################
+5. ROLEID BLEIBT JOB / LOGIK, NICHT BIOM
+################################################################################
+
+RoleId beschreibt den Job oder die logische NPC-Rolle.
+
+Richtig:
+
+keystone:lumberjack
+keystone:blacksmith
+keystone:trader
+keystone:guard
+keystone:worker_spouse
+
+Falsch:
+
+keystone:sand_lumberjack
+keystone:darklands_lumberjack
+keystone:sand_blacksmith
+keystone:forest_trader
+
+Warum:
+
+Das Biom soll Aussehen, Namen, Kleidung und Gebäude-Stil bestimmen.
+Die RoleId soll bestimmen, was der NPC fachlich ist.
+
+Also:
+
+Biome/Theme entscheidet Stil.
+RoleId entscheidet Funktion.
+
+Beispiel:
+
+RoleId:
+keystone:trader
+
+In sand_desert:
+- BodyTheme sand
+- OutfitTheme sand
+- NameTheme sand
+- StructureTheme sand
+
+In darklands:
+- BodyTheme darklands
+- OutfitTheme darklands
+- NameTheme darklands
+- StructureTheme darklands
+
+Aber RoleId bleibt:
+
+keystone:trader
+
+
+################################################################################
+6. KEINE SAND-LUMBERJACKS
+################################################################################
+
+Für das neue System gilt:
+
+Keine Sand-Lumberjacks.
+
+Das bedeutet:
+
+- Kein sand_lumberjack als eigene RoleId.
+- Kein sand_lumberjack_group.json als eigene Hauptlogik.
+- Kein sand_lumberjack nur wegen Biom.
+- Keine biome-spezifische Kopie derselben Job-Rolle.
+
+Lumberjack bleibt lumberjack.
+
+Aber:
+
+Ein Lumberjack kann später je nach Biom unterschiedlich aussehen,
+wenn die Definition ihn in diesem Biom überhaupt erlaubt.
+
+Wichtig für dein aktuelles Design:
+
+Wenn du keine Sand-Lumberjacks willst,
+darf die Composition / Structure / Biome-Regel in sand_desert keinen lumberjack auswählen.
+
+Also:
+
+Sand-Biom kann erlauben:
+- trader
+- blacksmith
+- guard
+- citizen
+
+Und blockieren:
+- lumberjack
+
+Das ist keine andere RoleId.
+Das ist eine Biome-/Composition-/Structure-Regel.
+
+
+################################################################################
+7. BODYPOOLGROUP / BODYPOOL
+################################################################################
+
+BodyPoolGroup:
+
+Eine BodyPoolGroup ist eine Auswahlgruppe.
+Sie sagt, welche BodyPools für welches BodyTheme erlaubt sind.
+
+Beispiel:
+
+human_body_pool_group.json
+
+enthält Zuordnung zu:
+
+BodyTheme sand:
+- sand_male_body_pool.json
+- sand_female_body_pool.json
+
+BodyTheme forest:
+- forest_male_body_pool.json
+- forest_female_body_pool.json
+
+BodyTheme mountain:
+- mountain_male_body_pool.json
+- mountain_female_body_pool.json
+
+BodyTheme darklands:
+- darklands_male_body_pool.json
+- darklands_female_body_pool.json
+
+BodyPool:
+
+Ein BodyPool enthält Körper-/Identitätsoptik.
+
+BodyPool enthält:
+- Körper
+- Haut
+- Haare
+- Gesicht
+- Augen
+
+BodyPool enthält NICHT:
+- Kleidung
+- Rüstung
+- Job-Outfit
+
+Warum:
+
+Körper ist Identität.
+Kleidung ist Outfit.
+
+BodyPool bleibt nach Spawn stabil.
+
+Später in state.json:
+
+selectedBodyId
+
+Nicht mehr:
+
+selectedAppearanceId
+
+
+################################################################################
+8. NAMEPOOLGROUP / NAMEPOOL
+################################################################################
+
+NamePoolGroup:
+
+Eine NamePoolGroup ist eine Auswahlgruppe für Namen.
+Sie sagt, welche NamePools für welches NameTheme erlaubt sind.
+
+Beispiel:
+
+human_name_pool_group.json
+
+NameTheme sand:
+- sand_male_name_pool.json
+- sand_female_name_pool.json
+
+NameTheme forest:
+- forest_male_name_pool.json
+- forest_female_name_pool.json
+
+NameTheme darklands:
+- darklands_male_name_pool.json
+- darklands_female_name_pool.json
+
+NamePool:
+
+Ein NamePool enthält mögliche Namen.
+
+NamePool kann trennen nach:
+- Theme
+- Geschlecht
+- Kultur
+- Rolle
+- Seltenheit
+
+P3 prüft nur:
+- Datei existiert
+- JSON ist gültig
+- Id existiert
+- Version existiert
+- Type == NamePool
+- Entries existieren
+- Entries haben stabile IDs oder stabile Namen-Keys
+
+P3 wählt keinen Namen aus.
+
+Später in state.json möglich:
+
+selectedNameId
+displayName
+
+
+################################################################################
+9. OUTFITPOOLGROUP / OUTFITPOOL
+################################################################################
+
+OutfitPoolGroup:
+
+Eine OutfitPoolGroup ist eine Auswahlgruppe für Kleidung.
+Sie sagt, welche OutfitPools für welches OutfitTheme erlaubt sind.
+
+Beispiel:
+
+human_worker_outfit_pool_group.json
+
+OutfitTheme sand:
+- sand_worker_outfit_pool.json
+- sand_trader_outfit_pool.json
+- sand_blacksmith_outfit_pool.json
+
+OutfitTheme forest:
+- forest_worker_outfit_pool.json
+- forest_trader_outfit_pool.json
+- forest_blacksmith_outfit_pool.json
+
+OutfitPool:
+
+Ein OutfitPool enthält Kleidung.
+
+OutfitPool enthält:
+- Kleidung
+- Arbeitskleidung
+- Berufskleidung
+- optionale Varianten
+
+OutfitPool enthält NICHT:
+- Körper
+- Haut
+- Haare
+- Gesicht
+- Augen
+
+Outfit darf später wechseln.
+
+Beispiel:
+Alle 2–4 Ingame-Tage neue Kleidung aus gleichem passenden OutfitPool.
+
+P3 prüft nur.
+P3 wechselt kein Outfit.
+
+Später in state.json:
+
+selectedOutfitId optional
+currentOutfitId
+outfitPoolId
+lastOutfitChangeDay
+nextOutfitChangeDay
+
+
+################################################################################
+10. STRUCTURETHEME / STRUCTUREPOOL
+################################################################################
+
+StructureTheme bestimmt den Gebäude-Stil.
+
+Beispiele:
+
+StructureTheme sand:
+- sand_house_trader
+- sand_house_blacksmith
+- sand_guard_post
+
+StructureTheme forest:
+- forest_house_trader
+- forest_house_blacksmith
+- forest_guard_post
+
+StructureTheme darklands:
+- darklands_house_trader
+- darklands_house_blacksmith
+- darklands_guard_post
+
+StructurePool:
+
+Ein StructurePool enthält mögliche Structures/Prefabs für ein StructureTheme.
+
+Wichtig:
+
+StructureTheme kommt vom Biom an der geplanten Gebäude-Position,
+nicht vom Spieler.
+
+P3 prüft:
+
+- StructurePool existiert
+- StructurePool hat Id
+- StructurePool hat Version
+- StructurePool hat Type == StructurePool
+- StructureTheme existiert
+- Entries existieren
+- Entries verweisen auf existierende Structure/Prefab-Definitionen
+- keine Entry verweist auf fehlende Datei
+
+P3 platziert kein Gebäude.
+
+
+################################################################################
+11. COMPOSITION-NAMING
+################################################################################
+
+Alte Namen raus:
+
+simple_worker_house_*
+
+Neue Namen:
+
+simple_house_<job>_compositions.json
+
+Beispiele:
+
+simple_house_trader_compositions.json
+simple_house_blacksmith_compositions.json
+simple_house_guard_compositions.json
+simple_house_lumberjack_compositions.json
+
+Warum:
+
+worker ist zu ungenau.
+Der Job soll klar im Namen stehen.
+
+Composition sagt später:
+
+Welche NPC-Rollen gehören zu dieser Structure?
+
+Beispiel:
+
+simple_house_trader_compositions.json
+
+kann enthalten:
+- trader
+- worker_spouse
+- optional child
+- optional guard
+
+P3 prüft nur:
+
+- Composition-Datei existiert
+- JSON ist gültig
+- Id existiert
+- Version existiert
+- Type == CompositionPool oder CompositionDefinition
+- RoleIds existieren oder sind bewusst als später markiert
+- Slot-Namen sind gültig
+- RequiredTags/SupportedTags sind gültig, falls vorhanden
+
+P3 wählt keine Composition aus.
+
+
+################################################################################
+12. VARIANT = GENAU EINE ROLEID
+################################################################################
+
+Eine Variant ist genau ein NPC-Bauplan.
+
+Richtig:
+
+Variant:
+RoleId = trader
+
+Variant:
+RoleId = blacksmith
+
+Variant:
+RoleId = guard
+
+Falsch:
+
+Eine Variant enthält mehrere RoleIds:
+- trader
+- blacksmith
+- guard
+
+Warum:
+
 Wenn eine Variant mehrere RoleIds enthält, weiß die Registry später nicht sauber:
 - Welche RoleId wird gespawnt?
-- Welche Profile gehören genau dazu?
-- Welche DisplayName gilt?
+- Welche Profile gehören dazu?
 - Welche Marker gelten?
 - Welche Debug-Regeln gelten?
+- Welche Display-Daten gelten?
 
 Merksatz:
+
 Group = Sammlung mehrerer Baupläne
 Variant = genau ein Bauplan
 RoleId = eindeutige ID dieses Bauplans
-CompositionPool = entscheidet später, welche RoleIds zusammen spawnen
+Composition = entscheidet später, welche RoleIds zusammen auftreten
 
 
-────────────────────────────────────────
-2. SharedProfiles + Variant.Profiles werden gemerged
-────────────────────────────────────────
+################################################################################
+13. SHAREDPROFILES + VARIANT.PROFILES
+################################################################################
 
-SharedProfiles sind Defaults für alle Variants der Group.
+SharedProfiles sind Defaults für alle Variants einer Group.
 
-Variant.Profiles überschreibt nur einzelne Profile.
+Variant.Profiles überschreibt nur einzelne Keys.
 
 Merge-Regel:
 
 1. SharedProfiles laden
 2. Variant.Profiles darüberlegen
-3. Wenn derselbe Key existiert:
+3. Wenn gleicher Key existiert:
    Variant gewinnt
 
 Beispiel:
 
 SharedProfiles:
-- SpeciesPool = pools/species/human_worker_species_pool.json
-- BodyPool = pools/body/human_worker_body_pool.json
 - Movement = profiles/movement/human_walk.json
 - Navigation = profiles/navigation/friendly_worker.json
-- Combat = profiles/combat/peaceful.json
 - Persistence = profiles/persistence/persistent_citizen.json
+- BodyPoolGroup = pools/body/human_body_pool_group.json
+- NamePoolGroup = pools/name/human_name_pool_group.json
 
 Variant.Profiles:
-- BodyPool = pools/body/human_old_body_pool.json
-- OutfitPool = pools/outfits/lumberjack_outfit_pool.json
-- Routine = npc/lumberjack/routines/lumberjack_day_cycle.json
-- Actions = npc/lumberjack/actions/lumberjack_actions.json
+- OutfitPoolGroup = pools/outfit/trader_outfit_pool_group.json
+- Routine = npc/trader/routines/trader_day_cycle.json
+- Actions = npc/trader/actions/trader_actions.json
 
-Effektives Ergebnis:
-- SpeciesPool = aus SharedProfiles
-- BodyPool = aus Variant
-- Movement = aus SharedProfiles
-- Navigation = aus SharedProfiles
-- Combat = aus SharedProfiles
-- Persistence = aus SharedProfiles
-- OutfitPool = aus Variant
-- Routine = aus Variant
-- Actions = aus Variant
+Effektiv:
+
+- Movement aus SharedProfiles
+- Navigation aus SharedProfiles
+- Persistence aus SharedProfiles
+- BodyPoolGroup aus SharedProfiles
+- NamePoolGroup aus SharedProfiles
+- OutfitPoolGroup aus Variant
+- Routine aus Variant
+- Actions aus Variant
 
 Wichtig:
-Variant.Profiles löscht nicht automatisch SharedProfiles.
+
+Variant.Profiles löscht SharedProfiles nicht automatisch.
 Variant.Profiles überschreibt nur gleiche Keys.
 
-Wenn später ein Profil bewusst deaktiviert werden soll, dann nicht mit null arbeiten.
+Wenn später ein Profil bewusst deaktiviert werden soll,
+nicht mit null arbeiten.
+
 Besser später:
+
 DisabledProfiles:
 - Dialogue
 
 
-────────────────────────────────────────
-3. ProfileRefs bleiben generisch
-────────────────────────────────────────
+################################################################################
+14. PROFIL-REFS BLEIBEN GENERISCH
+################################################################################
 
-Nicht:
+Nicht als feste Java-Felder:
 
-NpcProfileRefs:
-- routine
-- actions
-- movement
-- navigation
-- combat
-- ...
+routine
+actions
+movement
+navigation
+combat
+...
 
 Sondern:
 
-NpcProfileRefs:
-- Map(String, NpcProfileRef) profiles
+Map<String, NpcProfileRef>
 
 Warum:
-Neue Profile-Keys wie Dialogue, Trading, Reputation, Events, SeasonalOutfits oder CustomSomething sollen später ergänzt werden können, ohne dass NpcProfileRefs als Java-Klasse jedes Mal geändert werden muss.
 
-Java soll generisch bleiben.
-JSON beschreibt, was der NPC nutzt.
+Neue Profile sollen später möglich sein, ohne jedes Mal Java umzubauen.
 
+Beispiele für Profile-Keys:
 
-────────────────────────────────────────
-4. Required / Optional / Custom Profile
-────────────────────────────────────────
-
-Required Core Profiles:
+Required:
 - Routine
 - Actions
 - Movement
 - Navigation
 - Persistence
 
-Diese müssen nach dem Merge aus SharedProfiles + Variant.Profiles vorhanden sein.
-
-Optional Core Profiles:
+Optional:
 - Combat
 - Events
 - Dialogue
@@ -214,47 +700,100 @@ Optional Core Profiles:
 - Reputation
 - SeasonalOutfits
 - Spawn
-- SpeciesPool
-- BodyPool
-- OutfitPool
+- BodyPoolGroup
+- NamePoolGroup
+- OutfitPoolGroup
+- StructurePool
 - CompositionPool
+- AI
+- Mana
+- Magic
+
+Nicht mehr aktiv:
+- FolkPool
 - Appearance
 - AppearancePool
 
-Diese dürfen fehlen.
-Wenn sie aber eingetragen sind, müssen sie gültig sein.
-
-Custom Profiles:
-- unbekannte neue Keys
-- werden erlaubt
-- werden basic validiert
-- werden als CustomProfileRef gespeichert
-- werden nicht ausgeführt, solange kein Handler existiert
+Custom:
+- CustomSomething
+- VillageMood
+- ReputationHook
+- FutureMagicSystem
 
 Regel:
-Required-Core fehlt → Fehler
-Optional-Core fehlt → okay
+
+Required fehlt nach Merge → Fehler
+Optional fehlt → okay
 Eingetragen, aber Datei fehlt → Fehler
 Eingetragen, aber JSON kaputt → Fehler
-Unbekannter Key vorhanden und Datei gültig → okay
-Unbekannter Key vorhanden, aber Datei fehlt/kaputt → Fehler
+Custom eingetragen und gültig → okay
+Custom eingetragen, aber Datei fehlt/kaputt → Fehler
 Nicht eingetragen → nicht aktiv
 
 
-────────────────────────────────────────
-5. Appearance / AppearancePool / BodyPool / OutfitPool
-────────────────────────────────────────
+################################################################################
+15. APPEARANCEPOOL IST RAUS
+################################################################################
 
-Appearance und AppearancePool sind nicht zwingend beide nötig.
+Das neue System nutzt nicht mehr AppearancePool als aktives System.
 
-Regel:
-Entweder Appearance ODER AppearancePool.
-Nicht zwingend beides.
+Raus:
 
-Zusätzlich ist unser neueres Modell:
+- Appearance als aktives Optional-Core-Profil
+- AppearancePool als aktives Optional-Core-Profil
+- selectedAppearanceId
+- selectedAppearanceId gegen AppearancePool prüfen
 
-SpeciesPool:
-= Volk/Wesen
+Warum:
+
+AppearancePool vermischt zu viel:
+- Körper
+- Haut
+- Haare
+- Gesicht
+- Augen
+- Kleidung
+
+Das neue System trennt sauber:
+
+BodyPool:
+- Körper
+- Haut
+- Haare
+- Gesicht
+- Augen
+
+OutfitPool:
+- Kleidung
+
+NamePool:
+- Namen
+
+Darum:
+
+selectedAppearanceId wird ersetzt durch:
+
+selectedBodyId
+selectedNameId optional
+selectedOutfitId optional
+currentOutfitId
+
+
+################################################################################
+16. FOLKPOOL IST NICHT DAS HAUPTSYSTEM
+################################################################################
+
+FolkPool ist im neuen P3 nicht das Hauptsystem.
+
+Raus:
+
+- FolkPool als zentrale Auswahl
+- FolkPool als Pflichtsystem
+- FolkPool als Ersatz für BodyTheme
+
+Wenn später Species/Race gebraucht wird,
+kann es als eigenes System zurückkommen.
+
 Beispiele:
 - human
 - elf
@@ -262,250 +801,290 @@ Beispiele:
 - vampire
 - wolf
 
-BodyPool:
-= Körperprofil
-Beispiele:
-- human_male
-- human_female
-- human_old_male
-- human_old_female
-- human_child
+Aber aktuell für Biom-Stil gilt:
 
-AppearancePool:
-= dauerhaftes Grundaussehen
-Kann Gesicht, Haare, Augen, Ohren, Mund, Körperdetails usw. enthalten.
+BodyTheme
+NameTheme
+OutfitTheme
+StructureTheme
 
-OutfitPool:
-= Kleidung
-Darf später alle 2–4 Ingame-Tage wechseln.
+Nicht:
 
-Wichtig:
-Body/Appearance = Identität, bleibt nach Spawn stabil.
-Outfit = Kleidung, darf geplant wechseln.
-
-P3 lädt nur.
-P3 wählt nichts aus.
+FolkPool entscheidet alles.
 
 
-────────────────────────────────────────
-6. HytaleRole vs RoleId
-────────────────────────────────────────
+################################################################################
+17. HYTALEROLE VS ROLEID
+################################################################################
 
 HytaleRole:
-= echte Hytale Engine-Role
-= liegt unter Server/NPC/Roles/
-= Engine-Basis / Bewegungsart / Grundfähigkeit
 
-RoleId:
-= Keystone-Logik-ID / Job / soziale Rolle
-= steht in group.json / Variant
-= wird später in state.json gespeichert
+Echte Hytale Engine-Role.
+Liegt unter:
+
+Server/NPC/Roles/
 
 Beispiel:
-RoleId = keystone:blacksmith
+
 HytaleRole = Keystone_Human_Worker
+
+RoleId:
+
+Keystone-interne Logik-ID.
+
+Beispiel:
+
+RoleId = keystone:trader
+RoleId = keystone:blacksmith
+RoleId = keystone:guard
 
 Mehrere RoleIds dürfen dieselbe HytaleRole nutzen.
 
 Beispiel:
-keystone:lumberjack
-keystone:blacksmith
-keystone:trader
-keystone:worker_spouse
 
-dürfen alle:
+keystone:trader
+keystone:blacksmith
+keystone:guard
+
+dürfen alle nutzen:
+
 HytaleRole = Keystone_Human_Worker
 
 Wichtig:
+
 Duplicate namespacedRoleId = Fehler
 Duplicate HytaleRole = erlaubt
 
-Kein dynamisches:
-setRoleName("KeystoneNPC_npcId_roleId_Role")
+Verboten:
 
-HytaleRole muss echte Role-Datei sein oder eine valide Base-Reference nutzen.
+setRoleName("KeystoneNPC_<npcId>_<roleId>_Role")
+
+Warum:
+
+HytaleRole muss eine echte Role-Datei sein.
+Keystone-Identität gehört in deine Mod-/State-Daten,
+nicht in dynamische Engine-Role-Namen.
 
 
-────────────────────────────────────────
-7. Namespaces
-────────────────────────────────────────
+################################################################################
+18. NAMESPACES
+################################################################################
 
 RoleId ohne Namespace:
-lumberjack
+
+trader
 
 wird intern:
-keystone:lumberjack
+
+keystone:trader
 
 RoleId mit Namespace:
-othermod:lumberjack
+
+othermod:trader
 
 bleibt:
-othermod:lumberjack
+
+othermod:trader
 
 Duplicate-Regel:
-keystone:lumberjack + keystone:lumberjack = Fehler
-keystone:lumberjack + othermod:lumberjack = erlaubt
 
-Auch Assets/Profile/Pools sollen langfristig Namespace/AssetId vorbereiten.
+keystone:trader + keystone:trader = Fehler
+keystone:trader + othermod:trader = erlaubt
 
-NpcProfileRef sollte deshalb Felder vorbereiten:
-- namespace
-- assetId
-- path
+Auch Profile/Pools/Assets sollten langfristig Namespace/AssetId vorbereiten.
+
+NpcProfileRef sollte vorbereiten:
+
+- namespace optional
+- assetId optional
+- path Pflicht
 
 Für P3 reicht:
-- path ist Pflicht
-- namespace/assetId optional vorbereitet
 
-
-────────────────────────────────────────
-8. Structure-bound und Territory-bound
-────────────────────────────────────────
-
-Structure-bound NPC:
-= an Haus / Prefab / StructureInstance gebunden
-
-Beispiele:
-- Bewohner eines Hauses
-- Schmied in einer Schmiede
-- Händler im Shop
-- Holzfäller in Worker-House + Arbeitsbereich
-
-Territory-bound NPC:
-= an Gebiet / SpawnAnchor / GuardZone gebunden
-
-Beispiele:
-- Bandit in Lager
-- Wolf im Waldgebiet
-- Guard an einem Tor
-- Raid-Gegner an Raid-Anchor
-
-P3 lädt dafür nur Baupläne.
-
-P3 erzeugt keine:
-- StructureInstance
-- TerritoryInstance
-- SpawnAnchorRecord
-- MarkerRecord
-
-
-────────────────────────────────────────
-9. Contracts und Tags
-────────────────────────────────────────
-
-Contracts:
-= harte technische Eignung
-
-Beispiel:
-blacksmith braucht:
-- ResidenceContract
-- BlacksmithWorkstationContract
-
-Prefab liefert:
-- ResidenceContract
-- BlacksmithWorkstationContract
-
-Dann passt es.
-
-Tags:
-= weiche Auswahl / Stil / Region
-
-Beispiele:
-- city
-- village
-- stone
-- wood
-- worker
-- medium
-
-Contracts entscheiden:
-Kann diese Structure funktional genutzt werden?
-
-Tags entscheiden:
-Welche passende Structure sieht stilistisch gut aus?
-
-P3 prüft:
-- Contract-Dateien existieren
-- Prefab-Definitionen verweisen nur auf existierende Contracts
-- Tags sind optional
+path ist Pflicht.
+namespace/assetId sind optional vorbereitet.
 
 
 ################################################################################
-################################################################################
-P3 STEPS
-################################################################################
+19. RESOURCE ROOTS
 ################################################################################
 
-────────────────────────────────────────
-P3.0 — Resource-Preflight
-────────────────────────────────────────
+KeystoneRoot:
+Server/NPC/Keystone/
 
-AGENT-AUFGABE:
-- Prüfe und fixe nur resources.
-- Keine Java-Dateien ändern.
-- index.json soll nur aktive, vollständige Groups enthalten.
-- Leere Platzhalter-Dateien sind okay, solange sie nicht aktiv required/eingetragen sind.
-- Eingetragene Profile/Pools/Groups/Contracts/Prefabs müssen existieren und gültig sein.
+NpcRoot:
+Server/NPC/Keystone/npc/
 
-BETROFFENE DATEIEN:
-- src/main/resources/Server/NPC/Keystone/npc/index.json
-- aktive group.json-Dateien
-- aktiv referenzierte Profile
-- aktiv referenzierte Pools
-- aktiv referenzierte Contracts
-- aktiv referenzierte Prefabs
-- aktiv referenzierte Territories
+ProfilesRoot:
+Server/NPC/Keystone/profiles/
 
-RESOURCE-REGELN:
-- JSON-Keys nutzen PascalCase / Großbuchstaben am Anfang.
-- Marker-Namen dürfen klein bleiben:
-  - bed
-  - table_seat
-  - safety_zone
-  - market_stall
-- ActionIds dürfen klein bleiben:
-  - chop_wood
-  - open_chest
-  - eat_meal
-- Eine Variant hat genau eine RoleId.
-- SharedProfiles sind Defaults.
-- Variant.Profiles überschreibt einzelne Keys.
+BiomesRoot:
+Server/NPC/Keystone/biomes/
 
-REVIEW:
-- index.json verweist nur auf existierende Group-Dateien.
-- Jede aktive Group ist gültiges JSON.
-- Jede aktive Group enthält mindestens eine Variant.
-- Jede Variant hat genau eine RoleId.
-- Aktive eingetragene Profile existieren.
-- Aktive eingetragene Pools existieren.
-- Aktive eingetragene Contracts existieren.
-- Aktive eingetragene Prefabs existieren.
-- Keine Java-Änderungen.
+PoolsRoot:
+Server/NPC/Keystone/pools/
 
-ENTSCHEIDUNG:
-PASS, wenn der P3-Loader nicht an kaputten aktiven Ressourcen scheitert.
+BodyPoolsRoot:
+Server/NPC/Keystone/pools/body/
+
+NamePoolsRoot:
+Server/NPC/Keystone/pools/name/
+
+OutfitPoolsRoot:
+Server/NPC/Keystone/pools/outfit/
+
+StructurePoolsRoot:
+Server/NPC/Keystone/pools/structure/
+
+StructuresRoot:
+Server/NPC/Keystone/structures/
+
+ContractsRoot:
+Server/NPC/Keystone/structures/contracts/
+
+PrefabsRoot:
+Server/NPC/Keystone/structures/prefabs/
+
+TerritoriesRoot:
+Server/NPC/Keystone/territories/
+
+RolesRoot:
+Server/NPC/Roles/
+
+ConfigRoot:
+Server/NPC/Keystone/config/
 
 
-────────────────────────────────────────
-P3.1 — Definition-Datenmodelle anlegen
-────────────────────────────────────────
+################################################################################
+20. RESOURCE PATH REGELN
+################################################################################
 
-AGENT-AUFGABE:
-Lege reine Datenmodelle für geladene NPC-Baupläne an.
+index.json liegt hier:
 
-NEUE DATEIEN:
-- LoadedNpcDefinition.java
-- NpcProfileRefs.java
-- NpcProfileRef.java
-- ProfileTypeRule.java
-- ProfileTypeRegistry.java
-- NpcEngineDefinition.java
-- NpcDisplayDefinition.java
-- NpcMarkerDefinition.java
-- NpcDebugDefinition.java
+Server/NPC/Keystone/npc/index.json
 
-PACKAGE:
-src/main/java/keystone/npc/definition/model/
+Group-Pfade aus index.json sind relativ zu:
+
+Server/NPC/Keystone/npc/
+
+Profile-Pfade sind relativ zu:
+
+Server/NPC/Keystone/
+
+PoolGroup-Pfade sind relativ zu:
+
+Server/NPC/Keystone/
+
+Pool-Pfade sind relativ zu:
+
+Server/NPC/Keystone/
+
+Structure-/Prefab-Pfade sind relativ zu:
+
+Server/NPC/Keystone/
+
+Contract-Pfade sind relativ zu:
+
+Server/NPC/Keystone/
+
+Territory-Pfade sind relativ zu:
+
+Server/NPC/Keystone/
+
+HytaleRole verweist auf:
+
+Server/NPC/Roles/<HytaleRole>.json
+
+Global Debug liegt unter:
+
+Server/NPC/Keystone/config/debug.json
+
+Sicherheitsregel:
+
+Kein Pfad darf aus dem Resource-Root ausbrechen.
+
+Also keine Pfade wie:
+
+../
+../../
+/home/...
+C:\...
+
+
+################################################################################
+21. P3.0 RESOURCE-PREFLIGHT
+################################################################################
+
+Ziel:
+
+Vor dem Java-Loader prüfen, ob aktive resources grob sauber sind.
+
+Prüfen:
+
+- index.json existiert
+- index.json ist gültiges JSON
+- aktive Group-Dateien existieren
+- aktive Group-Dateien sind gültiges JSON
+- aktive Profile existieren
+- aktive PoolGroups existieren
+- aktive Pools existieren
+- aktive Contracts existieren
+- aktive Structures/Prefabs existieren
+- aktive Territories existieren, falls eingetragen
+- keine aktive Resource nutzt AppearancePool
+- keine aktive Resource nutzt FolkPool als Hauptsystem
+- keine aktive Resource nutzt simple_worker_house_*
+- keine aktive Resource nutzt sand_lumberjack als RoleId
+
+JSON-Key-Regel:
+
+PascalCase für Hauptkeys:
+
+Id
+Version
+Type
+Profiles
+Variants
+RoleId
+Engine
+Display
+Markers
+Debug
+Entries
+BodyTheme
+NameTheme
+OutfitTheme
+StructureTheme
+
+Kleine Namen dürfen klein bleiben:
+
+Marker:
+- bed
+- work
+- door
+- table_seat
+- safety_zone
+- market_stall
+
+ActionIds:
+- chop_wood
+- open_chest
+- eat_meal
+- sleep
+
+
+################################################################################
+22. P3.1 DEFINITION-DATENMODELLE
+################################################################################
+
+P3 braucht reine Datenmodelle für Baupläne.
+
+Wichtig:
+
+Diese Modelle enthalten keine Runtime-Daten.
+Diese Modelle enthalten keine state.json-Instanzdaten.
+
+Modelle:
 
 LoadedNpcDefinition:
 - namespacedRoleId
@@ -519,10 +1098,10 @@ LoadedNpcDefinition:
 - debug
 - sourcePath optional
 
-NpcProfileMap:
-- Map(String, NpcProfile) profiles
+NpcProfileRefs:
+- Map<String, NpcProfileRef> profiles
 
-NpcProfile:
+NpcProfileRef:
 - profileKey
 - path
 - namespace optional
@@ -541,10 +1120,9 @@ ProfileTypeRule:
 - handlerKey optional später
 
 ProfileTypeRegistry:
-- Map(String, ProfileTypeRule)
 - Required-Core-Regeln
 - Optional-Core-Regeln
-- Fallback-Regel für Custom-Profile
+- Custom-Fallback-Regel
 
 NpcEngineDefinition:
 - hytaleRole
@@ -552,7 +1130,7 @@ NpcEngineDefinition:
 
 NpcDisplayDefinition:
 - fallbackName
-- nameTranslationKey
+- nameTranslationKey optional
 
 NpcMarkerDefinition:
 - requiredMarkers
@@ -569,61 +1147,77 @@ NpcDebugDefinition:
 - logNavigation
 - logActions
 
-WICHTIG:
-- kein npcId
-- keine EntityRef
-- keine RuntimeNpc
-- keine state.json-Felder
-- keine selectedSpeciesId
-- keine selectedBodyProfileId
-- keine selectedAppearanceId
-- keine selectedOutfitId
-- keine currentOutfitId
-- keine selectedCompositionId
-- nur Bauplan-Daten
-- keine festen Profilfelder in NpcProfileRefs
-- NpcProfileRef ist nur ein Verweis, nicht der Profilinhalt
-- Core-Profile brauchen in P3 nicht automatisch eigene Java-Klassen
+Neue Theme-/Pool-Modelle:
 
-REVIEW:
-- Modelle enthalten nur Definition-/Resource-Daten.
-- Keine Runtime-Daten wurden hineingemischt.
-- Keine Persistenzdaten wurden hineingemischt.
-- NpcProfileRefs nutzt Map(String, NpcProfileRef)
-- ProfileTypeRegistry bildet Required/Optional/Custom ab.
-- namespacedRoleId ist Registry-Key.
-- Compile-Gate:
-  mvn -q -DskipTests test-compile
+LoadedBiomeDefinition:
+- biomeId
+- themes
+
+BiomeThemeBinding:
+- biomeId
+- structureTheme
+- bodyTheme
+- outfitTheme
+- nameTheme
+
+LoadedBodyPoolGroup:
+- poolGroupId
+- entriesByTheme
+
+LoadedNamePoolGroup:
+- poolGroupId
+- entriesByTheme
+
+LoadedOutfitPoolGroup:
+- poolGroupId
+- entriesByTheme
+
+LoadedStructurePool:
+- poolId
+- structureTheme
+- entries
+
+LoadedBodyPool:
+- poolId
+- bodyTheme
+- entries
+
+LoadedNamePool:
+- poolId
+- nameTheme
+- entries
+
+LoadedOutfitPool:
+- poolId
+- outfitTheme
+- entries
 
 
-────────────────────────────────────────
-P3.2 — DefinitionRegistry bauen
-────────────────────────────────────────
+################################################################################
+23. P3.2 DEFINITIONREGISTRY
+################################################################################
 
-AGENT-AUFGABE:
-Baue eine Registry, die geladene Definitionen im RAM hält.
+DefinitionRegistry hält geladene NPC-Definitionen im RAM.
 
-BETROFFENE / NEUE DATEIEN:
-- NpcDefinitionRegistry.java
+Maps:
 
-REGISTRY-MAPS:
 - byNamespacedRoleId
 - byHytaleRole als MultiMap/List
-- optional byGroupId später
+- byGroupId optional
 
-WICHTIG:
-byHytaleRole darf mehrere Definitionen enthalten.
+Regeln:
 
-Warum:
-Mehrere Keystone-RoleIds dürfen dieselbe HytaleRole nutzen.
-
-Duplicate-Regeln:
 - Duplicate namespacedRoleId = Fehler
 - Duplicate HytaleRole = erlaubt
-- Duplicate HytaleRole höchstens Info/Warnung, kein harter Fehler
+- Duplicate HytaleRole höchstens Info/Warnung
+- Registry ersetzt Daten atomisch
+- Bei Fehler bleibt alte gültige Registry erhalten oder Registry bleibt leer
+- Keine halb geladene Registry aktivieren
+- Keine mutable Map nach außen geben
 
-METHODEN:
-- replaceAll(Collection(LoadedNpcDefinition))
+Methoden:
+
+- replaceAll(Collection<LoadedNpcDefinition>)
 - hasRoleId(String roleId)
 - hasNamespacedRoleId(String namespacedRoleId)
 - getByRoleId(String roleId)
@@ -632,268 +1226,202 @@ METHODEN:
 - isSpawnable(String roleId)
 - size()
 
-WICHTIG:
-- Registry ersetzt Daten atomisch.
-- Bei Fehler darf keine halb geladene Registry aktiv bleiben.
-- Registry ist read-only nach außen.
-- Keine direkte mutable Map herausgeben.
-- isSpawnable(roleId) bedeutet nur:
-  Definition ist vollständig geladen und grundsätzlich verwendbar.
-- isSpawnable(roleId) spawnt nichts.
+Wichtig:
 
-REVIEW:
-- Duplicate namespacedRoleId blockiert.
-- Duplicate HytaleRole blockiert nicht.
-- Registry-Key ist namespacedRoleId.
-- replaceAll ist atomisch.
-- Keine mutable Map nach außen.
-- Compile-Gate:
-  mvn -q -DskipTests test-compile
+isSpawnable(roleId) bedeutet nur:
+
+Definition ist vollständig geladen und grundsätzlich verwendbar.
+
+isSpawnable spawnt nichts.
 
 
-────────────────────────────────────────
-P3.3 — ResourcePathResolver / ResourceReader
-────────────────────────────────────────
+################################################################################
+24. P3.3 BIOME-/THEME-REGISTRY
+################################################################################
 
-AGENT-AUFGABE:
-Baue Loader-Helfer für Resource-Pfade.
+BiomeThemeRegistry hält die Zuordnung:
 
-ROOT-REGELN:
-- KeystoneRoot = Server/NPC/Keystone/
-- NpcRoot = Server/NPC/Keystone/npc/
-- ProfilesRoot = Server/NPC/Keystone/profiles/
-- PoolsRoot = Server/NPC/Keystone/pools/
-- StructuresRoot = Server/NPC/Keystone/structures/
-- TerritoriesRoot = Server/NPC/Keystone/territories/
-- RolesRoot = Server/NPC/Roles/
-- ConfigRoot = Server/NPC/Keystone/config/
+BiomeId → Themes
 
-PFADREGELN:
-- index.json liegt unter Keystone/npc/index.json
-- Group-Pfade aus index.json sind relativ zu Keystone/npc/
-- Profile-Pfade sind relativ zu KeystoneRoot
-- Pool-Pfade sind relativ zu KeystoneRoot
-- Structure-/Prefab-Pfade sind relativ zu KeystoneRoot
-- Contract-Pfade sind relativ zu KeystoneRoot
-- Territory-Pfade sind relativ zu KeystoneRoot
-- Engine.HytaleRole verweist auf Server/NPC/Roles/(HytaleRole).json
-- Global Debug liegt unter Server/NPC/Keystone/config/debug.json
+Beispiel:
 
-GENERIC-PROFILE-REGEL:
-Profiles-Map kann beliebige Keys enthalten:
-- Routine
-- Actions
-- Movement
-- Navigation
-- Combat
-- Events
-- Dialogue
-- Trading
-- CustomSomething
+sand_desert:
+- StructureTheme = sand
+- BodyTheme = sand
+- OutfitTheme = sand
+- NameTheme = sand
 
-ResourceReader:
-- iteriert über Map
-- erwartet keine feste Profilfeld-Struktur
-- prüft Path-Traversal
-- prüft Existenz
-- liest JSON
-- basic validiert unbekannte Keys
+darklands:
+- StructureTheme = darklands
+- BodyTheme = darklands
+- OutfitTheme = darklands
+- NameTheme = darklands
 
-WICHTIG:
-- Kein File-System-Path für externe state.json verwenden.
-- Nur resources lesen.
-- Fehlende eingetragene Resource = harter Load-Fehler.
-- Pfade dürfen nicht aus Resource-Root ausbrechen.
-- Eine hardcoded Core-Liste darf nur in ProfileTypeRegistry existieren, nicht als starre NpcProfileRefs-Struktur.
+Regeln:
 
-REVIEW:
-- Pfadregeln sind klar getrennt.
-- Kein Pfad kann aus Resource-Root ausbrechen.
-- ResourceReader kann Profile aus Map iterieren.
-- ResourceReader kann Pools/Contracts/Prefabs/Territories lesen.
-- Keine hardcoded lumberjack-only Lösung.
-- Compile-Gate:
-  mvn -q -DskipTests test-compile
+- Duplicate biomeId = Fehler
+- fehlendes StructureTheme = Fehler
+- fehlendes BodyTheme = Fehler
+- fehlendes OutfitTheme = Fehler
+- fehlendes NameTheme = Fehler
+- Theme-Strings dürfen nicht leer sein
+- Registry ist read-only nach außen
+
+Wichtig:
+
+Diese Registry sagt nur:
+Welches Theme gehört zu welchem Biom?
+
+Sie platziert nichts.
+Sie liest keine Spielerposition.
+Sie fragt keine Weltposition ab.
 
 
-────────────────────────────────────────
-P3.4 — index.json laden
-────────────────────────────────────────
+################################################################################
+25. P3.4 POOLGROUP-REGISTRY
+################################################################################
 
-AGENT-AUFGABE:
-Implementiere in loadDefinitions() oder DefinitionLoader:
-- index.json lesen
-- JSON-Syntax prüfen
-- Liste von Group-Dateien extrahieren
-- jede Group-Datei laden
+PoolGroupRegistry hält:
 
-AKTUELL:
-- Server/NPC/Keystone/npc/index.json reicht für P3.
+- BodyPoolGroups
+- NamePoolGroups
+- OutfitPoolGroups
 
-LANGFRISTIG NICHT VERBAUEN:
-- mehrere Module
-- mehrere Namespaces
-- mehrere index.json-Dateien
-- eigene RoleIds pro Modul
-- keine stillen Overrides
+Regeln:
 
-VALIDIERUNG:
+- Duplicate PoolGroupId = Fehler
+- jede PoolGroup hat Id
+- jede PoolGroup hat Version
+- jede PoolGroup hat Type
+- jede PoolGroup hat Entries
+- jede Entry verweist auf existierende Pool-Dateien
+- Theme-Key darf nicht leer sein
+
+Beispiel:
+
+BodyPoolGroup:
+human_body_pool_group
+
+Theme sand:
+- sand_male_body_pool
+- sand_female_body_pool
+
+Theme darklands:
+- darklands_male_body_pool
+- darklands_female_body_pool
+
+P3 prüft nur.
+P3 wählt keinen Pool aus.
+
+
+################################################################################
+26. P3.5 INDEX.JSON LADEN
+################################################################################
+
+index.json:
+
+Server/NPC/Keystone/npc/index.json
+
+Prüfen:
+
 - Id vorhanden
 - Version vorhanden
 - Type == NpcIndex
+- Groups vorhanden
 - Groups nicht leer
-- jeder Eintrag String
+- jeder Group-Eintrag ist String
 - jede Group-Datei existiert
+- jede Group-Datei liegt unter NpcRoot
+- kein Path-Traversal
 
-WICHTIG:
-- index.json wird wirklich benutzt.
-- Keine hardcoded lumberjack_group.json-only Lösung.
-- Fehler stoppen Bootstrap.
-- Keine state.json wird geschrieben.
-- Kein Spawn.
+Wichtig:
 
-REVIEW:
-- index.json wird geladen.
-- Groups werden aus JSON gelesen.
-- Keine hardcoded Group-Liste.
-- Fehler stoppt Bootstrap.
-- Kein Save.
-- Kein Spawn.
-- Compile-Gate:
-  mvn -q -DskipTests test-compile
+Keine hardcoded lumberjack_group.json-only Lösung.
+
+index.json ist die Quelle für aktive NPC-Groups.
 
 
-────────────────────────────────────────
-P3.5 — group.json + Variants parsen
-────────────────────────────────────────
+################################################################################
+27. P3.6 GROUP.JSON + VARIANTS PARSEN
+################################################################################
 
-AGENT-AUFGABE:
-Parse pro Group:
-- Id
-- Version
-- Type
-- Namespace
-- SharedProfiles
-- Variants[]
+Group prüfen:
 
-Parse pro Variant:
-- RoleId
-- Engine.HytaleRole
-- Display.FallbackName
-- Display.NameTranslationKey
-- Profiles als Map(String, String)
-- Markers.RequiredMarkers
-- Markers.MarkerRoles
-- Markers.RoutineMarkers optional
-- Markers.EventMarkers optional
-- Markers.SafetyMarkers optional
-- Markers.OptionalMarkers optional
-- Debug
-
-VALIDIERUNG:
 - Id nicht leer
 - Version vorhanden
 - Type == NpcGroup
 - Namespace leer erlaubt → default keystone
+- SharedProfiles optional
+- Variants vorhanden
 - Variants nicht leer
-- RoleId nicht leer
-- eine Variant hat genau eine RoleId
-- HytaleRole nicht leer
-- Profiles kann leer sein, wenn SharedProfiles Required-Core liefert
-- finale ProfileRefs nach Merge müssen Required-Core erfüllen
 
-MERGE:
+Variant prüfen:
+
+- RoleId nicht leer
+- genau eine RoleId
+- Engine.HytaleRole nicht leer
+- Display.FallbackName optional, aber empfohlen
+- Profiles als Map<String, String>
+- Markers pro Variant
+- Debug pro Variant optional
+
+Merge:
+
 EffectiveProfiles = SharedProfiles + Variant.Profiles
 
 Wenn gleicher Key:
+
 Variant.Profiles gewinnt.
 
-WICHTIG:
-- SharedProfiles sind Defaults.
-- Variant.Profiles überschreibt gezielt.
-- Profile überschreiben nur ihren eigenen Bereich.
-- Marker bleiben pro Variant / pro RoleId.
-- Marker sind nicht global für die ganze Gruppe.
-- Display ist keine technische Identität.
-- RoleId wird namespaced normalisiert.
-- Nicht eingetragen = nicht aktiv.
-- Eingetragen aber kaputt = Fehler.
-- Profile-Inhalte werden nicht in state.json gespeichert.
-- Profiles definieren, was eine RoleId können kann.
-- state.json speichert später nur konkrete Instanzdaten.
+Wichtig:
 
-REVIEW:
-- RoleId ersetzt alte id/role-Dopplung.
-- HytaleRole bleibt getrennt von RoleId.
-- Display ist nur Anzeige/Fallback.
-- Profiles wird generisch als Map gelesen.
-- SharedProfiles + Variant.Profiles werden korrekt gemerged.
-- Required-Core wird nach Merge geprüft.
-- Eine Variant hat genau eine RoleId.
-- Compile-Gate:
-  mvn -q -DskipTests test-compile
+- Marker bleiben pro Variant
+- Marker sind nicht global für die ganze Group
+- Display ist keine technische Identität
+- RoleId wird namespaced normalisiert
+- Nicht eingetragen = nicht aktiv
+- Eingetragen aber kaputt = Fehler
+- Profile-Inhalte werden nicht in state.json gespeichert
 
 
-────────────────────────────────────────
-P3.6 — HytaleRole + Reference prüfen
-────────────────────────────────────────
+################################################################################
+28. P3.7 HYTALEROLE PRÜFEN
+################################################################################
 
-AGENT-AUFGABE:
 Für jede LoadedNpcDefinition:
-- Server/NPC/Roles/(HytaleRole).json muss existieren oder als Base-Reference erlaubt sein.
-- Role-Datei lesen.
-- Wenn "Reference" vorhanden ist:
-  - lokale Reference prüfen, falls sie im Mod liegen soll
-  - Base-/Hytale-Reference nicht blind als Fehler behandeln, wenn sie aus Hytale/Base-Resources kommt
 
-BEISPIEL:
-HytaleRole = Keystone_Human_Worker
-→ Server/NPC/Roles/Keystone_Human_Worker.json
+- HytaleRole muss gesetzt sein
+- Server/NPC/Roles/<HytaleRole>.json muss existieren
+- Role-Datei muss gültiges JSON sein
+- Reference darf vorhanden sein
+- lokale Reference prüfen, falls sie im Mod liegt
+- Base-/Hytale-Reference nicht blind als Fehler behandeln
 
-Reference = Template_Human_Friendly
-→ darf lokale Datei sein
-→ oder Base-Hytale-Reference, wenn Loader das erlaubt
+Wichtig:
 
-WICHTIG:
-- Nur Existenz und minimale JSON-Gültigkeit prüfen.
-- Noch nicht alle Hytale Role-Felder vollständig interpretieren.
-- HytaleRole ist Engine-Anbindung.
-- RoleId ist Keystone-Bauplan-ID.
-- Mehrere RoleIds dürfen dieselbe HytaleRole nutzen.
-- HytaleRole wird nicht in state.json als Profilinhalt gespeichert.
-- state.json speichert roleId/namespacedRoleId der konkreten NPC-Instanz.
-- Kein Role-Prefix-Fallback.
-- Kein dynamisches setRoleName("KeystoneNPC_...").
-
-REVIEW:
-- Fehlende HytaleRole blockiert Definition-Load.
-- Base-Reference-Regel ist klar.
-- Duplicate HytaleRole blockiert nicht.
-- RoleId/HytaleRole bleiben getrennt.
-- Keine dynamischen Role-Namen.
-- Compile-Gate:
-  mvn -q -DskipTests test-compile
+- Nur Existenz und minimale JSON-Gültigkeit prüfen
+- Role-Datei noch nicht vollständig interpretieren
+- HytaleRole bleibt Engine-Anbindung
+- RoleId bleibt Keystone-Bauplan-ID
+- mehrere RoleIds dürfen dieselbe HytaleRole nutzen
+- kein Role-Prefix-Fallback
+- kein dynamisches setRoleName("KeystoneNPC_...")
 
 
-────────────────────────────────────────
-P3.7 — Profile-Dateien prüfen
-────────────────────────────────────────
+################################################################################
+29. P3.8 PROFILE PRÜFEN
+################################################################################
 
-AGENT-AUFGABE:
-Für jede LoadedNpcDefinition:
-- alle NpcProfileRefs aus EffectiveProfiles prüfen
-- Required-Core streng prüfen
-- Optional-Core prüfen, falls vorhanden
-- Custom-Profile basic validieren, falls vorhanden
+Required-Core:
 
-Required:
 - Routine
 - Actions
 - Movement
 - Navigation
 - Persistence
 
-Optional:
+Optional-Core:
+
 - Combat
 - Events
 - Dialogue
@@ -901,426 +1429,485 @@ Optional:
 - Reputation
 - SeasonalOutfits
 - Spawn
-- SpeciesPool
-- BodyPool
-- OutfitPool
+- BodyPoolGroup
+- NamePoolGroup
+- OutfitPoolGroup
+- StructurePool
 - CompositionPool
+- AI
+- Mana
+- Magic
+
+Nicht mehr aktiv:
+
+- FolkPool
 - Appearance
 - AppearancePool
 
-Appearance-Regel:
-- Appearance oder AppearancePool darf existieren
-- beides ist nicht zwingend
-- wenn beides fehlt: aktuell okay, wenn BodyPool/SpeciesPool genutzt wird
-- wenn später Appearance-System required wird: eigene ProfileTypeRule anpassen
+Regeln:
 
-MINIMALE VALIDIERUNG FÜR ALLE PROFILE:
+Required-Core fehlt nach Merge → Fehler
+Optional fehlt → okay
+Eingetragen aber Datei fehlt → Fehler
+Eingetragen aber JSON kaputt → Fehler
+Custom eingetragen und gültig → okay
+Custom eingetragen aber kaputt → Fehler
+
+Minimale Validierung:
+
 - Datei existiert
 - JSON ist syntaktisch gültig
 - Id existiert
 - Version existiert
 - Type existiert oder ist laut Rule optional
 
-FÜR BEKANNTE PROFILE:
-- je nach ProfileTypeRule zusätzliche Struktur prüfen
+Wichtig:
 
-BEISPIELE:
-Actions:
-- Actions-Objekt existiert
-
-Routine:
-- Schedule oder passende Routine-Struktur existiert
-
-Persistence:
-- PersistenceId / Save / Respawn / Safety grob vorhanden, falls Rule es fordert
-
-Custom:
-- nur Grundcheck
-- kein Ausführen
-- kein Blockieren wegen unbekanntem Key selbst
-- Blockieren nur, wenn eingetragene Custom-Datei fehlt oder kaputt ist
-
-WICHTIG:
-- Noch keine Action ausführen.
-- Noch keine Routine starten.
-- Nur prüfen und IDs sammeln.
-- Profile-Inhalte werden NICHT in state.json geschrieben.
-- Profile sind Baupläne und kommen bei jedem Restart frisch aus resources.
-- Fehlende optionale nicht eingetragene Profile sind okay.
-- Fehlende eingetragene Profile sind Fehler.
-
-REVIEW:
-- Required-Core fehlt nach Merge → Fehler.
-- Optional fehlt → okay.
-- Eingetragen aber fehlt → Fehler.
-- Eingetragen aber kaputt → Fehler.
-- Custom eingetragen aber gültig → okay.
-- Keine Gameplay-Ausführung.
-- Compile-Gate:
-  mvn -q -DskipTests test-compile
+- keine Action ausführen
+- keine Routine starten
+- keine Profile in state.json schreiben
+- keine Gameplay-Ausführung
+- nur prüfen und registrieren
 
 
-────────────────────────────────────────
-P3.8 — Pool-Dateien vorbereiten / prüfen, aber NICHT würfeln
-────────────────────────────────────────
+################################################################################
+30. P3.9 BODYPOOLGROUP / NAMEPOOLGROUP / OUTFITPOOLGROUP PRÜFEN
+################################################################################
 
-AGENT-AUFGABE:
-Falls Profile auf Pools verweisen:
-- SpeciesPool prüfen
-- BodyPool prüfen
-- AppearancePool prüfen
-- OutfitPool prüfen
-- CompositionPool prüfen
+BodyPoolGroup prüfen:
 
-MINIMALE VALIDIERUNG:
-- Pool-Datei existiert
-- Pool hat Id
-- Pool hat Version
-- Pool hat Type
-- Pool hat Entries
+- Datei existiert
+- Id existiert
+- Version existiert
+- Type == BodyPoolGroup
+- Entries existieren
+- Theme-Zuordnung existiert
+- referenzierte BodyPools existieren
+
+NamePoolGroup prüfen:
+
+- Datei existiert
+- Id existiert
+- Version existiert
+- Type == NamePoolGroup
+- Entries existieren
+- Theme-Zuordnung existiert
+- referenzierte NamePools existieren
+
+OutfitPoolGroup prüfen:
+
+- Datei existiert
+- Id existiert
+- Version existiert
+- Type == OutfitPoolGroup
+- Entries existieren
+- Theme-Zuordnung existiert
+- referenzierte OutfitPools existieren
+
+P3 prüft nur.
+P3 wählt nichts aus.
+
+
+################################################################################
+31. P3.10 BODYPOOL / NAMEPOOL / OUTFITPOOL PRÜFEN
+################################################################################
+
+BodyPool prüfen:
+
+- Datei existiert
+- Id existiert
+- Version existiert
+- Type == BodyPool
+- BodyTheme existiert
+- Entries existieren
 - jeder Entry hat stabile Id
 - Weight gültig, falls vorhanden
-- Entry.Profile existiert, falls verwendet
+- Körper-/Haut-/Haar-/Gesicht-/Augen-Refs gültig, falls vorhanden
+- RequiredTags gültig, falls vorhanden
+- SupportedTags gültig, falls vorhanden
 
-SpeciesPool:
-= mögliche Wesen/Volk-Auswahl
+NamePool prüfen:
 
-BodyPool:
-= mögliche Körperprofile
+- Datei existiert
+- Id existiert
+- Version existiert
+- Type == NamePool
+- NameTheme existiert
+- Entries existieren
+- jeder Entry hat stabile Id oder Namen-Key
+- Weight gültig, falls vorhanden
+- RequiredTags gültig, falls vorhanden
+- SupportedTags gültig, falls vorhanden
 
-AppearancePool:
-= dauerhaftes Grundaussehen
+OutfitPool prüfen:
 
-OutfitPool:
-= wechselbare Kleidung
+- Datei existiert
+- Id existiert
+- Version existiert
+- Type == OutfitPool
+- OutfitTheme existiert
+- Entries existieren
+- jeder Entry hat stabile Id
+- Weight gültig, falls vorhanden
+- Kleidung-/Outfit-Refs gültig, falls vorhanden
+- RequiredTags gültig, falls vorhanden
+- SupportedTags gültig, falls vorhanden
 
-CompositionPool:
-= Zusammensetzung / Slots / RoleId-Kombination
+Wichtig:
 
-P3-REGEL:
-- Pool-Dateien laden
-- Pool-Dateien prüfen
-- Pool-Refs registrieren
-- KEINE Auswahl treffen
-- KEINE selectedSpeciesId erzeugen
-- KEINE selectedBodyProfileId erzeugen
-- KEINE selectedAppearanceId erzeugen
-- KEINE currentOutfitId erzeugen
-- KEINE selectedOutfitId erzeugen
-- KEINE selectedCompositionId erzeugen
-
-WICHTIG:
-- Pool laden ≠ Pool auswürfeln.
-- Pools sind Baupläne.
-- Pool-Entries brauchen stabile IDs.
-- Entfernte Pool-Einträge dürfen später alte NPCs nicht automatisch neu auswürfeln.
-- Beim Restart wird später die gespeicherte Auswahl aus state.json verwendet und nicht neu gewürfelt.
-- Kein state.json-Schreiben in P3.
-
-REVIEW:
-- Pools werden nicht ausgeführt.
-- Keine Zufallsauswahl in P3.
-- Keine state.json-Änderung.
-- Pool-Einträge sind nur validierte Möglichkeiten.
-- Compile-Gate:
-  mvn -q -DskipTests test-compile
+- BodyPool = Körper/Haut/Haare/Gesicht/Augen
+- OutfitPool = Kleidung
+- NamePool = Namen
+- kein AppearancePool
+- keine selectedAppearanceId
 
 
-────────────────────────────────────────
-P3.9 — Contracts / Prefabs / Structures prüfen
-────────────────────────────────────────
+################################################################################
+32. P3.11 STRUCTUREPOOL / STRUCTURES / PREFABS PRÜFEN
+################################################################################
 
-AGENT-AUFGABE:
-Neue Resource-Struktur berücksichtigen:
-- structures/contracts/
-- structures/prefabs/
-- structures/tags/
+StructurePool prüfen:
+
+- Datei existiert
+- Id existiert
+- Version existiert
+- Type == StructurePool
+- StructureTheme existiert
+- Entries existieren
+- Entries verweisen auf existierende Structures/Prefabs
+- Weight gültig, falls vorhanden
+- RequiredTags gültig, falls vorhanden
+- SupportedTags gültig, falls vorhanden
+
+Structure/Prefab prüfen:
+
+- Id existiert
+- Version existiert
+- Type existiert
+- PrefabId oder StructureId existiert
+- PrefabPath existiert, falls verwendet
+- StructureTheme existiert oder ist über Pool eindeutig gebunden
+- ProvidesContracts existieren
+- Tags gültig
+- Slots gültig
+- Markers gültig
+- CompositionPools existieren, falls eingetragen
+
+Wichtig:
+
+- P3 platziert kein Prefab
+- P3 erzeugt keine StructureInstance
+- P3 erzeugt keine MarkerRecords
+- P3 reserviert keine Slots
+- P3 wählt keine Composition
+- P3 fragt keine Spielerposition ab
+
+
+################################################################################
+33. P3.12 CONTRACTS PRÜFEN
+################################################################################
 
 Contract prüfen:
-- Id
-- Version
-- Type
-- ContractId
+
+- Datei existiert
+- Id existiert
+- Version existiert
+- Type == Contract
+- ContractId existiert
 - RequiredSlots optional
 - RequiredMarkers optional
 - Purpose optional
 
-Prefab prüfen:
-- Id
-- Version
-- Type
-- PrefabId
-- PrefabPath
-- ProvidesContracts
-- Tags
-- Slots
-- Markers
-- CompositionPools optional
-
 Cross-Validation:
-- ProvidesContracts müssen existierende Contracts sein.
-- CompositionPools müssen existieren, wenn eingetragen.
-- MarkerTypes müssen später zu MarkerType.java passen.
-- Tags sind optional/weich.
 
-WICHTIG:
-- P3 platziert kein Prefab.
-- P3 erzeugt keine StructureInstance.
-- P3 erzeugt keine MarkerRecords.
-- P3 reserviert keine Slots.
-- P3 wählt keine Composition.
+- ProvidesContracts in Prefabs müssen existierende Contracts sein
+- RequiredContracts in Composition/Territory müssen existieren
+- unbekannte ContractIds = Fehler
 
-REVIEW:
-- Contracts entscheiden technische Eignung.
-- Tags entscheiden nur Stil/Region.
-- Prefabs verweisen nur auf existierende Contracts.
-- Kein Spawn.
-- Kein state.json-Schreiben.
-- Compile-Gate:
-  mvn -q -DskipTests test-compile
+Bedeutung:
+
+Contracts entscheiden technische Eignung.
+
+Beispiel:
+
+blacksmith braucht:
+- ResidenceContract
+- BlacksmithWorkstationContract
+
+Prefab liefert:
+- ResidenceContract
+- BlacksmithWorkstationContract
+
+Dann passt es technisch.
 
 
-────────────────────────────────────────
-P3.10 — Territory-Definitionen prüfen
-────────────────────────────────────────
+################################################################################
+34. P3.13 COMPOSITIONS PRÜFEN
+################################################################################
 
-AGENT-AUFGABE:
-territories/*.json prüfen.
+Composition-Dateien heißen:
+
+simple_house_<job>_compositions.json
+
+Beispiele:
+
+simple_house_trader_compositions.json
+simple_house_blacksmith_compositions.json
+simple_house_guard_compositions.json
+simple_house_lumberjack_compositions.json
+
+Prüfen:
+
+- Datei existiert
+- Id existiert
+- Version existiert
+- Type existiert
+- CompositionId existiert
+- Slots existieren
+- RoleIds sind gültig oder bewusst als später markiert
+- RequiredSex gültig, falls vorhanden
+- RequiredTags gültig, falls vorhanden
+- SupportedTags gültig, falls vorhanden
+- HomeSlot existiert, falls verwendet
+- WorkSlot existiert, falls verwendet
+- benötigte Marker sind in Structure/Prefab möglich
+
+Wichtig:
+
+- keine simple_worker_house_*
+- keine sand_lumberjack RoleId
+- Composition wählt später RoleIds zusammen
+- P3 wählt keine konkrete Composition aus
+
+
+################################################################################
+35. P3.14 TERRITORY-DEFINITIONEN PRÜFEN
+################################################################################
 
 TerritoryProfile prüfen:
-- Id
-- Version
+
+- Id existiert
+- Version existiert
 - Type == TerritoryProfile
-- TerritoryId
-- Binding
-- Radius
-- Spawning
-- RolePool
-- RequiredContracts
+- TerritoryId existiert
+- Binding existiert
+- Radius positiv
+- Spawning existiert, falls aktiv
+- RolePool existiert, falls aktiv
+- RequiredContracts existieren, falls aktiv
 
-Cross-Validation:
-- RequiredContracts müssen existieren.
-- Radius-Werte müssen positiv sein.
-- RolePool.RoleId muss als Definition existieren oder als spätere noch nicht aktive Role markiert sein.
+Wichtig:
 
-WICHTIG:
-- P3 erzeugt keine TerritoryInstance.
-- P3 erzeugt keine SpawnAnchorRecord.
-- P3 spawnt keine Hostiles.
-- P3 weist keine PatrolSlots zu.
-
-REVIEW:
-- Territory-bound ist nur Bauplan.
-- Kein Spawn.
-- Kein state.json-Schreiben.
-- Compile-Gate:
-  mvn -q -DskipTests test-compile
+- P3 erzeugt keine TerritoryInstance
+- P3 erzeugt keine SpawnAnchorRecord
+- P3 spawnt keine Hostiles
+- P3 weist keine PatrolSlots zu
 
 
-────────────────────────────────────────
-P3.11 — Cross-Validation: Routine, Actions, Marker
-────────────────────────────────────────
+################################################################################
+36. P3.15 CROSS-VALIDATION ROUTINE / ACTIONS / MARKER
+################################################################################
 
-AGENT-AUFGABE:
-Prüfe Verweise innerhalb einer LoadedNpcDefinition.
+Actions:
 
-ACTIONS:
-- Routine darf nur ActionIds verwenden, die in Actions.json existieren.
+- Routine darf nur ActionIds verwenden, die in Actions.json existieren
+- fehlende ActionId = Fehler
+- kaputte Actions-Datei = Fehler
 
-MARKER:
-- RoutineMarkers sind für Tagesroutine.
-- EventMarkers sind für Events.
-- SafetyMarkers sind für Flucht/Sicherheit.
-- OptionalMarkers dürfen fehlen.
+Marker:
 
-WICHTIGE ÄNDERUNG:
+- RequiredMarkers sind Pflichtmarker
+- RoutineMarkers sind Marker für Tagesroutine
+- EventMarkers sind Marker für Events
+- SafetyMarkers sind Marker für Sicherheit/Flucht
+- OptionalMarkers dürfen fehlen
+
+Wichtig:
+
 Event-/Safety-Marker sind nicht automatisch RequiredMarkers.
 
-Routine darf:
-- RoutineMarkers nutzen
-- RequiredMarkers nutzen
-- OptionalMarkers nutzen, wenn Step Fallback besitzt
+Routine darf nutzen:
 
-Events dürfen:
-- EventMarkers nutzen
-- SafetyMarkers nutzen
-- OptionalMarkers nutzen, wenn Event Fallback besitzt
+- RoutineMarkers
+- RequiredMarkers
+- OptionalMarkers, wenn Fallback existiert
+
+Events dürfen nutzen:
+
+- EventMarkers
+- SafetyMarkers
+- OptionalMarkers, wenn Event-Fallback existiert
 
 Harter Fehler:
-- Routine verweist auf unbekannte ActionId.
-- Routine verweist auf Marker, der weder required/routine/optional/event/safety erlaubt ist.
-- Action-Datei fehlt oder ist kaputt.
-- Routine-Datei fehlt oder ist kaputt.
+
+- Routine verweist auf unbekannte ActionId
+- Routine verweist auf unbekannten Marker
+- Action-Datei fehlt
+- Routine-Datei fehlt
+- MarkerName ist nicht in erlaubten Markerlisten
 
 Kein harter Fehler:
-- OptionalMarker fehlt.
-- EventMarker fehlt später bei konkreter Instanz, wenn nur dieses Event blockiert wird.
-- Routine benutzt nicht jeden Marker.
 
-WICHTIG:
-- Kein Alias-System.
-- Kein cook -> FOOD-Fallback.
-- Marker-Namen müssen exakt passen.
-- Routine muss NICHT jeden Marker benutzen.
-- Safety-/Event-Marker können existieren, ohne Teil der Routine zu sein.
-- CustomProfile ohne Handler wird nicht tief cross-validiert.
-- Kein automatisches Reparieren.
-- Kein Schreiben in state.json.
+- OptionalMarker fehlt
+- Routine benutzt nicht jeden Marker
+- EventMarker fehlt später bei konkreter Instanz, wenn nur Event blockiert wird
 
-REVIEW:
-- Ungültige ActionId wird erkannt.
-- Ungültiger TargetMarker wird erkannt.
-- Event/Safety-Marker sind getrennt vom Routine-System.
-- Routine muss nicht jeden Marker benutzen.
-- OptionalMarker fehlt → okay.
-- Compile-Gate:
-  mvn -q -DskipTests test-compile
+Wichtig:
+
+- kein Alias-System
+- kein cook -> FOOD-Fallback
+- Marker-Namen müssen exakt passen
+- kein automatisches Reparieren
+- kein state.json-Schreiben
 
 
-────────────────────────────────────────
-P3.12 — Global Debug laden
-────────────────────────────────────────
+################################################################################
+37. P3.16 GLOBAL DEBUG LADEN
+################################################################################
 
-AGENT-AUFGABE:
-Lade globale Debug-Konfiguration aus:
+debug.json:
+
 Server/NPC/Keystone/config/debug.json
 
-REGEL:
-Log nur wenn:
+Regel:
+
+Debug-Log nur wenn:
+
 global.Enabled == true
 UND role.Debug.Enabled == true
 UND passender Bereich == true
 
-WICHTIG:
-- Global Debug = Master-Schalter.
-- Role Debug = Feinsteuerung.
-- Global false blockiert alle Debug-Logs.
-- Role Debug darf Global nicht überschreiben.
-- Debug ist Resource-/Config-Daten.
-- Debug kommt nicht in state.json.
-- Keine Tick-Spam-Logs.
+Wichtig:
 
-REVIEW:
-- debug.json wird gelesen.
-- Global Debug ist Master-Schalter.
-- Role Debug überschreibt Global nicht.
-- Logs sind optional und debug-gated.
-- Compile-Gate:
-  mvn -q -DskipTests test-compile
+- Global Debug ist Master-Schalter
+- Role Debug ist Feinsteuerung
+- Role Debug darf Global nicht überschreiben
+- Debug kommt nicht in state.json
+- keine Tick-Spam-Logs
 
 
-────────────────────────────────────────
-P3.13 — Bootstrap-Integration
-────────────────────────────────────────
+################################################################################
+38. P3.17 BOOTSTRAP-ABLAUF
+################################################################################
 
-AGENT-AUFGABE:
-Binde DefinitionLoader in NpcPluginBootstrap.loadDefinitions() ein.
+Bootstrap-Reihenfolge:
 
-ABLAUF:
-- loadWorldState()
-- loadDefinitions()
-- validateLoadedStateAgainstDefinitions() bleibt TODO/no-op
-- registerCommands()
-- registerStartupEvents()
+1. loadWorldState()
+2. loadDefinitions()
+3. validateLoadedStateAgainstDefinitions()
+   - bleibt in P3 nur TODO/no-op
+4. registerCommands()
+5. registerStartupEvents()
 
-loadDefinitions() muss:
-- index.json laden
-- group.json laden
-- SharedProfiles + Variant.Profiles mergen
-- namespaces normalisieren
-- ProfileTypeRegistry nutzen
-- Required/Optional/Custom-Regeln anwenden
-- Profile prüfen
-- Pools prüfen
-- Contracts prüfen
-- Prefabs prüfen
-- Territories prüfen
-- atomisch in Registry setzen
+loadDefinitions() lädt und prüft:
 
-FEHLERREGEL:
-- loadDefinitions() muss bei Fehler Bootstrap stoppen.
-- Keine Exception schlucken.
-- Wenn catch nur zum Loggen genutzt wird, danach erneut werfen.
-- Definition-Fehler darf kein Save auslösen.
-- Definition-Fehler darf keine state.json überschreiben.
-- Keine Commands registrieren, wenn Definitionen kaputt sind.
-- Keine StartupEvents registrieren, wenn Definitionen kaputt sind.
+- index.json
+- group.json
+- SharedProfiles + Variant.Profiles
+- namespaces
+- HytaleRoles
+- Required/Optional/Custom-Profile
+- Biome-Definitionen
+- BiomeThemeBindings
+- BodyPoolGroups
+- NamePoolGroups
+- OutfitPoolGroups
+- StructurePools
+- BodyPools
+- NamePools
+- OutfitPools
+- CompositionPools
+- Contracts
+- Prefabs/Structures
+- Territories
+- Global Debug
 
-REVIEW:
-- Bootstrap bricht bei Definition-Load-Failure ab.
-- Fehlender optionaler Key stoppt Bootstrap nicht.
-- Eingetragene fehlende Datei stoppt Bootstrap.
-- Kein Save bei Definition-Fehler.
-- Keine state.json-Änderung.
-- Compile-Gate:
-  mvn -q -DskipTests test-compile
+Fehlerregel:
+
+- Definition-Fehler stoppt Bootstrap
+- fehlender Required-Core stoppt Bootstrap
+- fehlende aktiv referenzierte Datei stoppt Bootstrap
+- kaputte aktiv referenzierte JSON stoppt Bootstrap
+- AppearancePool als aktives System stoppt Bootstrap
+- FolkPool als Hauptsystem stoppt Bootstrap
+- simple_worker_house_* stoppt Bootstrap
+- sand_lumberjack-artige RoleId wird als Designfehler blockiert oder mindestens hart gemeldet
+- Definition-Fehler löst kein Save aus
+- Definition-Fehler überschreibt keine state.json
+- Commands werden nicht registriert, wenn Definitionen kaputt sind
+- StartupEvents werden nicht registriert, wenn Definitionen kaputt sind
 
 
-────────────────────────────────────────
-P3.14 — Diagnose-Ausgabe vorbereiten
-────────────────────────────────────────
+################################################################################
+39. P3.18 DIAGNOSE-AUSGABE
+################################################################################
 
-AGENT-AUFGABE:
-Nur interne Debug-/Status-Ausgabe vorbereiten.
-Noch keine Commands erzwingen.
+Mögliche Diagnose:
 
-MÖGLICH:
-- Anzahl geladener Definitionen
+- Anzahl geladener NPC-Definitionen
 - geladene RoleIds
 - geladene namespacedRoleIds
 - geladene HytaleRoles
-- Anzahl bekannter Profile
-- Anzahl CustomProfiles
-- Anzahl Pools
+- geladene BiomeThemeBindings
+- geladene BodyThemes
+- geladene NameThemes
+- geladene OutfitThemes
+- geladene StructureThemes
+- Anzahl BodyPoolGroups
+- Anzahl NamePoolGroups
+- Anzahl OutfitPoolGroups
+- Anzahl StructurePools
+- Anzahl BodyPools
+- Anzahl NamePools
+- Anzahl OutfitPools
+- Anzahl CompositionPools
 - Anzahl Contracts
 - Anzahl Prefabs
 - Anzahl Territories
 - Profile ohne Handler
 
-WICHTIG:
-- Global Debug ist Master-Schalter.
-- Keine Tick-Spam-Logs.
-- Keine sensitive Runtime-Daten.
-- Keine NPC-Instanzdaten aus state.json loggen.
-- Keine selectedAppearanceId/currentOutfitId loggen.
-- Profile ohne Handler werden nur informativ gemeldet, nicht als Fehler.
+Wichtig:
 
-REVIEW:
-- Logs sind debug-gated.
-- Keine Runtime-/State-Daten.
-- Keine Spawns.
-- Compile-Gate:
-  mvn -q -DskipTests test-compile
+- Logs debug-gated
+- kein Tick-Spam
+- keine Runtime-Daten
+- keine state.json-Instanzdaten
+- keine NPC-Entity-Daten
+- keine selectedBodyId/currentOutfitId aus echten NPCs loggen
 
 
-────────────────────────────────────────
-P3.15 — validateLoadedStateAgainstDefinitions() nur als sichtbarer TODO
-────────────────────────────────────────
+################################################################################
+40. P3.19 validateLoadedStateAgainstDefinitions() ALS TODO
+################################################################################
 
-AGENT-AUFGABE:
-Noch keine echte State-Reconcile-Logik implementieren.
-Nur Methode sichtbar lassen / kommentieren.
+In P3 noch keine echte State-Reconcile-Logik.
 
-ZWECK SPÄTER:
-Nach Restart:
-state.json
-→ konkrete NPC-Instanzen
+Diese Methode bleibt sichtbar als TODO.
 
-Definitions
-→ aktuelle Baupläne
+Späterer Zweck:
 
-validateLoadedStateAgainstDefinitions()
-→ prüft gespeicherte NPCs gegen aktuelle Definitionen
-→ löscht nichts automatisch
-→ schreibt nichts automatisch
-→ würfelt nichts automatisch neu
-→ setzt später Diagnose / Blocker
+state.json:
+konkrete NPC-Instanzen
 
-SPÄTERER CHECK:
-- NpcRecord.roleId/namespacedRoleId gegen aktuelle Definition prüfen
-- selectedSpeciesId gegen SpeciesPool prüfen
-- selectedBodyProfileId gegen BodyPool prüfen
-- selectedAppearanceId gegen AppearancePool prüfen
+resources:
+aktuelle Baupläne
+
+validateLoadedStateAgainstDefinitions():
+prüft gespeicherte NPCs gegen aktuelle Definitionen
+
+Aber:
+
+- löscht nichts automatisch
+- schreibt nichts automatisch
+- würfelt nichts neu
+- repariert nichts automatisch
+- setzt später nur Diagnose / Blocker
+
+Spätere Checks:
+
+- NpcRecord.roleId gegen aktuelle Definition prüfen
+- selectedBodyId gegen BodyPool prüfen
+- selectedNameId gegen NamePool prüfen, falls gespeichert
 - currentOutfitId gegen OutfitPool prüfen
 - selectedOutfitId gegen OutfitPool prüfen, falls genutzt
 - selectedCompositionId gegen CompositionPool prüfen
@@ -1330,181 +1917,36 @@ SPÄTERER CHECK:
 - spawnAnchorId gegen SpawnAnchorRecord prüfen
 - markerAssignments gegen aktuelle MarkerDefinition prüfen
 
-P3 SELBST:
+Nicht mehr:
+
+- selectedAppearanceId gegen AppearancePool prüfen
+
+P3 selbst:
+
 - kein NpcRecord-Reconcile
 - kein MarkerAssignment-Reconcile
-- kein selectedAppearanceId-Check
-- kein Outfit-Check
-- kein selectedCompositionId-Check
+- kein selectedBodyId-Check gegen echte state.json
+- kein currentOutfitId-Check gegen echte state.json
+- kein selectedCompositionId-Check gegen echte state.json
 - kein state.json-Save
 - kein Repair
-- keine Runtime- oder State-Seiteneffekte
-
-TODO-KOMMENTAR MUSS NENNEN:
-- Restart ≠ neu würfeln
-- state.json = konkrete Auswahl / Instanzdaten
-- resources = Baupläne / Profile / Pools
-- Profile-Inhalte gehören nicht in state.json
-- CustomProfiles werden nicht aus state.json geladen
-- obsolete oder fehlende Definitionsdaten löschen keine NPCs automatisch
-
-REVIEW:
-- Methode existiert sichtbar.
-- Kommentar beschreibt Restart ≠ neu würfeln.
-- Kommentar beschreibt state.json = konkrete Auswahl, resources = Baupläne.
-- Keine Runtime- oder State-Seiteneffekte.
-- Compile-Gate:
-  mvn -q -DskipTests test-compile
+- keine Runtime-Seiteneffekte
 
 
 ################################################################################
-################################################################################
-FINAL REVIEW P3
-################################################################################
+41. STATE.JSON ZIELFELDER SPÄTER
 ################################################################################
 
-PASS-KRITERIEN:
-- index.json wird geladen.
-- aktive group.json-Dateien werden geladen.
-- jede Variant erzeugt genau eine LoadedNpcDefinition.
-- eine Variant hat genau eine RoleId.
-- SharedProfiles + Variant.Profiles werden korrekt gemerged.
-- Required-Core Profile sind nach Merge vorhanden:
-  - Routine
-  - Actions
-  - Movement
-  - Navigation
-  - Persistence
+NpcRecord später:
 
-- Optional-Core Profile dürfen fehlen:
-  - Combat
-  - Events
-  - Dialogue
-  - Trading
-  - Reputation
-  - SeasonalOutfits
-  - Spawn
-  - SpeciesPool
-  - BodyPool
-  - OutfitPool
-  - CompositionPool
-  - Appearance
-  - AppearancePool
-
-- Appearance oder AppearancePool ist erlaubt.
-- Beides ist nicht zwingend.
-- OutfitPool ist getrennt von Appearance.
-- Duplicate namespacedRoleId blockiert.
-- Duplicate HytaleRole blockiert nicht.
-- Namespaces sind vorbereitet.
-- Asset/Profile namespace/assetId ist vorbereitet.
-- Unbekannte Profile werden erlaubt und basic validiert.
-- Eingetragene kaputte Profile blockieren.
-- Eingetragene fehlende Profile blockieren.
-- Pools werden geprüft, aber nicht ausgeführt.
-- Contracts werden geprüft.
-- Prefab-Definitionen werden geprüft.
-- Territory-Definitionen werden geprüft.
-- Event/Safety-Marker sind getrennt vom Routine-System.
-- Keine state.json-Änderung.
-- Kein Spawn.
-- Kein Relink.
-- Keine RuntimeNpc.
-- Keine EntityRef.
-- Kein automatischer Repair.
-- Kein Neu-Auswürfeln.
-
-SICHERHEIT:
-- Kein Spawn.
-- Kein Relink.
-- Kein Save.
-- Keine state.json-Änderung.
-- Keine RuntimeNpc-Erzeugung.
-- Keine EntityRef.
-- Kein Role-Prefix-Fallback.
-- Kein automatischer Repair.
-- Keine Pool-Auswahl.
-- Keine neue selectedSpeciesId.
-- Keine neue selectedBodyProfileId.
-- Keine neue selectedAppearanceId.
-- Keine neue selectedOutfitId.
-- Keine neue currentOutfitId.
-- Keine neue selectedCompositionId.
-- Kein Neu-Auswürfeln.
-
-COMPILE:
-mvn -q -DskipTests test-compile muss PASS sein.
-
-P3 ENTSCHEIDUNG:
-PASS, wenn Definitionen vollständig geladen, validiert und atomisch registriert werden,
-ohne Runtime-/State-/Spawn-Seiteneffekte.
-
-
-################################################################################
-################################################################################
-RESTART- UND DEFINITION-ÄNDERUNGSREGELN
-################################################################################
-################################################################################
-
-────────────────────────────────────────
-Grundregel
-────────────────────────────────────────
-
-Definitionen dürfen sich ändern.
-Bereits gespeicherte NPCs dürfen dadurch aber nicht gelöscht, überschrieben oder kaputt gespeichert werden.
-
-Resource-JSONs speichern Baupläne.
-state.json speichert konkrete Welt-/NPC-Instanzen.
-
-Definition geändert
-≠ NPC löschen
-
-Restart
-≠ neu auswürfeln
-
-
-────────────────────────────────────────
-Nicht in state.json speichern
-────────────────────────────────────────
-
-Nicht speichern:
-- Profile-Map
-- NpcProfileRefs
-- ProfileTypeRules
-- Routine-Inhalte
-- Actions-Inhalte
-- Movement-Inhalte
-- Navigation-Inhalte
-- Combat-Inhalte
-- Skills-Inhalte
-- Persistence-Profil-Inhalte
-- Dialogue-Inhalte
-- Trading-Inhalte
-- Events-Inhalte
-- HytaleRole-Datei-Inhalte
-- vollständige Appearance-Profil-Inhalte
-- vollständige Pool-Inhalte
-- EntityRef
-- RuntimeNpc
-- aktive Navigation / aktuelle Route
-- laufende Action
-- Tick-/Door-/Runtime-State
-
-
-────────────────────────────────────────
-In state.json speichern
-────────────────────────────────────────
-
-NpcRecord:
 - npcId
 - roleId oder namespacedRoleId
 - entityUuid
 - worldKey / worldId
 - status
 - lastKnownPosition
-- selectedSpeciesId
-- selectedBodyProfileId
-- selectedAppearanceId
+- selectedBodyId
+- selectedNameId optional
 - selectedOutfitId optional
 - currentOutfitId
 - outfitPoolId
@@ -1519,541 +1961,196 @@ NpcRecord:
 - workSlotId optional
 - markerAssignments
 
-StructureRecord:
-- structureInstanceId
-- selectedPrefabId
-- selectedCompositionId
-- worldKey / worldId
-- position
-- rotation
-- occupiedSlots
-- markerRecords
+Nicht speichern:
 
-TerritoryRecord:
-- territoryId
-- worldKey / worldId
-- centerPosition
-- radius
-- anchorIds
-- patrolMarkerIds
-- maxNpcCount
-- activeNpcIds
-
-MarkerRecord:
-- markerId
-- markerName
-- markerType
-- worldKey / worldId
-- structureInstanceId optional
-- territoryId optional
-- slotId optional
-- relativePosition
-- worldPosition optional/cache
-
-Wichtig:
-Nicht jeder NPC speichert alles.
-Structure-bound NPCs speichern Structure-Bindung.
-Territory-bound NPCs speichern Territory-Bindung.
-
-Keine MarkerRecords in jedem NPC duplizieren.
-NpcRecord verweist nur auf IDs.
+- selectedAppearanceId
+- AppearancePool-Inhalte
+- BodyPool-Inhalte
+- NamePool-Inhalte
+- OutfitPool-Inhalte
+- Profile-Inhalte
+- Routine-Inhalte
+- Actions-Inhalte
+- EntityRef
+- RuntimeNpc
+- aktive Navigation
+- laufende Action
+- Door Runtime
+- Tick Runtime
 
 
-────────────────────────────────────────
-Ablauf beim Server-Restart
-────────────────────────────────────────
+################################################################################
+42. RESTART-REGEL
+################################################################################
 
-1. state.json laden
-→ alte gespeicherte NPCs laden
-→ MarkerAssignments laden
-→ MarkerRecords / Koordinaten laden
-→ konkrete Species/Body/Appearance/Outfit-Auswahl laden
-→ Structure-/Slot-Zuordnung laden
-→ Territory-/SpawnAnchor-Zuordnung laden
+Restart bedeutet nicht neu würfeln.
 
-2. aktuelle Definitionen laden
-→ neue group.json laden
-→ neue profiles laden
-→ neue routines laden
-→ neue actions laden
-→ neue marker rules laden
-→ neue pools laden
-→ neue contracts laden
-→ neue prefabs laden
-→ neue territories laden
-→ neue event rules laden
-→ neue CustomProfileRefs laden
-→ neue ProfileTypeRules anwenden
+Beim Restart:
 
-3. validateLoadedStateAgainstDefinitions()
-→ gespeicherte NPCs gegen aktuelle Definitionen prüfen
-→ aber NICHT automatisch löschen
-→ NICHT automatisch state.json überschreiben
-→ NICHT automatisch neue zufällige Auswahl würfeln
-→ ungültige Teile blockieren oder Diagnose setzen
-
-4. Runtime vorbereiten
-→ erst nach gültiger Prüfung darf ein NPC später relinkt/aktiviert werden
-→ Live-NPCs nutzen nach Restart die aktuellen Definitionen
-
-
-────────────────────────────────────────
-Neue RoleId hinzugefügt
-────────────────────────────────────────
+1. state.json lädt konkrete gespeicherte Auswahl.
+2. resources laden aktuelle Baupläne.
+3. gespeicherte Auswahl wird später gegen aktuelle Definitionen geprüft.
+4. fehlende Definitionen erzeugen Diagnose.
+5. nichts wird automatisch gelöscht.
+6. nichts wird automatisch ersetzt.
+7. nichts wird automatisch neu gewürfelt.
 
 Beispiel:
-Neue RoleId fisher kommt in group.json dazu.
 
-Handling:
-- neue RoleId wird normal geladen
-- neue RoleId wird namespaced normalisiert
-- neue RoleId wird spawnbar, wenn alle required/eingetragenen Profile gültig sind
-- alte NPCs bleiben unverändert
-- keine state.json-Änderung nötig
-- neue NPCs können später diese neue RoleId verwenden
+currentOutfitId existiert nicht mehr im OutfitPool.
 
+Dann:
 
-────────────────────────────────────────
-RoleId entfernt
-────────────────────────────────────────
-
-Beispiel:
-state.json enthält roleId lumberjack_oldman,
-aber group.json enthält lumberjack_oldman nicht mehr.
-
-Handling:
-- NPC-Record bleibt erhalten
-- NPC wird NICHT gelöscht
-- NPC wird NICHT gespawnt
-- NPC wird NICHT automatisch auf eine andere RoleId umgeschrieben
-- NPC bekommt Diagnose-Status: DEFINITION_MISSING
-- keine automatische Reparatur
-- state.json wird nicht überschrieben
-
-
-────────────────────────────────────────
-Profile geändert
-────────────────────────────────────────
-
-Beispiel:
-lumberjack nutzt jetzt andere Routine, Actions, Movement, Combat, Skills oder Persistence.
-
-Handling:
-- roleId/namespacedRoleId bleibt stabil
 - NPC bleibt gespeichert
-- neue Profile werden aus aktuellen Resource-JSONs geladen
-- NpcRecord wird gegen die neuen Profile neu bewertet
-- wenn Profile gültig sind: NPC kann später wieder aktivierbar sein
-- wenn Profile ungültig sind: NPC bleibt gespeichert, aber wird blockiert
-- kein Spawn, kein Relink, keine Runtime-Logik bei ungültiger Definition
-- state.json wird nicht automatisch verändert
-- Profile-Inhalte werden nicht in state.json gespeichert
+- Diagnose SELECTED_OUTFIT_MISSING
+- kein neues Outfit automatisch als Wahrheit speichern
+- Fallback höchstens runtime
+- dauerhafte Änderung nur durch expliziten Repair/Migration-Step
 
 
-────────────────────────────────────────
-Neuer optionaler Profile-Key hinzugefügt
-────────────────────────────────────────
+################################################################################
+43. DEFINITION GEÄNDERT ≠ NPC LÖSCHEN
+################################################################################
 
-Beispiel:
-lumberjack bekommt Dialogue.
+Wenn resources geändert werden:
 
-Handling:
-- Dialogue wird aus resources geladen, wenn eingetragen
-- wenn Datei existiert und basic valid ist: RoleId bekommt ProfileRef
-- wenn Datei fehlt oder kaputt ist: Definition blockieren
-- wenn Dialogue nicht eingetragen ist: kein Dialogue-System aktiv
-- alte NPCs bleiben gespeichert
-- state.json wird nicht geändert
-- Dialogue-Inhalte werden nicht in state.json gespeichert
-- Ausführung passiert später nur, wenn ein Handler existiert
+- NPC nicht löschen
+- NPC nicht automatisch umschreiben
+- NPC nicht automatisch neu würfeln
+- NPC nicht automatisch in andere RoleId umwandeln
+- state.json nicht automatisch überschreiben
 
+Definition geändert bedeutet:
 
-────────────────────────────────────────
-CustomProfile hinzugefügt
-────────────────────────────────────────
-
-Beispiel:
-CustomSomething wird in Profiles eingetragen.
-
-Handling:
-- Loader erlaubt unbekannten Key
-- Datei muss existieren
-- JSON muss basic valid sein
-- Id muss existieren
-- Version muss existieren
-- CustomProfileRef wird an RoleId gebunden
-- kein Ausführen ohne Handler
-- kein state.json-Schreiben
-- keine NPC-Instanzdaten daraus erzeugen
+- aktuelle Definition neu laden
+- gespeicherte NPCs später neu bewerten
+- ungültige Teile blockieren
+- Diagnose setzen
+- alte konkrete Auswahl behalten
 
 
-────────────────────────────────────────
-CustomProfile entfernt
-────────────────────────────────────────
+################################################################################
+44. BIOME-/THEME-ÄNDERUNG SPÄTER
+################################################################################
+
+Wenn ein BiomeTheme geändert wird:
 
 Beispiel:
-CustomSomething war früher eingetragen, ist jetzt entfernt.
 
-Handling:
-- Definition lädt ohne dieses CustomProfile
-- NPC-Record bleibt erhalten
-- keine state.json-Änderung
-- keine automatische Reparatur
-- falls später state.json-Fortschritt zu diesem System existiert:
-  - Fortschritt nicht automatisch löschen
-  - Diagnose setzen
-  - nur expliziter Migration-/Repair-Step darf dauerhaft speichern
+sand_desert nutzt jetzt neues OutfitTheme.
 
+Dann:
 
-────────────────────────────────────────
-Appearance / Body geändert
-────────────────────────────────────────
+- neue NPCs nutzen später neues OutfitTheme
+- alte NPCs behalten currentOutfitId
+- alte NPCs werden nicht automatisch neu eingekleidet
+- wenn Outfit nicht mehr gültig ist: Diagnose
+- kein automatisches Speichern eines Ersatzes
 
-Beispiel:
-BodyPool oder AppearancePool enthält andere Einträge.
+Wenn StructureTheme geändert wird:
 
-Handling:
-- NPC bleibt gespeichert
-- selectedBodyProfileId bleibt stabil
-- selectedAppearanceId bleibt stabil
-- beim Restart werden beide gegen aktuelle Pools geprüft
-- wenn gespeicherte ID noch existiert: weiter verwenden
-- wenn gespeicherte ID fehlt: Diagnose setzen
-  - SELECTED_BODY_MISSING
-  - SELECTED_APPEARANCE_MISSING
-- kein automatisches Neu-Auswürfeln beim Restart
-- keine automatische state.json-Änderung
-- neue NPCs dürfen neue Pool-Auswahl verwenden
-
-
-────────────────────────────────────────
-Outfit / Kleidung geändert
-────────────────────────────────────────
-
-Beispiel:
-NPC soll alle 2–4 Ingame-Tage neue Kleidung aus einem Pool bekommen.
-
-Handling:
-- currentOutfitId wird in state.json gespeichert
-- selectedOutfitId kann zusätzlich als Spawn-/Basis-Auswahl gespeichert werden, falls das Modell es braucht
-- outfitPoolId wird in state.json gespeichert
-- lastOutfitChangeDay wird in state.json gespeichert
-- nextOutfitChangeDay wird in state.json gespeichert
-- beim Restart bleibt currentOutfitId gleich
-- nur wenn currentDay >= nextOutfitChangeDay, darf ein neues Outfit gewählt werden
-- neues Outfit wird in Runtime gesetzt
-- NpcRecord.currentOutfitId wird aktualisiert
-- dirty=true setzen
-- nicht sofort bei jeder Änderung direkt auf Disk schreiben
-- Autosave alle 5–10 Minuten oder Shutdown speichert später gesammelt
-
-
-────────────────────────────────────────
-Pool-Eintrag entfernt
-────────────────────────────────────────
-
-Beispiel:
-currentOutfitId = blacksmith_apron_brown,
-aber dieser Entry existiert im OutfitPool nicht mehr.
-
-Handling:
-- NPC bleibt gespeichert
-- kein Neu-Auswürfeln beim Restart
-- Diagnose setzen:
-  - SELECTED_OUTFIT_MISSING
-- betroffene Darstellung/Logik blockieren oder Fallback nur runtime verwenden
-- Fallback darf nicht automatisch als neue Wahrheit gespeichert werden
-- nur expliziter Migration-/Repair-Step darf dauerhaft ändern
-
-
-────────────────────────────────────────
-Composition geändert
-────────────────────────────────────────
-
-Beispiel:
-CompositionPool ändert blacksmith_couple.
-
-Handling:
-- selectedCompositionId wird in state.json gespeichert
-- beim Restart bleibt selectedCompositionId gleich
-- selectedCompositionId wird gegen aktuellen CompositionPool geprüft
-- wenn selectedCompositionId noch existiert: weiter verwenden
-- wenn selectedCompositionId fehlt: Diagnose SELECTED_COMPOSITION_MISSING
-- kein Neu-Auswürfeln beim Restart
-- keine automatische state.json-Änderung
-
-
-────────────────────────────────────────
-Prefab geändert
-────────────────────────────────────────
-
-Beispiel:
-selectedPrefabId verweist auf simple_stone_worker_house_blacksmith,
-aber Prefab-Definition wurde entfernt oder geändert.
-
-Handling:
-- StructureRecord bleibt erhalten
-- NPC bleibt erhalten
-- MarkerRecords bleiben erhalten
-- keine automatische Löschung
-- Diagnose setzen:
-  - PREFAB_DEFINITION_MISSING
-  - PREFAB_CONTRACT_MISMATCH
-- Runtime/Spawn blockieren, wenn Binding nicht mehr sicher ist
-- kein automatisches Ersetzen durch anderes Prefab
-
-
-────────────────────────────────────────
-Actions geändert
-────────────────────────────────────────
-
-Beispiel:
-Actions.json entfernt chop_wood oder fügt neue Action hinzu.
-
-Handling:
-- neue Actions werden aus aktueller Actions.json geladen
-- Routine darf nur ActionIds benutzen, die in Actions.json existieren
-- fehlende ActionId blockiert diese Definition
-- NPC bleibt gespeichert
-- keine Routine starten, solange Action-Verweise ungültig sind
-- keine automatische Action-Ersetzung
-- Actions-Inhalte werden nicht in state.json gespeichert
-
-
-────────────────────────────────────────
-Routine geändert
-────────────────────────────────────────
-
-Beispiel:
-Routine nutzt neue Marker oder neue Actions.
-
-Handling:
-- neue Routine wird beim Serverstart aus aktueller Routine-JSON geladen
-- neue Routine wird gegen aktuelle Actions.json geprüft
-- neue Routine wird gegen aktuelle MarkerDefinition der RoleId geprüft
-- Routine muss NICHT jeden Marker benutzen
-- Routine nutzt nur die Marker, die sie für Tagesablauf braucht
-- wenn Routine auf unbekannte Action zeigt: Definition blockieren
-- wenn Routine auf unbekannten Marker zeigt: Definition blockieren oder Diagnose
-- NPC-Record bleibt gespeichert
-- MarkerAssignments / Marker-Koordinaten aus state.json werden gegen neue Routine-/Marker-Definition neu bewertet
-- Live-NPC muss nach erfolgreichem Restart/Relink sofort die neue Routine verwenden
-- alte Routine-Fortschritte aus state.json dürfen nicht blind weiterlaufen
-- falls SaveRoutineProgress später existiert: nur übernehmen, wenn es zur aktuellen Routine-Version passt
-- wenn Routine-Version nicht passt: Fortschritt verwerfen und NPC sauber im neuen Routine-System starten
-
-
-────────────────────────────────────────
-RequiredMarkers geändert
-────────────────────────────────────────
-
-Beispiel:
-alte Definition hatte work,
-neue Definition hat lumber_work oder safety_zone.
-
-Handling:
-- RequiredMarkers dürfen sich nach Restart ändern
-- gespeicherter NPC wird dadurch NICHT gelöscht
-- alte MarkerAssignments werden gegen aktuelle Definition neu bewertet
-- nicht mehr passende Assignments werden nicht aktiv benutzt
-- MarkerRecords / Koordinaten bleiben erhalten
-- neue RequiredMarkers werden neu aufgelöst
-- wenn neue Pflichtmarker fehlen: NPC bleibt gespeichert, aber betroffene Routine/Event-Logik startet nicht
-- Diagnose: MISSING_REQUIRED_MARKER
-- nur expliziter Repair-/Migration-Step darf dauerhaft speichern
-
-
-────────────────────────────────────────
-Event-/Safety-Marker hinzugefügt
-────────────────────────────────────────
-
-Beispiel:
-neues Event-System braucht safety_zone für Überfälle.
-
-Handling:
-- EventMarkers sind eigene Marker-Verwendung
-- SafetyMarkers sind eigene Marker-Verwendung
-- Routine muss safety_zone nicht enthalten
-- EventProfile darf safety_zone benutzen
-- wenn safety_zone fehlt: Event-Logik für diesen NPC blockieren
-- normale Routine kann trotzdem laufen, wenn ihre eigenen Marker gültig sind
-- NPC bleibt gespeichert
-- EventMarker dürfen neu aufgelöst werden
-- Marker-Koordinaten bleiben erhalten
-
-
-────────────────────────────────────────
-OptionalMarker / POI fehlt
-────────────────────────────────────────
-
-Beispiel:
-Worker-Frau soll morgens zum Markt gehen, wenn market_stall existiert.
-Wenn nicht, soll sie waschen.
-
-Handling:
-- OptionalMarker/POI fehlt → kein harter NPC-Fehler
-- Routine/Event-Zweig nutzt Fallback
-- NPC bleibt aktiv, wenn Required-Routine gültig ist
-- kein state.json-Repair
-- kein automatisches Marker-Erzeugen
-
-Beispiel:
-Market vorhanden:
-→ gehe zu market_stall
-
-Market fehlt:
-→ gehe zu washing_place oder idle
-
-
-────────────────────────────────────────
-Marker-Koordinaten / MarkerRecords
-────────────────────────────────────────
-
-Handling:
-- Marker-Koordinaten dürfen nicht blind gelöscht werden
-- alte MarkerRecords bleiben erhalten
-- alte Koordinaten bleiben erhalten
-- nur aktive Zuordnung zur aktuellen RoleId wird neu bewertet
-- obsolete MarkerAssignments werden nicht mehr aktiv benutzt
-- MarkerRecord bleibt als gespeicherter Welt-/Prefab-/Structure-/Territory-Marker erhalten
-
-MarkerRecord speichert später:
-- markerId
-- markerName
-- markerType
-- worldKey / worldId
-- structureInstanceId optional
-- territoryId optional
-- slotId optional
-- relativePosition
-- worldPosition optional/cache
-
-
-────────────────────────────────────────
-MarkerAssignment passt nicht mehr
-────────────────────────────────────────
-
-Beispiel:
-NPC hatte Assignment work -> marker_123,
-aber aktuelle Definition erlaubt work nicht mehr.
-
-Handling:
-- Assignment nicht aktiv verwenden
-- MarkerRecord marker_123 nicht löschen
-- Koordinaten behalten
-- Diagnose: OBSOLETE_MARKER_ASSIGNMENT
-- neue Marker anhand aktueller Definition neu suchen
-- nur expliziter Repair-/Migration-Step darf dauerhaft speichern
-- kein automatisches Überschreiben beim normalen Restart
-
-
-────────────────────────────────────────
-Movement / Navigation geändert
-────────────────────────────────────────
-
-Handling:
-- neue Movement-/Navigation-Profile werden geladen
-- NPC bleibt gespeichert
-- alte aktive Navigation wird nie aus state.json übernommen
-- nach Restart gibt es keine fortgesetzte alte Route
-- Runtime-Navigation wird später frisch aus aktueller Definition aufgebaut
-- Live-NPC nutzt nach Restart das neue Movement-/Navigation-Profil
-
-
-────────────────────────────────────────
-Persistence geändert
-────────────────────────────────────────
-
-Beispiel:
-RespawnAfterRestart wird von true auf false geändert.
-
-Handling:
-- aktuelle Persistence-Definition gilt für neue Entscheidungen
-- NPC-Record bleibt erhalten
-- wenn RespawnAfterRestart jetzt false ist: kein Auto-Respawn
-- kein Löschen alter NPC-Daten
-- kein Überschreiben der state.json nur wegen Config-Änderung
-- Persistence-Inhalte selbst werden nicht in state.json gespeichert
-
-
-────────────────────────────────────────
-Combat / Event-Verhalten geändert
-────────────────────────────────────────
-
-Handling:
-- neue Combat-/Event-Profile werden geladen
-- NPC bleibt gespeichert
-- Event-Logik startet nur, wenn benötigte EventMarker gültig sind
-- fehlende EventMarker blockieren Event-Verhalten, aber nicht zwingend die komplette NPC-Existenz
-- keine automatische Reparatur ohne expliziten Repair-Step
-- Combat-/Event-Inhalte werden nicht in state.json gespeichert
-
-
-────────────────────────────────────────
-Structure-bound Binding geändert
-────────────────────────────────────────
-
-Handling:
-- Structure-bound NPC bleibt gespeichert
-- structureInstanceId bleibt Wahrheit
+- neue Structures nutzen später neues StructureTheme
+- bestehende StructureInstances bleiben erhalten
 - selectedPrefabId bleibt Wahrheit
-- selectedCompositionId bleibt Wahrheit
-- homeSlotId/workSlotId bleiben Wahrheit
-- wenn StructureRecord fehlt: Diagnose STRUCTURE_MISSING
-- wenn Slot fehlt: Diagnose SLOT_MISSING
-- wenn Contract nicht mehr passt: Diagnose STRUCTURE_CONTRACT_MISMATCH
-- kein automatischer Umzug
-- kein automatisches neues Haus wählen
+- kein automatischer Gebäudetausch
+- Diagnose, wenn Prefab nicht mehr zur Definition passt
 
 
-────────────────────────────────────────
-Territory-bound Binding geändert
-────────────────────────────────────────
+################################################################################
+45. FINAL P3 PASS-KRITERIEN
+################################################################################
 
-Handling:
-- Territory-bound NPC bleibt gespeichert
-- territoryId bleibt Wahrheit
-- spawnAnchorId bleibt Wahrheit
-- territoryCenter/Radius können gegen TerritoryRecord geprüft werden
-- wenn Territory fehlt: Diagnose TERRITORY_MISSING
-- wenn SpawnAnchor fehlt: Diagnose SPAWN_ANCHOR_MISSING
-- kein automatischer neuer Anchor
-- kein automatischer Respawn an anderer Stelle
+P3 ist gut, wenn:
 
+- index.json wird geladen
+- aktive group.json-Dateien werden geladen
+- jede Variant erzeugt genau eine LoadedNpcDefinition
+- jede Variant hat genau eine RoleId
+- SharedProfiles + Variant.Profiles werden korrekt gemerged
+- Required-Core Profile sind vorhanden:
+  - Routine
+  - Actions
+  - Movement
+  - Navigation
+  - Persistence
 
-────────────────────────────────────────
-Autosave / große Zufallsevents
-────────────────────────────────────────
+Optional-Core Profile dürfen fehlen:
+- Combat
+- Events
+- Dialogue
+- Trading
+- Reputation
+- SeasonalOutfits
+- Spawn
+- BodyPoolGroup
+- NamePoolGroup
+- OutfitPoolGroup
+- StructurePool
+- CompositionPool
+- AI
+- Mana
+- Magic
 
-Handling:
-- normale Runtime-Änderungen setzen dirty=true
-- Autosave speichert alle 5–10 Minuten, wenn dirty=true
-- Shutdown speichert, wenn dirty=true
-- vor großen Zufallsevents muss saveWorldStateSafely() erfolgreich laufen
-- wenn Save vor großem Event fehlschlägt: Event blockieren oder verschieben
-- nach Event-Änderungen dirty=true setzen
+Neue Biom-/Theme-Kriterien:
 
+- Biome-Dateien werden geladen
+- BiomeThemeBinding wird geladen
+- BodyTheme wird geprüft
+- NameTheme wird geprüft
+- OutfitTheme wird geprüft
+- StructureTheme wird geprüft
+- BodyPoolGroups werden geprüft
+- NamePoolGroups werden geprüft
+- OutfitPoolGroups werden geprüft
+- StructurePools werden geprüft
+- BodyPools werden geprüft
+- NamePools werden geprüft
+- OutfitPools werden geprüft
+- StructurePools filtern nach StructureTheme
+- BodyPool enthält Körper/Haut/Haare/Gesicht/Augen
+- OutfitPool enthält Kleidung
+- NamePool enthält Namen
+- RoleId bleibt unabhängig vom Biom
+- keine Sand-Lumberjacks
+- keine biome-spezifischen Job-RoleIds
+- keine simple_worker_house_* Namen
+- Composition-Dateien nutzen simple_house_<job>_compositions.json
+- Biome-Grenzregel ist im Design berücksichtigt:
+  PlacementCandidatePosition, nicht PlayerPosition
 
-────────────────────────────────────────
-Wichtigste Schutzregel
-────────────────────────────────────────
+Muss raus sein:
 
-Definition geändert
-≠ NPC löschen
+- FolkPool als Hauptsystem
+- AppearancePool als aktives System
+- Appearance als aktives System
+- Appearance oder AppearancePool erlaubt
+- selectedAppearanceId gegen AppearancePool prüfen
+- simple_worker_house_* Namen
+- sand_lumberjack als RoleId
 
-Definition geändert
-→ NPC neu gegen aktuelle Definition bewerten
-→ ungültige Teile blockieren
-→ stabile Auswahl aus state.json behalten
-→ MarkerAssignments neu bewerten
-→ Marker-Koordinaten behalten
-→ Structure/Territory-Bindung behalten
-→ state.json nicht automatisch kaputt überschreiben
+Sicherheit:
 
-Restart
-≠ neu auswürfeln
+- kein Spawn
+- kein Relink
+- kein Save
+- keine state.json-Änderung
+- keine RuntimeNpc-Erzeugung
+- keine EntityRef
+- kein automatischer Repair
+- keine Pool-Auswahl
+- keine neue selectedBodyId
+- keine neue selectedNameId
+- keine neue selectedOutfitId
+- keine neue currentOutfitId
+- keine neue selectedCompositionId
+- keine neue selectedAppearanceId
+- kein Neu-Auswürfeln
 
-Restart
-→ konkrete Auswahl aus state.json laden
-→ aktuelle Resource-Definitionen anwenden
-→ nur bewusst geplante Systeme wie Outfit-Wechsel dürfen später neue Auswahl treffen
+Compile:
+
+mvn -q -DskipTests test-compile
+
+P3 Entscheidung:
+
+PASS, wenn Definitionen vollständig geladen, validiert und atomisch registriert werden,
+ohne Runtime-/State-/Spawn-Seiteneffekte.

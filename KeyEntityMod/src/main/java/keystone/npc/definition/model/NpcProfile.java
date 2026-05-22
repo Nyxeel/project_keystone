@@ -10,33 +10,37 @@ package keystone.npc.definition.model;
  * Beispiel:
  * ProfileKey = Routine
  * Path = npc/lumberjack/routines/lumberjack_day.json
+ * ExpectedType = RoutineProfile
  */
 public final class NpcProfile {
 
 	private final String profileKey;		// Name des Profils, z. B. Routine, Actions oder Movement.
-	private final String path; 				// Resource-Pfad zur Profil-Datei.
-	private final String namespace; 		// Optionaler Namespace, z. B. keystone.
-	private final String assetId; 			// Optionale spätere Asset-ID.
-	private final boolean knownProfileType; // True, wenn der Profiltyp dem Loader bekannt ist.
-	private final boolean required; 		// True, wenn dieses Profil Pflicht ist.
-	private final String validationMode; 	// Regel, wie streng dieses Profil geprüft wird.
-	private final String handlerKey; 		// Optionaler späterer Handler-Key für ausführbare Systeme.
+	private final String path;				// Resource-Pfad zur Profil-Datei.
+	private final String expectedType;		// Erwarteter JSON-Type, z. B. RoutineProfile. Optional für Custom-Profile.
+	private final String namespace;			// Optionaler Namespace, z. B. keystone.
+	private final String assetId;			// Optionale spätere Asset-ID.
+	private final boolean knownProfileType;	// True, wenn der Profiltyp dem Loader bekannt ist.
+	private final boolean required;			// True, wenn dieses Profil Pflicht ist.
+	private final String validationMode;		// Regel, wie streng dieses Profil geprüft wird.
+	private final String handlerKey;			// Optionaler späterer Handler-Key für ausführbare Systeme.
 
 	/*
 	 * Erstellt einen einzelnen Profil-Verweis aus Resource-Daten.
 	 */
 	public NpcProfile(
 		String profileKey,			// Name des Profils.
-		String path, 				// Resource-Pfad zur Profil-Datei.
-		String namespace, 			// Optionaler Namespace.
-		String assetId, 			// Optionale spätere Asset-ID.
-		boolean knownProfileType, 	// Ob der Profiltyp bekannt ist.
-		boolean required, 			// Ob dieses Profil Pflicht ist.
-		String validationMode, 		// Validierungsart.
-		String handlerKey 			// Optionaler späterer Handler-Key.
+		String path,				// Resource-Pfad zur Profil-Datei.
+		String expectedType,		// Erwarteter JSON-Type. Darf bei Custom-Profilen null sein.
+		String namespace,			// Optionaler Namespace.
+		String assetId,				// Optionale spätere Asset-ID.
+		boolean knownProfileType,	// Ob der Profiltyp bekannt ist.
+		boolean required,			// Ob dieses Profil Pflicht ist.
+		String validationMode,		// Validierungsart.
+		String handlerKey			// Optionaler späterer Handler-Key.
 	) {
 		this.profileKey = requireText(profileKey, "profileKey");
 		this.path = requireText(path, "path");
+		this.expectedType = cleanOptionalText(expectedType);
 		this.namespace = cleanOptionalText(namespace);
 		this.assetId = cleanOptionalText(assetId);
 		this.knownProfileType = knownProfileType;
@@ -57,6 +61,13 @@ public final class NpcProfile {
 	 */
 	public String path() {
 		return path;
+	}
+
+	/*
+	 * Gibt den erwarteten JSON-Type zurück, zum Beispiel RoutineProfile.
+	 */
+	public String expectedType() {
+		return expectedType;
 	}
 
 	/*
@@ -119,6 +130,7 @@ public final class NpcProfile {
 		if (value == null || value.isBlank()) {
 			return null;
 		}
+
 		return value.trim();
 	}
 }

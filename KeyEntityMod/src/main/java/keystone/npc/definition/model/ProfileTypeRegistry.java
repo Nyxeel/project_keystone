@@ -10,10 +10,16 @@ import java.util.Map;
  * Beispiel:
  * Routine ist Pflicht.
  * Combat ist optional.
+ * BodyPoolGroup ist optional und zeigt auf eine Gruppe von BodyPools.
  * CustomSomething ist unbekannt, aber erlaubt und wird basic validiert.
  *
  * Diese Klasse lädt keine Profile.
  * Sie sagt nur, welche Profile required, optional oder custom sind.
+ *
+ * Wichtig für das neue Biom-System:
+ * - FolkPool ist kein aktives Hauptsystem mehr.
+ * - Appearance / AppearancePool sind kein aktives System mehr.
+ * - BodyPoolGroup, NamePoolGroup, OutfitPoolGroup und StructurePool sind die neuen Theme-Anbindungen.
  */
 public final class ProfileTypeRegistry {
 
@@ -97,10 +103,10 @@ public final class ProfileTypeRegistry {
 		addOptional(result, "SeasonalOutfits", "SeasonalOutfitProfile", "basic", "seasonal_outfits");
 		addOptional(result, "Spawn", "SpawnProfile", "basic", "spawn");
 
-		addOptional(result, "SpeciesPool", "SpeciesPool", "basic", null);
-		addOptional(result, "BodyPool", "BodyPoolGroup", "basic", null);
-		addOptional(result, "NamePool", "NamePoolGroup", "basic", null);
-		addOptional(result, "OutfitPool", "OutfitPoolGroup", "basic", null);
+		addOptional(result, "BodyPoolGroup", "BodyPoolGroup", "basic", null);
+		addOptional(result, "NamePoolGroup", "NamePoolGroup", "basic", null);
+		addOptional(result, "OutfitPoolGroup", "OutfitPoolGroup", "basic", null);
+		addOptional(result, "StructurePool", "StructurePool", "basic", null);
 		addOptional(result, "CompositionPool", "CompositionPool", "basic", null);
 
 		return Collections.unmodifiableMap(result);

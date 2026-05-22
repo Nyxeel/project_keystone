@@ -1,0 +1,219 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1900" height="2800" viewBox="0 0 1900 2800">
+<defs>
+  <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+    <feDropShadow dx="0" dy="6" stdDeviation="7" flood-color="#000000" flood-opacity="0.18"/>
+  </filter>
+  <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="10" markerHeight="10" orient="auto-start-reverse">
+    <path d="M 0 0 L 10 5 L 0 10 z" fill="#4b5563"/>
+  </marker>
+  <linearGradient id="titleGrad" x1="0" x2="1" y1="0" y2="0">
+    <stop offset="0%" stop-color="#7C3AED"/>
+    <stop offset="50%" stop-color="#06B6D4"/>
+    <stop offset="100%" stop-color="#22C55E"/>
+  </linearGradient>
+</defs>
+<rect width="100%" height="100%" fill="#F8FAFC"/>
+<rect x="50" y="38" width="1800" height="150" rx="34" fill="url(#titleGrad)" filter="url(#shadow)"/>
+<text x="950" y="100" font-size="44" font-weight="800" text-anchor="middle" fill="white" font-family="Inter, Arial, sans-serif">KeystoneNPC /resources Mindmap</text>
+<text x="950" y="148" font-size="28" font-weight="500" text-anchor="middle" fill="white" opacity="0.95" font-family="Inter, Arial, sans-serif">Auswahlreihenfolge: Biom → Theme → Structure → Composition → NPC → Body/Name/Outfit → Marker → state.json</text>
+
+<g id="legend">
+<text x="70" y="230" font-size="25" font-weight="800" fill="#111827" font-family="Inter, Arial, sans-serif">Legende</text>
+<rect x="70" y="260" width="24" height="24" rx="7" fill="#FFE8A3" stroke="#334155" stroke-opacity="0.25"/>
+<text x="104" y="279" font-size="20" font-weight="600" fill="#334155" font-family="Inter, Arial, sans-serif">Biome</text>
+<rect x="240" y="260" width="24" height="24" rx="7" fill="#B8F7D4" stroke="#334155" stroke-opacity="0.25"/>
+<text x="274" y="279" font-size="20" font-weight="600" fill="#334155" font-family="Inter, Arial, sans-serif">Theme</text>
+<rect x="410" y="260" width="24" height="24" rx="7" fill="#BFD7FF" stroke="#334155" stroke-opacity="0.25"/>
+<text x="444" y="279" font-size="20" font-weight="600" fill="#334155" font-family="Inter, Arial, sans-serif">Structure</text>
+<rect x="580" y="260" width="24" height="24" rx="7" fill="#E1C6FF" stroke="#334155" stroke-opacity="0.25"/>
+<text x="614" y="279" font-size="20" font-weight="600" fill="#334155" font-family="Inter, Arial, sans-serif">Composition</text>
+<rect x="750" y="260" width="24" height="24" rx="7" fill="#FFC6D9" stroke="#334155" stroke-opacity="0.25"/>
+<text x="784" y="279" font-size="20" font-weight="600" fill="#334155" font-family="Inter, Arial, sans-serif">Role/Profile</text>
+<rect x="960" y="260" width="24" height="24" rx="7" fill="#FFD1A8" stroke="#334155" stroke-opacity="0.25"/>
+<text x="994" y="279" font-size="20" font-weight="600" fill="#334155" font-family="Inter, Arial, sans-serif">Body</text>
+<rect x="1130" y="260" width="24" height="24" rx="7" fill="#C8F7F4" stroke="#334155" stroke-opacity="0.25"/>
+<text x="1164" y="279" font-size="20" font-weight="600" fill="#334155" font-family="Inter, Arial, sans-serif">Name</text>
+<rect x="1300" y="260" width="24" height="24" rx="7" fill="#D7F7A8" stroke="#334155" stroke-opacity="0.25"/>
+<text x="1334" y="279" font-size="20" font-weight="600" fill="#334155" font-family="Inter, Arial, sans-serif">Outfit</text>
+<rect x="1470" y="260" width="24" height="24" rx="7" fill="#F7C8FF" stroke="#334155" stroke-opacity="0.25"/>
+<text x="1504" y="279" font-size="20" font-weight="600" fill="#334155" font-family="Inter, Arial, sans-serif">Marker</text>
+<rect x="1640" y="260" width="24" height="24" rx="7" fill="#D9D9FF" stroke="#334155" stroke-opacity="0.25"/>
+<text x="1674" y="279" font-size="20" font-weight="600" fill="#334155" font-family="Inter, Arial, sans-serif">State</text>
+</g>
+<rect x="70" y="335" width="1760" height="110" rx="28" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="2" filter="url(#shadow)"/>
+<text x="105" y="375" font-size="25" font-weight="800" fill="#111827" font-family="Inter, Arial, sans-serif">Merksatz</text>
+<text x="105" y="413" font-size="22" font-weight="500" fill="#1f2937" font-family="Inter, Arial, sans-serif">Biome wählt Theme. Theme wählt Gebäude, Body, Name und Outfit. Composition wählt Rollen und male/female. RoleId wählt Verhalten. state.json</text>
+<text x="105" y="441" font-size="22" font-weight="500" fill="#1f2937" font-family="Inter, Arial, sans-serif">speichert die konkrete NPC-Instanz.</text>
+<rect x="90" y="500" width="820" height="205" rx="26" fill="#FFE8A3" stroke="#334155" stroke-opacity="0.22" stroke-width="2" filter="url(#shadow)"/>
+<circle cx="138" cy="550" r="33" fill="#111827" opacity="0.92"/>
+<text x="138" y="561" font-size="30" font-weight="900" text-anchor="middle" fill="white" font-family="Inter, Arial, sans-serif">1</text>
+<text x="185" y="543" font-size="25" font-weight="800" fill="#111827" font-family="Inter, Arial, sans-serif">Spieler / Chunk ist in einem Biom</text>
+<text x="126" y="596" font-size="19" font-weight="500" fill="#1f2937" font-family="Inter, Arial, sans-serif">• Beispiel: sand_desert</text>
+<text x="126" y="620" font-size="19" font-weight="500" fill="#1f2937" font-family="Inter, Arial, sans-serif">• Auswahl: sand_desert, dry_plains, forest, deep_forest, mountain,</text>
+<text x="126" y="644" font-size="19" font-weight="500" fill="#1f2937" font-family="Inter, Arial, sans-serif">highlands, darklands</text>
+<rect x="118" y="660" width="764" height="34" rx="12" fill="#FFFFFF" opacity="0.72"/>
+<text x="135" y="682" font-size="16" font-weight="700" fill="#334155" font-family="JetBrains Mono, Consolas, monospace">Files: pools/biomes/sand.json | pools/biomes/forest.json | pools/biomes/mountain.json |</text>
+<rect x="990" y="500" width="820" height="205" rx="26" fill="#B8F7D4" stroke="#334155" stroke-opacity="0.22" stroke-width="2" filter="url(#shadow)"/>
+<circle cx="1038" cy="550" r="33" fill="#111827" opacity="0.92"/>
+<text x="1038" y="561" font-size="30" font-weight="900" text-anchor="middle" fill="white" font-family="Inter, Arial, sans-serif">2</text>
+<text x="1085" y="543" font-size="25" font-weight="800" fill="#111827" font-family="Inter, Arial, sans-serif">Biome-Datei setzt Themes</text>
+<text x="1026" y="596" font-size="19" font-weight="500" fill="#1f2937" font-family="Inter, Arial, sans-serif">• StructureTheme = sand</text>
+<text x="1026" y="620" font-size="19" font-weight="500" fill="#1f2937" font-family="Inter, Arial, sans-serif">• BodyTheme = sand</text>
+<text x="1026" y="644" font-size="19" font-weight="500" fill="#1f2937" font-family="Inter, Arial, sans-serif">• OutfitTheme = sand</text>
+<text x="1026" y="668" font-size="19" font-weight="500" fill="#1f2937" font-family="Inter, Arial, sans-serif">• NameTheme = sand</text>
+<rect x="1018" y="660" width="764" height="34" rx="12" fill="#FFFFFF" opacity="0.72"/>
+<text x="1035" y="682" font-size="16" font-weight="700" fill="#334155" font-family="JetBrains Mono, Consolas, monospace">Files: pools/biomes/*.json</text>
+<rect x="90" y="740" width="820" height="205" rx="26" fill="#BFD7FF" stroke="#334155" stroke-opacity="0.22" stroke-width="2" filter="url(#shadow)"/>
+<circle cx="138" cy="790" r="33" fill="#111827" opacity="0.92"/>
+<text x="138" y="801" font-size="30" font-weight="900" text-anchor="middle" fill="white" font-family="Inter, Arial, sans-serif">3</text>
+<text x="185" y="783" font-size="25" font-weight="800" fill="#111827" font-family="Inter, Arial, sans-serif">Structure-Auswahl filtert Gebäude</text>
+<text x="126" y="836" font-size="19" font-weight="500" fill="#1f2937" font-family="Inter, Arial, sans-serif">• Filter: StructureTheme = sand</text>
+<text x="126" y="860" font-size="19" font-weight="500" fill="#1f2937" font-family="Inter, Arial, sans-serif">• Mögliche Ergebnisse: sand_simple_house_shop,</text>
+<text x="126" y="884" font-size="19" font-weight="500" fill="#1f2937" font-family="Inter, Arial, sans-serif">sand_simple_house_blacksmith, sand_simple_house_storage</text>
+<text x="126" y="908" font-size="19" font-weight="500" fill="#1f2937" font-family="Inter, Arial, sans-serif">• Sand-Lumberjack ist bewusst deaktiviert.</text>
+<rect x="118" y="900" width="764" height="34" rx="12" fill="#FFFFFF" opacity="0.72"/>
+<text x="135" y="922" font-size="16" font-weight="700" fill="#334155" font-family="JetBrains Mono, Consolas, monospace">Files: structures/prefabs/sand_worker_house/*.json | structures/prefabs/forest_worker_house/*.json |</text>
+<rect x="990" y="740" width="820" height="205" rx="26" fill="#BFD7FF" stroke="#334155" stroke-opacity="0.22" stroke-width="2" filter="url(#shadow)"/>
+<circle cx="1038" cy="790" r="33" fill="#111827" opacity="0.92"/>
+<text x="1038" y="801" font-size="30" font-weight="900" text-anchor="middle" fill="white" font-family="Inter, Arial, sans-serif">4</text>
+<text x="1085" y="783" font-size="25" font-weight="800" fill="#111827" font-family="Inter, Arial, sans-serif">Eine konkrete Structure wird gewählt</text>
+<text x="1026" y="836" font-size="19" font-weight="500" fill="#1f2937" font-family="Inter, Arial, sans-serif">• Beispiel: sand_simple_house_shop</text>
+<text x="1026" y="860" font-size="19" font-weight="500" fill="#1f2937" font-family="Inter, Arial, sans-serif">• Die Structure kennt: PrefabId, PrefabPath, AllowedBiomes, Contracts,</text>
+<text x="1026" y="884" font-size="19" font-weight="500" fill="#1f2937" font-family="Inter, Arial, sans-serif">Slots, Marker, CompositionPools</text>
+<rect x="1018" y="900" width="764" height="34" rx="12" fill="#FFFFFF" opacity="0.72"/>
+<text x="1035" y="922" font-size="16" font-weight="700" fill="#334155" font-family="JetBrains Mono, Consolas, monospace">Files: structures/prefabs/sand_worker_house/sand_simple_house_shop.json</text>
+<rect x="90" y="980" width="820" height="205" rx="26" fill="#E1C6FF" stroke="#334155" stroke-opacity="0.22" stroke-width="2" filter="url(#shadow)"/>
+<circle cx="138" cy="1030" r="33" fill="#111827" opacity="0.92"/>
+<text x="138" y="1041" font-size="30" font-weight="900" text-anchor="middle" fill="white" font-family="Inter, Arial, sans-serif">5</text>
+<text x="185" y="1023" font-size="25" font-weight="800" fill="#111827" font-family="Inter, Arial, sans-serif">Structure verweist auf CompositionPool</text>
+<text x="126" y="1076" font-size="19" font-weight="500" fill="#1f2937" font-family="Inter, Arial, sans-serif">• Beispiel: simple_house_shop_compositions.json</text>
+<text x="126" y="1100" font-size="19" font-weight="500" fill="#1f2937" font-family="Inter, Arial, sans-serif">• Composition = Welche NPC-Kombination passt in dieses Gebäude?</text>
+<rect x="118" y="1140" width="764" height="34" rx="12" fill="#FFFFFF" opacity="0.72"/>
+<text x="135" y="1162" font-size="16" font-weight="700" fill="#334155" font-family="JetBrains Mono, Consolas, monospace">Files: pools/compositions/simple_house_shop_compositions.json |</text>
+<rect x="990" y="980" width="820" height="205" rx="26" fill="#E1C6FF" stroke="#334155" stroke-opacity="0.22" stroke-width="2" filter="url(#shadow)"/>
+<circle cx="1038" cy="1030" r="33" fill="#111827" opacity="0.92"/>
+<text x="1038" y="1041" font-size="30" font-weight="900" text-anchor="middle" fill="white" font-family="Inter, Arial, sans-serif">6</text>
+<text x="1085" y="1023" font-size="25" font-weight="800" fill="#111827" font-family="Inter, Arial, sans-serif">Composition erzeugt NPC-Slots</text>
+<text x="1026" y="1076" font-size="19" font-weight="500" fill="#1f2937" font-family="Inter, Arial, sans-serif">• trader: RoleId = keystone:trader, HomeSlot = resident_1, WorkSlot =</text>
+<text x="1026" y="1100" font-size="19" font-weight="500" fill="#1f2937" font-family="Inter, Arial, sans-serif">shop_work_1, RequiredSex = any/male/female, RequiredTags = adult +</text>
+<text x="1026" y="1124" font-size="19" font-weight="500" fill="#1f2937" font-family="Inter, Arial, sans-serif">worker + trader</text>
+<text x="1026" y="1148" font-size="19" font-weight="500" fill="#1f2937" font-family="Inter, Arial, sans-serif">• spouse: RoleId = keystone:worker_spouse, RequiredSex = female,</text>
+<text x="1026" y="1172" font-size="19" font-weight="500" fill="#1f2937" font-family="Inter, Arial, sans-serif">RequiredTags = adult + worker</text>
+<rect x="1018" y="1140" width="764" height="34" rx="12" fill="#FFFFFF" opacity="0.72"/>
+<text x="1035" y="1162" font-size="16" font-weight="700" fill="#334155" font-family="JetBrains Mono, Consolas, monospace">Files: pools/compositions/*.json</text>
+<rect x="90" y="1220" width="820" height="205" rx="26" fill="#FFC6D9" stroke="#334155" stroke-opacity="0.22" stroke-width="2" filter="url(#shadow)"/>
+<circle cx="138" cy="1270" r="33" fill="#111827" opacity="0.92"/>
+<text x="138" y="1281" font-size="30" font-weight="900" text-anchor="middle" fill="white" font-family="Inter, Arial, sans-serif">7</text>
+<text x="185" y="1263" font-size="25" font-weight="800" fill="#111827" font-family="Inter, Arial, sans-serif">RoleId lädt NPC-Definition</text>
+<text x="126" y="1316" font-size="19" font-weight="500" fill="#1f2937" font-family="Inter, Arial, sans-serif">• RoleId wählt Verhalten und Profile.</text>
+<text x="126" y="1340" font-size="19" font-weight="500" fill="#1f2937" font-family="Inter, Arial, sans-serif">• Daraus kommen: HytaleRole, Routine, Actions, Movement, Navigation,</text>
+<text x="126" y="1364" font-size="19" font-weight="500" fill="#1f2937" font-family="Inter, Arial, sans-serif">Persistence, SelectionTags</text>
+<rect x="118" y="1380" width="764" height="34" rx="12" fill="#FFFFFF" opacity="0.72"/>
+<text x="135" y="1402" font-size="16" font-weight="700" fill="#334155" font-family="JetBrains Mono, Consolas, monospace">Files: npc/index.json | npc/trader/trader_group.json | npc/lumberjack/lumberjack_group.json |</text>
+<rect x="990" y="1220" width="820" height="205" rx="26" fill="#FFD1A8" stroke="#334155" stroke-opacity="0.22" stroke-width="2" filter="url(#shadow)"/>
+<circle cx="1038" cy="1270" r="33" fill="#111827" opacity="0.92"/>
+<text x="1038" y="1281" font-size="30" font-weight="900" text-anchor="middle" fill="white" font-family="Inter, Arial, sans-serif">8</text>
+<text x="1085" y="1263" font-size="25" font-weight="800" fill="#111827" font-family="Inter, Arial, sans-serif">BodyPoolGroup wählt Body-Datei</text>
+<text x="1026" y="1316" font-size="19" font-weight="500" fill="#1f2937" font-family="Inter, Arial, sans-serif">• Filter: BodyTheme = sand + Sex = male</text>
+<text x="1026" y="1340" font-size="19" font-weight="500" fill="#1f2937" font-family="Inter, Arial, sans-serif">• Ergebnis: pools/body/human/sand_male_body_pool.json</text>
+<text x="1026" y="1364" font-size="19" font-weight="500" fill="#1f2937" font-family="Inter, Arial, sans-serif">• Body enthält auch Grundaussehen: Körper, Haut, Haare, Augen, Gesicht.</text>
+<rect x="1018" y="1380" width="764" height="34" rx="12" fill="#FFFFFF" opacity="0.72"/>
+<text x="1035" y="1402" font-size="16" font-weight="700" fill="#334155" font-family="JetBrains Mono, Consolas, monospace">Files: pools/body/human_body_pool_group.json | pools/body/human/sand_male_body_pool.json |</text>
+<rect x="90" y="1460" width="820" height="205" rx="26" fill="#FFD1A8" stroke="#334155" stroke-opacity="0.22" stroke-width="2" filter="url(#shadow)"/>
+<circle cx="138" cy="1510" r="33" fill="#111827" opacity="0.92"/>
+<text x="138" y="1521" font-size="30" font-weight="900" text-anchor="middle" fill="white" font-family="Inter, Arial, sans-serif">9</text>
+<text x="185" y="1503" font-size="25" font-weight="800" fill="#111827" font-family="Inter, Arial, sans-serif">Konkreter Body wird gewählt</text>
+<text x="126" y="1556" font-size="19" font-weight="500" fill="#1f2937" font-family="Inter, Arial, sans-serif">• Beispiel: sand_male_adult_02</text>
+<text x="126" y="1580" font-size="19" font-weight="500" fill="#1f2937" font-family="Inter, Arial, sans-serif">• Enthält: BodyProfile, Age, SkinTone, HairStyle, HairColor, EyeColor,</text>
+<text x="126" y="1604" font-size="19" font-weight="500" fill="#1f2937" font-family="Inter, Arial, sans-serif">FaceProfile, Tags</text>
+<rect x="118" y="1620" width="764" height="34" rx="12" fill="#FFFFFF" opacity="0.72"/>
+<text x="135" y="1642" font-size="16" font-weight="700" fill="#334155" font-family="JetBrains Mono, Consolas, monospace">Files: pools/body/human/*_body_pool.json</text>
+<rect x="990" y="1460" width="820" height="205" rx="26" fill="#C8F7F4" stroke="#334155" stroke-opacity="0.22" stroke-width="2" filter="url(#shadow)"/>
+<circle cx="1038" cy="1510" r="33" fill="#111827" opacity="0.92"/>
+<text x="1038" y="1521" font-size="30" font-weight="900" text-anchor="middle" fill="white" font-family="Inter, Arial, sans-serif">10</text>
+<text x="1085" y="1503" font-size="25" font-weight="800" fill="#111827" font-family="Inter, Arial, sans-serif">NamePoolGroup wählt Namen-Datei</text>
+<text x="1026" y="1556" font-size="19" font-weight="500" fill="#1f2937" font-family="Inter, Arial, sans-serif">• Filter: NameTheme = sand + Sex = male</text>
+<text x="1026" y="1580" font-size="19" font-weight="500" fill="#1f2937" font-family="Inter, Arial, sans-serif">• Ergebnis: pools/names/human/human_sand_male_name_pool.json</text>
+<rect x="1018" y="1620" width="764" height="34" rx="12" fill="#FFFFFF" opacity="0.72"/>
+<text x="1035" y="1642" font-size="16" font-weight="700" fill="#334155" font-family="JetBrains Mono, Consolas, monospace">Files: pools/names/human/human_name_pool_group.json | pools/names/human/human_*_name_pool.json</text>
+<rect x="90" y="1700" width="820" height="205" rx="26" fill="#C8F7F4" stroke="#334155" stroke-opacity="0.22" stroke-width="2" filter="url(#shadow)"/>
+<circle cx="138" cy="1750" r="33" fill="#111827" opacity="0.92"/>
+<text x="138" y="1761" font-size="30" font-weight="900" text-anchor="middle" fill="white" font-family="Inter, Arial, sans-serif">11</text>
+<text x="185" y="1743" font-size="25" font-weight="800" fill="#111827" font-family="Inter, Arial, sans-serif">Konkreter Name wird gewählt</text>
+<text x="126" y="1796" font-size="19" font-weight="500" fill="#1f2937" font-family="Inter, Arial, sans-serif">• Beispiel: Kharim</text>
+<text x="126" y="1820" font-size="19" font-weight="500" fill="#1f2937" font-family="Inter, Arial, sans-serif">• Name bleibt später stabil und wird in state.json gespeichert.</text>
+<rect x="118" y="1860" width="764" height="34" rx="12" fill="#FFFFFF" opacity="0.72"/>
+<text x="135" y="1882" font-size="16" font-weight="700" fill="#334155" font-family="JetBrains Mono, Consolas, monospace">Files: pools/names/human/*.json</text>
+<rect x="990" y="1700" width="820" height="205" rx="26" fill="#D7F7A8" stroke="#334155" stroke-opacity="0.22" stroke-width="2" filter="url(#shadow)"/>
+<circle cx="1038" cy="1750" r="33" fill="#111827" opacity="0.92"/>
+<text x="1038" y="1761" font-size="30" font-weight="900" text-anchor="middle" fill="white" font-family="Inter, Arial, sans-serif">12</text>
+<text x="1085" y="1743" font-size="25" font-weight="800" fill="#111827" font-family="Inter, Arial, sans-serif">OutfitPoolGroup wählt Outfit-Datei</text>
+<text x="1026" y="1796" font-size="19" font-weight="500" fill="#1f2937" font-family="Inter, Arial, sans-serif">• Filter: OutfitTheme = sand + Sex = male</text>
+<text x="1026" y="1820" font-size="19" font-weight="500" fill="#1f2937" font-family="Inter, Arial, sans-serif">• Ergebnis: pools/outfits/human/sand_male_outfit_pool.json</text>
+<rect x="1018" y="1860" width="764" height="34" rx="12" fill="#FFFFFF" opacity="0.72"/>
+<text x="1035" y="1882" font-size="16" font-weight="700" fill="#334155" font-family="JetBrains Mono, Consolas, monospace">Files: pools/outfits/human_outfit_pool_group.json | pools/outfits/human/*_outfit_pool.json</text>
+<rect x="90" y="1940" width="820" height="205" rx="26" fill="#D7F7A8" stroke="#334155" stroke-opacity="0.22" stroke-width="2" filter="url(#shadow)"/>
+<circle cx="138" cy="1990" r="33" fill="#111827" opacity="0.92"/>
+<text x="138" y="2001" font-size="30" font-weight="900" text-anchor="middle" fill="white" font-family="Inter, Arial, sans-serif">13</text>
+<text x="185" y="1983" font-size="25" font-weight="800" fill="#111827" font-family="Inter, Arial, sans-serif">Outfit-Datei filtert nach Tags</text>
+<text x="126" y="2036" font-size="19" font-weight="500" fill="#1f2937" font-family="Inter, Arial, sans-serif">• RequiredTags sind ein UND-Filter.</text>
+<text x="126" y="2060" font-size="19" font-weight="500" fill="#1f2937" font-family="Inter, Arial, sans-serif">• Trader braucht z. B.: worker + trader</text>
+<text x="126" y="2084" font-size="19" font-weight="500" fill="#1f2937" font-family="Inter, Arial, sans-serif">• Ergebnis: sand_male_trader_outfit_01</text>
+<rect x="118" y="2100" width="764" height="34" rx="12" fill="#FFFFFF" opacity="0.72"/>
+<text x="135" y="2122" font-size="16" font-weight="700" fill="#334155" font-family="JetBrains Mono, Consolas, monospace">Files: pools/outfits/human/sand_male_outfit_pool.json</text>
+<rect x="990" y="1940" width="820" height="205" rx="26" fill="#F7C8FF" stroke="#334155" stroke-opacity="0.22" stroke-width="2" filter="url(#shadow)"/>
+<circle cx="1038" cy="1990" r="33" fill="#111827" opacity="0.92"/>
+<text x="1038" y="2001" font-size="30" font-weight="900" text-anchor="middle" fill="white" font-family="Inter, Arial, sans-serif">14</text>
+<text x="1085" y="1983" font-size="25" font-weight="800" fill="#111827" font-family="Inter, Arial, sans-serif">Marker aus Structure werden zugewiesen</text>
+<text x="1026" y="2036" font-size="19" font-weight="500" fill="#1f2937" font-family="Inter, Arial, sans-serif">• Beispiele: bed -&gt; resident_1.bed, table_seat -&gt; resident_1.table_seat,</text>
+<text x="1026" y="2060" font-size="19" font-weight="500" fill="#1f2937" font-family="Inter, Arial, sans-serif">door -&gt; door, counter -&gt; shop_work_1.counter, storage -&gt;</text>
+<text x="1026" y="2084" font-size="19" font-weight="500" fill="#1f2937" font-family="Inter, Arial, sans-serif">shop_work_1.storage</text>
+<text x="1026" y="2108" font-size="19" font-weight="500" fill="#1f2937" font-family="Inter, Arial, sans-serif">• Wichtig: später konkrete Marker-IDs pro StructureInstance.</text>
+<rect x="1018" y="2100" width="764" height="34" rx="12" fill="#FFFFFF" opacity="0.72"/>
+<text x="1035" y="2122" font-size="16" font-weight="700" fill="#334155" font-family="JetBrains Mono, Consolas, monospace">Files: structures/prefabs/*/*.json | structures/contracts/*.json</text>
+<rect x="90" y="2180" width="820" height="205" rx="26" fill="#D9D9FF" stroke="#334155" stroke-opacity="0.22" stroke-width="2" filter="url(#shadow)"/>
+<circle cx="138" cy="2230" r="33" fill="#111827" opacity="0.92"/>
+<text x="138" y="2241" font-size="30" font-weight="900" text-anchor="middle" fill="white" font-family="Inter, Arial, sans-serif">15</text>
+<text x="185" y="2223" font-size="25" font-weight="800" fill="#111827" font-family="Inter, Arial, sans-serif">state.json speichert konkrete Instanz</text>
+<text x="126" y="2276" font-size="19" font-weight="500" fill="#1f2937" font-family="Inter, Arial, sans-serif">• Speichert später: roleId, selectedBodyId, selectedNameId,</text>
+<text x="126" y="2300" font-size="19" font-weight="500" fill="#1f2937" font-family="Inter, Arial, sans-serif">currentOutfitId, selectedPrefabId, selectedCompositionId,</text>
+<text x="126" y="2324" font-size="19" font-weight="500" fill="#1f2937" font-family="Inter, Arial, sans-serif">structureInstanceId, markerAssignments</text>
+<rect x="118" y="2340" width="764" height="34" rx="12" fill="#FFFFFF" opacity="0.72"/>
+<text x="135" y="2362" font-size="16" font-weight="700" fill="#334155" font-family="JetBrains Mono, Consolas, monospace">Files: state.json später pro Welt</text>
+<path d="M 910 602.5 C 950.0 602.5, 950.0 602.5, 982 602.5" fill="none" stroke="#4B5563" stroke-width="4" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.75"/>
+<path d="M 1400.0 705 C 1400.0 735, 500.0 710, 500.0 732" fill="none" stroke="#4B5563" stroke-width="4" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.75"/>
+<path d="M 910 842.5 C 950.0 842.5, 950.0 842.5, 982 842.5" fill="none" stroke="#4B5563" stroke-width="4" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.75"/>
+<path d="M 1400.0 945 C 1400.0 975, 500.0 950, 500.0 972" fill="none" stroke="#4B5563" stroke-width="4" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.75"/>
+<path d="M 910 1082.5 C 950.0 1082.5, 950.0 1082.5, 982 1082.5" fill="none" stroke="#4B5563" stroke-width="4" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.75"/>
+<path d="M 1400.0 1185 C 1400.0 1215, 500.0 1190, 500.0 1212" fill="none" stroke="#4B5563" stroke-width="4" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.75"/>
+<path d="M 910 1322.5 C 950.0 1322.5, 950.0 1322.5, 982 1322.5" fill="none" stroke="#4B5563" stroke-width="4" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.75"/>
+<path d="M 1400.0 1425 C 1400.0 1455, 500.0 1430, 500.0 1452" fill="none" stroke="#4B5563" stroke-width="4" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.75"/>
+<path d="M 910 1562.5 C 950.0 1562.5, 950.0 1562.5, 982 1562.5" fill="none" stroke="#4B5563" stroke-width="4" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.75"/>
+<path d="M 1400.0 1665 C 1400.0 1695, 500.0 1670, 500.0 1692" fill="none" stroke="#4B5563" stroke-width="4" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.75"/>
+<path d="M 910 1802.5 C 950.0 1802.5, 950.0 1802.5, 982 1802.5" fill="none" stroke="#4B5563" stroke-width="4" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.75"/>
+<path d="M 1400.0 1905 C 1400.0 1935, 500.0 1910, 500.0 1932" fill="none" stroke="#4B5563" stroke-width="4" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.75"/>
+<path d="M 910 2042.5 C 950.0 2042.5, 950.0 2042.5, 982 2042.5" fill="none" stroke="#4B5563" stroke-width="4" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.75"/>
+<path d="M 1400.0 2145 C 1400.0 2175, 500.0 2150, 500.0 2172" fill="none" stroke="#4B5563" stroke-width="4" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.75"/>
+<rect x="70" y="2370" width="560" height="230" rx="28" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="2" filter="url(#shadow)"/>
+<text x="98" y="2412" font-size="25" font-weight="850" fill="#111827" font-family="Inter, Arial, sans-serif">Auswahlmöglichkeiten</text>
+<text x="100" y="2452" font-size="19" font-weight="500" fill="#334155" font-family="Inter, Arial, sans-serif">• Biome: sand / forest / mountain / darklands</text>
+<text x="100" y="2479" font-size="19" font-weight="500" fill="#334155" font-family="Inter, Arial, sans-serif">• Sex: male / female / any</text>
+<text x="100" y="2506" font-size="19" font-weight="500" fill="#334155" font-family="Inter, Arial, sans-serif">• Tags: worker / trader / guard / blacksmith /</text>
+<text x="100" y="2533" font-size="19" font-weight="500" fill="#334155" font-family="Inter, Arial, sans-serif">lumberjack / worker_spouse</text>
+<text x="100" y="2560" font-size="19" font-weight="500" fill="#334155" font-family="Inter, Arial, sans-serif">• Age optional: young / adult / old</text>
+<rect x="670" y="2370" width="560" height="230" rx="28" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="2" filter="url(#shadow)"/>
+<text x="698" y="2412" font-size="25" font-weight="850" fill="#111827" font-family="Inter, Arial, sans-serif">Wichtige Regel</text>
+<text x="700" y="2452" font-size="19" font-weight="500" fill="#334155" font-family="Inter, Arial, sans-serif">• RoleId muss eine aktive NPC-Group haben.</text>
+<text x="700" y="2479" font-size="19" font-weight="500" fill="#334155" font-family="Inter, Arial, sans-serif">• Tags sind keine Rollen. citizen/noble/magic sind</text>
+<text x="700" y="2506" font-size="19" font-weight="500" fill="#334155" font-family="Inter, Arial, sans-serif">Outfit-/Stil-Tags.</text>
+<text x="700" y="2533" font-size="19" font-weight="500" fill="#334155" font-family="Inter, Arial, sans-serif">• RequiredTags = UND-Filter. Alle Tags müssen passen.</text>
+<rect x="1270" y="2370" width="560" height="230" rx="28" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="2" filter="url(#shadow)"/>
+<text x="1298" y="2412" font-size="25" font-weight="850" fill="#111827" font-family="Inter, Arial, sans-serif">Später in state.json</text>
+<text x="1300" y="2452" font-size="19" font-weight="500" fill="#334155" font-family="Inter, Arial, sans-serif">• selectedBodyId</text>
+<text x="1300" y="2479" font-size="19" font-weight="500" fill="#334155" font-family="Inter, Arial, sans-serif">• selectedNameId</text>
+<text x="1300" y="2506" font-size="19" font-weight="500" fill="#334155" font-family="Inter, Arial, sans-serif">• currentOutfitId</text>
+<text x="1300" y="2533" font-size="19" font-weight="500" fill="#334155" font-family="Inter, Arial, sans-serif">• selectedPrefabId</text>
+<text x="1300" y="2560" font-size="19" font-weight="500" fill="#334155" font-family="Inter, Arial, sans-serif">• selectedCompositionId</text>
+<text x="1300" y="2587" font-size="19" font-weight="500" fill="#334155" font-family="Inter, Arial, sans-serif">• markerAssignments</text>
+<text x="950" y="2685" font-size="22" font-weight="700" text-anchor="middle" fill="#475569" font-family="Inter, Arial, sans-serif">Kurz: JSON beschreibt die Vielfalt. Java soll später nur generisch laden, prüfen und ausführen.</text>
+</svg>
