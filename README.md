@@ -1,10 +1,8 @@
 <div align="center">
 
-# 🏰 Project Keystone
+# 🧩 KeyEntityMod
 
-**A modular multiplayer server for citybuilding, player-driven economy, controlled PvP, and long-term progression.**
-
-Keystone is designed to regulate itself through systems rather than constant admin intervention.
+**A Hytale NPC mod: persistent identity, state, roles, routines, and behavior on top of Hytale's native ECS architecture.**
 
 ![Language](https://img.shields.io/badge/language-Java-orange?logo=openjdk&logoColor=white)
 ![Engine](https://img.shields.io/badge/engine-Hytale-blueviolet)
@@ -16,13 +14,11 @@ Keystone is designed to regulate itself through systems rather than constant adm
 
 ## 📖 About
 
-Keystone is a Hytale server project built around modular systems: a self-sustaining, player-driven economy, citybuilding, controlled PvP, and long-term progression — with the server's own systems doing the regulating instead of admins babysitting it 24/7.
-
-**KeyEntityMod** is Keystone's NPC subsystem: a Java mod that gives NPCs persistent identity, state, roles, routines, and behavior on top of Hytale's native ECS (Entity-Component-System) architecture.
+KeyEntityMod is a Java mod for Hytale that gives NPCs a life beyond a single spawned entity: persistent records, roles, routines, and behavior, built on top of Hytale's native ECS (Entity-Component-System) architecture instead of fighting it.
 
 ## 📑 Table of Contents
 
-- [KeyEntityMod — NPC System](#-keyentitymod--npc-system)
+- [Features](#-features)
 - [Design Philosophy](#-design-philosophy)
 - [Architecture (ECS Background)](#-architecture-ecs-background)
 - [Package Structure](#-package-structure)
@@ -31,9 +27,7 @@ Keystone is a Hytale server project built around modular systems: a self-sustain
 - [Requirements](#️-requirements)
 - [Author](#️-author)
 
-## 🧩 KeyEntityMod — NPC System
-
-KeyEntityMod gives NPCs a life beyond a single spawned entity:
+## ✨ Features
 
 - **Persistent NPC records** — role, world, position, marker assignments — survive server restarts via a per-world `state.json`.
 - **Runtime vs. persisted separation** — live entity data (`RuntimeNpc`) is never written to disk; only durable data (`NpcRecord`) is persisted.
