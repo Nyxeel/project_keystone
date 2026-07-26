@@ -1,0 +1,43 @@
+{
+	"Id": "hostile_melee",
+	"Version": 1,
+	"Type": "CombatProfile",
+
+	"CombatId": "hostile_melee",
+
+	"Tags": [
+		"hostile",
+		"melee",
+		"aggressive",
+		"humanoid"
+	],
+
+	"Hostility": {
+		"Hostile": true,
+		"Aggressive": true,
+		"CanStartCombat": true,
+		"CanDefendSelf": true
+	},
+
+	"Targeting": {
+		"DetectHostiles": true,
+		"AttackPlayers": true,
+		"AttackNPCs": false,
+		"AssistAllies": true
+	},
+
+	"Behavior": {
+		"FleeWhenThreatened": false,
+		"UseSafetyMarker": false,
+		"CallForHelp": true,
+		"ReturnToRoutineAfterDanger": false,
+		"ReturnToTerritoryAfterCombat": true
+	},
+
+	"Ranges": {
+		"DetectionRadius": 20.0,
+		"AssistRadius": 24.0,
+		"ChaseRadius": 36.0,
+		"ReturnRadius": 52.0
+	}
+}

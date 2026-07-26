@@ -1,0 +1,71 @@
+{
+	"Id": "blacksmith_actions",
+	"Version": 1,
+	"Type": "ActionProfile",
+
+	"ActionProfileId": "blacksmith_actions",
+
+	"Actions": {
+		"wake_up": {
+			"Animation": "human.wake_up",
+			"Loop": false,
+			"Sound": null,
+			"RequiresCapability": null
+		},
+
+		"eat_meal": {
+			"Animation": "human.eat",
+			"Loop": true,
+			"Sound": "npc.human.eat",
+			"RequiresCapability": null
+		},
+
+		"heat_forge": {
+			"Animation": "blacksmith.heat_forge",
+			"Loop": true,
+			"Sound": "npc.forge.fire",
+			"RequiresCapability": "USE_FORGE"
+		},
+
+		"hammer_metal": {
+			"Animation": "blacksmith.hammer",
+			"Loop": true,
+			"Sound": "npc.blacksmith.hammer",
+			"RequiresCapability": "USE_TOOLS"
+		},
+
+		"cool_metal": {
+			"Animation": "blacksmith.cool_metal",
+			"Loop": false,
+			"Sound": "npc.blacksmith.cool_metal",
+			"RequiresCapability": "USE_FORGE"
+		},
+
+		"idle_home": {
+			"Animation": "human.idle",
+			"Loop": true,
+			"Sound": null,
+			"RequiresCapability": null
+		},
+
+		"sleep": {
+			"Animation": "human.sleep",
+			"Loop": true,
+			"Sound": null,
+			"RequiresCapability": "USE_BED"
+		},
+
+		"flee_to_safety": {
+			"Animation": "human.run",
+			"Loop": true,
+			"Sound": null,
+			"RequiresCapability": null
+		}
+	},
+
+	"Safety": {
+		"ActionIdsMustBeStable": true,
+		"MissingActionBlocksRoutineStep": true,
+		"NeverExecuteActionsInP3": true
+	}
+}

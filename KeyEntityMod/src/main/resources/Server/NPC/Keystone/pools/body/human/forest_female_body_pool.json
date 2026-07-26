@@ -1,0 +1,85 @@
+{
+	"Id": "forest_female_body_pool",
+	"Version": 1,
+	"Type": "BodyPool",
+	"BodyTheme": "forest",
+	"Sex": "female",
+
+	"Entries": [
+		{
+			"Id": "forest_female_adult_01",
+			"Weight": 40,
+			"BodyProfile": "human_female",
+			"Age": "adult",
+			"SkinTone": "warm_light",
+			"HairStyle": "long_braided",
+			"HairColor": "brown",
+			"EyeColor": "green",
+			"FaceProfile": "soft_forest_face",
+			"Tags": [
+				"human",
+				"forest",
+				"female",
+				"adult"
+			]
+		},
+		{
+			"Id": "forest_female_young_01",
+			"Weight": 30,
+			"BodyProfile": "human_female",
+			"Age": "young",
+			"SkinTone": "warm_light",
+			"HairStyle": "long_braided",
+			"HairColor": "brown",
+			"EyeColor": "green",
+			"FaceProfile": "young_forest_face",
+			"Tags": [
+				"human",
+				"forest",
+				"female",
+				"young"
+			]
+		},
+		{
+			"Id": "forest_female_adult_02",
+			"Weight": 35,
+			"BodyProfile": "human_female",
+			"Age": "adult",
+			"SkinTone": "sun_touched",
+			"HairStyle": "medium_tied",
+			"HairColor": "dark_brown",
+			"EyeColor": "hazel",
+			"FaceProfile": "practical_forest_face",
+			"Tags": [
+				"human",
+				"forest",
+				"female",
+				"adult",
+				"worker"
+			]
+		},
+		{
+			"Id": "forest_female_adult_03",
+			"Weight": 25,
+			"BodyProfile": "human_female",
+			"Age": "adult",
+			"SkinTone": "fair",
+			"HairStyle": "loose_wavy",
+			"HairColor": "auburn",
+			"EyeColor": "grey_green",
+			"FaceProfile": "calm_forest_face",
+			"Tags": [
+				"human",
+				"forest",
+				"female",
+				"adult"
+			]
+		}
+	],
+
+	"Safety": {
+		"EntriesMustHaveStableIds": true,
+		"NeverRerollOnRestart": true,
+		"NeverCreateNpcStateInP3": true
+	}
+}

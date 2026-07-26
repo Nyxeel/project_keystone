@@ -1,0 +1,59 @@
+{
+	"Id": "simple_house_blacksmith_compositions",
+	"Version": 1,
+	"Type": "CompositionPool",
+
+	"Entries": [
+		{
+			"Id": "blacksmith_single",
+			"Weight": 70,
+			"Npcs": [
+				{
+					"RoleId": "keystone:blacksmith",
+					"HomeSlot": "resident_1",
+					"WorkSlot": "blacksmith_work_1",
+					"RequiredSex": "any",
+					"RequiredTags": [
+						"adult",
+						"worker",
+						"blacksmith"
+					]
+				}
+			]
+		},
+		{
+			"Id": "blacksmith_with_spouse",
+			"Weight": 30,
+			"Npcs": [
+				{
+					"RoleId": "keystone:blacksmith",
+					"HomeSlot": "resident_1",
+					"WorkSlot": "blacksmith_work_1",
+					"RequiredSex": "any",
+					"RequiredTags": [
+						"adult",
+						"worker",
+						"blacksmith"
+					]
+				},
+				{
+					"RoleId": "keystone:worker_spouse",
+					"HomeSlot": "resident_2",
+					"WorkSlot": null,
+					"RequiredSex": "female",
+					"RequiredTags": [
+						"adult",
+						"worker"
+					]
+				}
+			]
+		}
+	],
+
+	"Safety": {
+		"EntriesMustHaveStableIds": true,
+		"RequiresUniqueHomeSlots": true,
+		"RequiresUniqueWorkSlots": true,
+		"NeverCreateNpcStateInP3": true
+	}
+}

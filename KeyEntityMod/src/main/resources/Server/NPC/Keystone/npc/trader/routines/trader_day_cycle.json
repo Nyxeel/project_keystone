@@ -1,0 +1,111 @@
+{
+	"Id": "trader_day_cycle",
+	"Version": 1,
+	"Type": "RoutineProfile",
+
+	"RoutineId": "trader_day_cycle",
+
+	"Schedule": [
+		{
+			"Id": "morning_wake_up",
+			"TimeStart": "06:00",
+			"TimeEnd": "07:00",
+			"TargetMarker": "bed",
+			"ActionId": "wake_up",
+			"FallbackActionId": "idle_home"
+		},
+		{
+			"Id": "morning_meal",
+			"TimeStart": "07:00",
+			"TimeEnd": "08:00",
+			"TargetMarker": "table_seat",
+			"ActionId": "eat_meal",
+			"FallbackMarker": "idle",
+			"FallbackActionId": "idle_home"
+		},
+		{
+			"Id": "open_shop",
+			"TimeStart": "08:00",
+			"TimeEnd": "09:00",
+			"TargetMarker": "counter",
+			"ActionId": "open_shop",
+			"FallbackMarker": "idle",
+			"FallbackActionId": "idle_home"
+		},
+		{
+			"Id": "trade_with_customers",
+			"TimeStart": "09:00",
+			"TimeEnd": "14:00",
+			"TargetMarker": "counter",
+			"ActionId": "sell_goods",
+			"FallbackMarker": "idle",
+			"FallbackActionId": "idle_home"
+		},
+		{
+			"Id": "restock_goods",
+			"TimeStart": "14:00",
+			"TimeEnd": "15:00",
+			"TargetMarker": "storage",
+			"ActionId": "restock_storage",
+			"FallbackMarker": "counter",
+			"FallbackActionId": "sell_goods"
+		},
+		{
+			"Id": "late_shop_hours",
+			"TimeStart": "15:00",
+			"TimeEnd": "18:00",
+			"TargetMarker": "customer_spot",
+			"ActionId": "serve_customer",
+			"FallbackMarker": "counter",
+			"FallbackActionId": "sell_goods"
+		},
+		{
+			"Id": "close_shop",
+			"TimeStart": "18:00",
+			"TimeEnd": "19:00",
+			"TargetMarker": "counter",
+			"ActionId": "close_shop",
+			"FallbackMarker": "idle",
+			"FallbackActionId": "idle_home"
+		},
+		{
+			"Id": "evening_home_idle",
+			"TimeStart": "19:00",
+			"TimeEnd": "21:00",
+			"TargetMarker": "idle",
+			"ActionId": "idle_home",
+			"FallbackActionId": "idle_home"
+		},
+		{
+			"Id": "night_sleep",
+			"TimeStart": "21:00",
+			"TimeEnd": "06:00",
+			"TargetMarker": "bed",
+			"ActionId": "sleep",
+			"FallbackMarker": "idle",
+			"FallbackActionId": "idle_home"
+		}
+	],
+
+	"EventFallbacks": {
+		"Raid": {
+			"TargetMarker": "safety_zone",
+			"ActionId": "flee_to_safety"
+		},
+		"MarketOpen": {
+			"TargetMarker": "market_stall",
+			"ActionId": "visit_market",
+			"FallbackMarker": "counter",
+			"FallbackActionId": "sell_goods"
+		}
+	},
+
+	"Safety": {
+		"RoutineUsesOnlyKnownActionIds": true,
+		"RoutineUsesOnlyAllowedMarkers": true,
+		"MissingRequiredStepBlocksRoutine": true,
+		"OptionalEventMarkerMayUseFallback": true,
+		"NeverResumeOldRuntimeProgressBlindly": true,
+		"NeverExecuteRoutineInP3": true
+	}
+}

@@ -1,0 +1,31 @@
+{
+	"Id": "human_old_male",
+	"Version": 1,
+	"Type": "BodyProfile",
+
+	"SpeciesId": "human",
+
+	"BodyTags": [
+		"human",
+		"old_male",
+		"adult"
+	],
+
+	"Display": {
+		"FallbackName": "Human old_male",
+		"NameTranslationKey": "keystone.body.human_old_male.name"
+	},
+
+	"AppearanceParts": {
+		"Value": "Player",
+		"BodyCharacteristic": "Default.33",
+		"Face": "Face_Default",
+		"Ears": "Default",
+		"Mouth": "Mouth_Default",
+		"Haircut": "Short.Brown",
+		"FacialHair": null,
+		"Eyebrows": "Default.Brown",
+		"Eyes": "Default.Brown",
+		"SkinFeature": null
+	}
+}

@@ -1,0 +1,186 @@
+{
+	"Id": "forest_female_outfit_pool",
+	"Version": 1,
+	"Type": "OutfitPool",
+	"OutfitTheme": "forest",
+	"Sex": "female",
+	"SupportedTags": [
+		"worker",
+		"citizen",
+		"noble",
+		"magic",
+		"guard",
+		"trader",
+		"lumberjack",
+		"blacksmith"
+	],
+
+	"Entries": [
+		{
+			"Id": "forest_female_worker_brown",
+			"Weight": 30,
+			"RequiredTags": [
+				"worker"
+			],
+			"OutfitParts": {
+				"Underwear": "Suit.Turquoise",
+				"Pants": "CostumePants.Brown",
+				"Overpants": null,
+				"Undertop": "Crinkled_Top.Beige",
+				"Overtop": "WorkerVest.Brown",
+				"Shoes": "BasicShoes_Buckle.Brown",
+				"HeadAccessory": null,
+				"FaceAccessory": null,
+				"EarAccessory": null,
+				"Gloves": "WorkerGloves.Brown",
+				"Cape": null
+			}
+		},
+		{
+			"Id": "forest_female_lumberjack_green",
+			"Weight": 30,
+			"RequiredTags": [
+				"lumberjack"
+			],
+			"OutfitParts": {
+				"Underwear": "Suit.Turquoise",
+				"Pants": "CostumePants.DarkGreen",
+				"Overpants": null,
+				"Undertop": "Crinkled_Top.Beige",
+				"Overtop": "WorkerVest.Green",
+				"Shoes": "BasicShoes_Buckle.Brown",
+				"HeadAccessory": null,
+				"FaceAccessory": null,
+				"EarAccessory": null,
+				"Gloves": "WorkerGloves.Brown",
+				"Cape": null
+			}
+		},
+		{
+			"Id": "forest_female_blacksmith_dark",
+			"Weight": 20,
+			"RequiredTags": [
+				"blacksmith"
+			],
+			"OutfitParts": {
+				"Underwear": "Suit.Turquoise",
+				"Pants": "CostumePants.Black",
+				"Overpants": null,
+				"Undertop": "Crinkled_Top.DarkGrey",
+				"Overtop": "WorkerApron.Black",
+				"Shoes": "BasicShoes_Buckle.Black",
+				"HeadAccessory": null,
+				"FaceAccessory": null,
+				"EarAccessory": null,
+				"Gloves": "WorkerGloves.Black",
+				"Cape": null
+			}
+		},
+		{
+			"Id": "forest_female_trader_green",
+			"Weight": 15,
+			"RequiredTags": [
+				"trader"
+			],
+			"OutfitParts": {
+				"Underwear": "Suit.Turquoise",
+				"Pants": "CostumePants.Brown",
+				"Overpants": null,
+				"Undertop": "Crinkled_Top.White",
+				"Overtop": "MerchantVest.Green",
+				"Shoes": "BasicShoes_Buckle.Brown",
+				"HeadAccessory": null,
+				"FaceAccessory": null,
+				"EarAccessory": null,
+				"Gloves": null,
+				"Cape": null
+			}
+		},
+		{
+			"Id": "forest_female_guard_darkgreen",
+			"Weight": 5,
+			"RequiredTags": [
+				"guard"
+			],
+			"OutfitParts": {
+				"Underwear": "Suit.Turquoise",
+				"Pants": "CostumePants.DarkGreen",
+				"Overpants": null,
+				"Undertop": "Crinkled_Top.Grey",
+				"Overtop": "HeavyWorkerVest.DarkBrown",
+				"Shoes": "BasicShoes_Buckle.Black",
+				"HeadAccessory": null,
+				"FaceAccessory": null,
+				"EarAccessory": null,
+				"Gloves": "WorkerGloves.Black",
+				"Cape": null
+			}
+		},
+		{
+			"Id": "forest_female_citizen_moss",
+			"Weight": 20,
+			"RequiredTags": [
+				"citizen"
+			],
+			"OutfitParts": {
+				"Underwear": "Suit.Turquoise",
+				"Pants": "CostumePants.Brown",
+				"Overpants": null,
+				"Undertop": "Crinkled_Top.LightGrey",
+				"Overtop": "CommonerTunic.ForestGreen",
+				"Shoes": "BasicShoes_Buckle.Brown",
+				"HeadAccessory": null,
+				"FaceAccessory": null,
+				"EarAccessory": null,
+				"Gloves": null,
+				"Cape": null
+			}
+		},
+		{
+			"Id": "forest_female_noble_verdant",
+			"Weight": 8,
+			"RequiredTags": [
+				"noble"
+			],
+			"OutfitParts": {
+				"Underwear": "Suit.Turquoise",
+				"Pants": "CostumePants.DarkBrown",
+				"Overpants": null,
+				"Undertop": "FineShirt.Cream",
+				"Overtop": "NobleCoat.ForestGreen",
+				"Shoes": "FineBoots.Brown",
+				"HeadAccessory": null,
+				"FaceAccessory": null,
+				"EarAccessory": "Earring.GoldSmall",
+				"Gloves": "FineGloves.Brown",
+				"Cape": "Cape.ForestGreen"
+			}
+		},
+		{
+			"Id": "forest_female_magic_druidic",
+			"Weight": 8,
+			"RequiredTags": [
+				"magic"
+			],
+			"OutfitParts": {
+				"Underwear": "Suit.Turquoise",
+				"Pants": "CostumePants.DarkGreen",
+				"Overpants": null,
+				"Undertop": "MageUndertop.Brown",
+				"Overtop": "MageRobe.MossGreen",
+				"Shoes": "BasicShoes_Buckle.Brown",
+				"HeadAccessory": null,
+				"FaceAccessory": null,
+				"EarAccessory": null,
+				"Gloves": "MageGloves.Brown",
+				"Cape": "Cape.MossGreen"
+			}
+		}
+
+	],
+
+	"Safety": {
+		"EntriesMustHaveStableIds": true,
+		"NeverRerollOnRestart": true
+	}
+}

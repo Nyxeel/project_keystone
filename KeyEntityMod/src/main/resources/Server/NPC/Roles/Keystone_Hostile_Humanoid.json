@@ -1,0 +1,23 @@
+{
+	"Id": "Keystone_Hostile_Humanoid",
+	"Version": 1,
+	"Type": "NpcRole",
+
+	"Reference": "Template_Human_Friendly",
+
+	"Description": "Generic Keystone hostile humanoid engine role. Keystone RoleIds such as bandit_guard, bandit_leader or hostile_guard may share this HytaleRole and customize behavior through combat, territory, patrol and outfit profiles.",
+
+	"Appearance": "Player",
+
+	"MotionControllerList": [
+		"Walk"
+	],
+
+	"Instructions": {
+		"UsePathfinder": true,
+		"CanOpenDoors": true,
+		"CanUseBasicInteractions": true,
+		"CanUseCombatInteractions": true,
+		"HostileByDefault": true
+	}
+}

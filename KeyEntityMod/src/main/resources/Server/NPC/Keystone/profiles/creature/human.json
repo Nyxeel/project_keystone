@@ -1,0 +1,22 @@
+{
+	"Id": "human",
+	"Version": 1,
+	"Type": "CreatureTypeProfile",
+	"CreatureTypeId": "human",
+
+	"Display": {
+		"FallbackName": "Human",
+		"NameTranslationKey": "keystone.creature.human.name"
+	},
+
+	"Tags": [
+		"humanoid",
+		"civilized",
+		"village",
+		"city"
+	],
+
+	"AllowedBodyTags": [
+		"human"
+	]
+}

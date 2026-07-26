@@ -1,0 +1,16 @@
+{
+	"Id": "darklands",
+	"Version": 1,
+	"Type": "BiomeTheme",
+
+	"StructureTheme": "darklands",
+	"BodyTheme": "darklands",
+	"OutfitTheme": "darklands",
+	"NameTheme": "darklands",
+
+	"Safety": {
+		"ThemeIdsMustBeStable": true,
+		"NeverRerollOnRestart": true,
+		"NeverCreateNpcStateInP3": true
+	}
+}

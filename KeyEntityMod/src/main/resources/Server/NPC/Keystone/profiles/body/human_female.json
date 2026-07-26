@@ -1,0 +1,31 @@
+{
+	"Id": "human_female",
+	"Version": 1,
+	"Type": "BodyProfile",
+
+	"SpeciesId": "human",
+
+	"BodyTags": [
+		"human",
+		"female",
+		"adult"
+	],
+
+	"Display": {
+		"FallbackName": "Human female",
+		"NameTranslationKey": "keystone.body.human_female.name"
+	},
+
+	"AppearanceParts": {
+		"Value": "Player",
+		"BodyCharacteristic": "Default.33",
+		"Face": "Face_Default",
+		"Ears": "Default",
+		"Mouth": "Mouth_Default",
+		"Haircut": "Short.Brown",
+		"FacialHair": null,
+		"Eyebrows": "Default.Brown",
+		"Eyes": "Default.Brown",
+		"SkinFeature": null
+	}
+}

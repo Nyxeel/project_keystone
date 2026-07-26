@@ -1,0 +1,39 @@
+{
+	"Id": "persistent_citizen",
+	"Version": 1,
+	"Type": "PersistenceProfile",
+
+	"PersistenceId": "persistent_citizen",
+
+	"Persistent": true,
+
+	"Save": {
+		"SavePosition": true,
+		"SaveState": true,
+		"SaveHome": true,
+		"SaveRoutineProgress": false,
+		"SaveMarkerAssignments": true,
+		"SaveSelectedBody": true,
+		"SaveSelectedName": true,
+		"SaveCurrentOutfit": true,
+		"SaveSelectedComposition": true
+	},
+
+	"Respawn": {
+		"RespawnAfterRestart": true,
+		"RespawnOnlyIfDefinitionValid": true,
+		"RespawnOnlyIfBindingValid": true,
+		"RespawnOnlyIfChunkLoaded": true
+	},
+
+	"Despawn": {
+		"DespawnWhenFarAway": false,
+		"KeepRecordWhenMissing": true
+	},
+
+	"Safety": {
+		"NeverOverwriteStateOnLoadFailure": true,
+		"NeverDeleteRecordOnDefinitionMissing": true,
+		"NeverRerollPoolsOnRestart": true
+	}
+}

@@ -1,0 +1,38 @@
+{
+	"Id": "outpost_contract",
+	"Version": 1,
+	"Type": "StructureContract",
+
+	"ContractId": "OutpostContract",
+
+	"Purpose": "Provides a defensive outpost structure for guard and scout NPC roles.",
+
+	"RequiredSlots": {
+		"GuardPostSlots": 1
+	},
+
+	"RequiredMarkers": [
+		"door",
+		"safety_zone",
+		"gather_point"
+	],
+
+	"OptionalMarkers": [
+		"food_source",
+		"watch_point"
+	],
+
+	"MarkerUsage": {
+		"door": "Shared",
+		"safety_zone": "Shared",
+		"gather_point": "Shared",
+		"food_source": "Shared",
+		"watch_point": "Exclusive"
+	},
+
+	"Safety": {
+		"RequiresGuardPostSlot": true,
+		"RequiresSafetyMarker": true,
+		"DoNotDeleteNpcIfOutpostMissing": true
+	}
+}

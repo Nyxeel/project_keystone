@@ -1,0 +1,185 @@
+{
+	"Id": "sand_male_outfit_pool",
+	"Version": 1,
+	"Type": "OutfitPool",
+	"OutfitTheme": "sand",
+	"Sex": "male",
+	"SupportedTags": [
+		"worker",
+		"citizen",
+		"noble",
+		"magic",
+		"guard",
+		"trader",
+		"blacksmith"
+	],
+
+
+	"Entries": [
+		{
+			"Id": "sand_male_worker_beige",
+			"Weight": 30,
+			"RequiredTags": [
+				"worker"
+			],
+			"OutfitParts": {
+				"Underwear": "Suit.Turquoise",
+				"Pants": "CostumePants.Beige",
+				"Overpants": null,
+				"Undertop": "Crinkled_Top.White",
+				"Overtop": "WorkerVest.Beige",
+				"Shoes": "BasicShoes_Buckle.Brown",
+				"HeadAccessory": null,
+				"FaceAccessory": null,
+				"EarAccessory": null,
+				"Gloves": "WorkerGloves.Brown",
+				"Cape": null
+			}
+		},
+		{
+			"Id": "sand_male_worker_brown",
+			"Weight": 30,
+			"RequiredTags": [
+				"worker"
+			],
+			"OutfitParts": {
+				"Underwear": "Suit.Turquoise",
+				"Pants": "CostumePants.Brown",
+				"Overpants": null,
+				"Undertop": "Crinkled_Top.Beige",
+				"Overtop": "WorkerVest.Brown",
+				"Shoes": "BasicShoes_Buckle.Brown",
+				"HeadAccessory": null,
+				"FaceAccessory": null,
+				"EarAccessory": null,
+				"Gloves": "WorkerGloves.Brown",
+				"Cape": null
+			}
+		},
+		{
+			"Id": "sand_male_blacksmith_dark",
+			"Weight": 20,
+			"RequiredTags": [
+				"blacksmith"
+			],
+			"OutfitParts": {
+				"Underwear": "Suit.Turquoise",
+				"Pants": "CostumePants.Black",
+				"Overpants": null,
+				"Undertop": "Crinkled_Top.DarkGrey",
+				"Overtop": "WorkerApron.Brown",
+				"Shoes": "BasicShoes_Buckle.Black",
+				"HeadAccessory": null,
+				"FaceAccessory": null,
+				"EarAccessory": null,
+				"Gloves": "WorkerGloves.Black",
+				"Cape": null
+			}
+		},
+		{
+			"Id": "sand_male_trader_white",
+			"Weight": 15,
+			"RequiredTags": [
+				"trader"
+			],
+			"OutfitParts": {
+				"Underwear": "Suit.Turquoise",
+				"Pants": "CostumePants.Beige",
+				"Overpants": null,
+				"Undertop": "Crinkled_Top.White",
+				"Overtop": "MerchantVest.Beige",
+				"Shoes": "BasicShoes_Buckle.Brown",
+				"HeadAccessory": null,
+				"FaceAccessory": null,
+				"EarAccessory": null,
+				"Gloves": null,
+				"Cape": null
+			}
+		},
+		{
+			"Id": "sand_male_guard_brown",
+			"Weight": 5,
+			"RequiredTags": [
+				"guard"
+			],
+			"OutfitParts": {
+				"Underwear": "Suit.Turquoise",
+				"Pants": "CostumePants.Brown",
+				"Overpants": null,
+				"Undertop": "Crinkled_Top.Grey",
+				"Overtop": "HeavyWorkerVest.Brown",
+				"Shoes": "BasicShoes_Buckle.Black",
+				"HeadAccessory": null,
+				"FaceAccessory": null,
+				"EarAccessory": null,
+				"Gloves": "WorkerGloves.Black",
+				"Cape": null
+			}
+		},
+		{
+			"Id": "sand_male_citizen_linen",
+			"Weight": 20,
+			"RequiredTags": [
+				"citizen"
+			],
+			"OutfitParts": {
+				"Underwear": "Suit.Turquoise",
+				"Pants": "CostumePants.Sand",
+				"Overpants": null,
+				"Undertop": "Crinkled_Top.LightGrey",
+				"Overtop": "CommonerTunic.Sand",
+				"Shoes": "BasicShoes_Buckle.Brown",
+				"HeadAccessory": "HeadWrap.Sand",
+				"FaceAccessory": null,
+				"EarAccessory": null,
+				"Gloves": null,
+				"Cape": null
+			}
+		},
+		{
+			"Id": "sand_male_noble_suncloth",
+			"Weight": 8,
+			"RequiredTags": [
+				"noble"
+			],
+			"OutfitParts": {
+				"Underwear": "Suit.Turquoise",
+				"Pants": "CostumePants.Cream",
+				"Overpants": null,
+				"Undertop": "FineShirt.White",
+				"Overtop": "NobleCoat.GoldSand",
+				"Shoes": "FineBoots.Brown",
+				"HeadAccessory": "HeadWrap.Gold",
+				"FaceAccessory": null,
+				"EarAccessory": null,
+				"Gloves": "FineGloves.Cream",
+				"Cape": "Cape.SandGold"
+			}
+		},
+		{
+			"Id": "sand_male_magic_sunfire",
+			"Weight": 8,
+			"RequiredTags": [
+				"magic"
+			],
+			"OutfitParts": {
+				"Underwear": "Suit.Turquoise",
+				"Pants": "CostumePants.Sand",
+				"Overpants": null,
+				"Undertop": "MageUndertop.Cream",
+				"Overtop": "MageRobe.Sunfire",
+				"Shoes": "BasicShoes_Buckle.Brown",
+				"HeadAccessory": "Hood.Sand",
+				"FaceAccessory": null,
+				"EarAccessory": null,
+				"Gloves": "MageGloves.Sand",
+				"Cape": "Cape.Sunfire"
+			}
+		}
+	],
+
+	"Safety": {
+		"EntriesMustHaveStableIds": true,
+		"NeverRerollOnRestart": true
+	}
+}

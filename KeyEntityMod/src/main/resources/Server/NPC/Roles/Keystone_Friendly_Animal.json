@@ -1,0 +1,23 @@
+{
+	"Id": "Keystone_Friendly_Animal",
+	"Version": 1,
+	"Type": "NpcRole",
+
+	"Reference": "Template_Animal_Friendly",
+
+	"Description": "Generic Keystone friendly animal engine role. Keystone RoleIds such as village_dog, farm_animal or pet may share this HytaleRole and customize behavior through species, body, movement and routine profiles.",
+
+	"Appearance": "Animal",
+
+	"MotionControllerList": [
+		"Walk"
+	],
+
+	"Instructions": {
+		"UsePathfinder": true,
+		"CanOpenDoors": false,
+		"CanUseBasicInteractions": false,
+		"CanUseCombatInteractions": false,
+		"HostileByDefault": false
+	}
+}

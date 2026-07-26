@@ -1,0 +1,24 @@
+{
+	"Id": "sand",
+	"Version": 1,
+	"Type": "BiomeTheme",
+
+	"BiomeIds": [
+		"sand_desert",
+		"sand_dunes",
+		"sand_rocky_desert"
+	],
+
+	"Themes": {
+		"StructureTheme": "sand",
+		"BodyTheme": "sand",
+		"OutfitTheme": "sand",
+		"NameTheme": "sand"
+	},
+
+	"Safety": {
+		"ThemeIdsMustBeStable": true,
+		"NeverRerollOnRestart": true,
+		"NeverCreateNpcStateInP3": true
+	}
+}

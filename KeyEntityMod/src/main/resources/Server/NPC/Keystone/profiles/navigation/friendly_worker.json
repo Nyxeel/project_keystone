@@ -1,0 +1,38 @@
+{
+	"Id": "friendly_worker",
+	"Version": 1,
+	"Type": "NavigationProfile",
+
+	"NavigationId": "friendly_worker",
+
+	"Tags": [
+		"friendly",
+		"worker",
+		"ground",
+		"daily_routine"
+	],
+
+	"Pathfinder": {
+		"Enabled": true,
+		"CanOpenDoors": true,
+		"PreferSafePaths": true,
+		"AvoidDanger": true,
+		"AvoidWater": true,
+		"AllowOutdoorPaths": true,
+		"AllowIndoorPaths": true
+	},
+
+	"Targeting": {
+		"DefaultStopDistance": 0.5,
+		"InteractionDistance": 1.25,
+		"MarkerSearchRadius": 32.0,
+		"PoiSearchRadius": 48.0
+	},
+
+	"Recovery": {
+		"RetryPathAfterTicks": 40,
+		"MaxFailedPathAttempts": 3,
+		"FallbackToIdleMarker": true,
+		"ReturnHomeIfLost": true
+	}
+}

@@ -1,0 +1,26 @@
+{
+	"Id": "village",
+	"Version": 1,
+	"Type": "StructureTag",
+
+	"TagId": "village",
+
+	"Purpose": "Marks structures that are suitable for rural villages, countryside settlements or small worker areas.",
+
+	"Category": "RegionStyle",
+
+	"CompatibleTags": [
+		"wood",
+		"worker",
+		"small",
+		"medium"
+	],
+
+	"PreferredFor": [
+		"lumberjack",
+		"farmer",
+		"worker_spouse",
+		"citizen",
+		"child"
+	]
+}

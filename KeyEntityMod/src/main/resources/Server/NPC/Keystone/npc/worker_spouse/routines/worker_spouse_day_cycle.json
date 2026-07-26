@@ -1,0 +1,109 @@
+{
+	"Id": "worker_spouse_day_cycle",
+	"Version": 1,
+	"Type": "RoutineProfile",
+
+	"RoutineId": "worker_spouse_day_cycle",
+
+	"Schedule": [
+		{
+			"Id": "morning_wake_up",
+			"TimeStart": "06:00",
+			"TimeEnd": "07:00",
+			"TargetMarker": "bed",
+			"ActionId": "wake_up",
+			"FallbackMarker": "idle",
+			"FallbackActionId": "idle_home"
+		},
+		{
+			"Id": "morning_meal",
+			"TimeStart": "07:00",
+			"TimeEnd": "08:00",
+			"TargetMarker": "table_seat",
+			"ActionId": "eat_meal",
+			"FallbackMarker": "idle",
+			"FallbackActionId": "idle_home"
+		},
+		{
+			"Id": "morning_house_work",
+			"TimeStart": "08:00",
+			"TimeEnd": "11:00",
+			"TargetMarker": "idle",
+			"ActionId": "do_house_work",
+			"FallbackActionId": "idle_home"
+		},
+		{
+			"Id": "midday_fetch_water",
+			"TimeStart": "11:00",
+			"TimeEnd": "12:00",
+			"TargetMarker": "well",
+			"ActionId": "fetch_water",
+			"FallbackMarker": "idle",
+			"FallbackActionId": "idle_home"
+		},
+		{
+			"Id": "midday_meal",
+			"TimeStart": "12:00",
+			"TimeEnd": "13:00",
+			"TargetMarker": "table_seat",
+			"ActionId": "eat_meal",
+			"FallbackMarker": "idle",
+			"FallbackActionId": "idle_home"
+		},
+		{
+			"Id": "afternoon_worker_support",
+			"TimeStart": "13:00",
+			"TimeEnd": "16:00",
+			"TargetMarker": "idle",
+			"ActionId": "support_worker_home",
+			"FallbackActionId": "idle_home"
+		},
+		{
+			"Id": "evening_home_idle",
+			"TimeStart": "16:00",
+			"TimeEnd": "20:00",
+			"TargetMarker": "idle",
+			"ActionId": "idle_home",
+			"FallbackActionId": "idle_home"
+		},
+		{
+			"Id": "night_sleep",
+			"TimeStart": "20:00",
+			"TimeEnd": "06:00",
+			"TargetMarker": "bed",
+			"ActionId": "sleep",
+			"FallbackMarker": "idle",
+			"FallbackActionId": "idle_home"
+		}
+	],
+
+	"EventFallbacks": {
+		"Raid": {
+			"TargetMarker": "safety_zone",
+			"ActionId": "flee_to_safety",
+			"FallbackMarker": "idle",
+			"FallbackActionId": "idle_home"
+		},
+		"Gather": {
+			"TargetMarker": "gather_point",
+			"ActionId": "join_gathering",
+			"FallbackMarker": "idle",
+			"FallbackActionId": "idle_home"
+		},
+		"MarketOpen": {
+			"TargetMarker": "market_stall",
+			"ActionId": "visit_market",
+			"FallbackMarker": "idle",
+			"FallbackActionId": "idle_home"
+		}
+	},
+
+	"Safety": {
+		"RoutineUsesOnlyKnownActionIds": true,
+		"RoutineUsesOnlyAllowedMarkers": true,
+		"MissingRequiredStepBlocksRoutine": true,
+		"OptionalMarkerMayFallback": true,
+		"NeverResumeOldRuntimeProgressBlindly": true,
+		"NeverExecuteRoutineInP3": true
+	}
+}

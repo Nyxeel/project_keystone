@@ -1,0 +1,86 @@
+{
+	"Id": "blacksmith_day_cycle",
+	"Version": 1,
+	"Type": "RoutineProfile",
+
+	"RoutineId": "blacksmith_day_cycle",
+
+	"Schedule": [
+		{
+			"Id": "morning_wake_up",
+			"TimeStart": "06:00",
+			"TimeEnd": "07:00",
+			"TargetMarker": "bed",
+			"ActionId": "wake_up",
+			"FallbackActionId": "idle_home"
+		},
+		{
+			"Id": "morning_meal",
+			"TimeStart": "07:00",
+			"TimeEnd": "08:00",
+			"TargetMarker": "table_seat",
+			"ActionId": "eat_meal",
+			"FallbackMarker": "idle",
+			"FallbackActionId": "idle_home"
+		},
+		{
+			"Id": "heat_forge",
+			"TimeStart": "08:00",
+			"TimeEnd": "10:00",
+			"TargetMarker": "forge",
+			"ActionId": "heat_forge",
+			"FallbackMarker": "idle",
+			"FallbackActionId": "idle_home"
+		},
+		{
+			"Id": "hammer_metal",
+			"TimeStart": "10:00",
+			"TimeEnd": "14:00",
+			"TargetMarker": "anvil",
+			"ActionId": "hammer_metal",
+			"FallbackMarker": "idle",
+			"FallbackActionId": "idle_home"
+		},
+		{
+			"Id": "cool_metal",
+			"TimeStart": "14:00",
+			"TimeEnd": "15:00",
+			"TargetMarker": "cooling_barrel",
+			"ActionId": "cool_metal",
+			"FallbackMarker": "idle",
+			"FallbackActionId": "idle_home"
+		},
+		{
+			"Id": "evening_home_idle",
+			"TimeStart": "15:00",
+			"TimeEnd": "20:00",
+			"TargetMarker": "idle",
+			"ActionId": "idle_home",
+			"FallbackActionId": "idle_home"
+		},
+		{
+			"Id": "night_sleep",
+			"TimeStart": "20:00",
+			"TimeEnd": "06:00",
+			"TargetMarker": "bed",
+			"ActionId": "sleep",
+			"FallbackMarker": "idle",
+			"FallbackActionId": "idle_home"
+		}
+	],
+
+	"EventFallbacks": {
+		"Raid": {
+			"TargetMarker": "safety_zone",
+			"ActionId": "flee_to_safety"
+		}
+	},
+
+	"Safety": {
+		"RoutineUsesOnlyKnownActionIds": true,
+		"RoutineUsesOnlyAllowedMarkers": true,
+		"MissingRequiredStepBlocksRoutine": true,
+		"NeverResumeOldRuntimeProgressBlindly": true,
+		"NeverExecuteRoutineInP3": true
+	}
+}

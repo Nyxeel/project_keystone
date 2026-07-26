@@ -1,0 +1,17 @@
+
+{
+	"Id": "forest",
+	"Version": 1,
+	"Type": "BiomeTheme",
+
+	"StructureTheme": "forest",
+	"BodyTheme": "forest",
+	"OutfitTheme": "forest",
+	"NameTheme": "forest",
+
+	"Safety": {
+		"ThemeIdsMustBeStable": true,
+		"NeverRerollOnRestart": true,
+		"NeverCreateNpcStateInP3": true
+	}
+}

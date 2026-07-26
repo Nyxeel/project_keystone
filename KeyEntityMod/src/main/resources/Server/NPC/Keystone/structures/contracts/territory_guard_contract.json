@@ -1,0 +1,47 @@
+{
+	"Id": "territory_guard_contract",
+	"Version": 1,
+	"Type": "TerritoryContract",
+
+	"ContractId": "TerritoryGuardContract",
+
+	"Purpose": "Provides guard, patrol and spawn anchor requirements for territory-bound hostile or defensive NPCs.",
+
+	"RequiredAnchors": {
+		"SpawnAnchors": 1
+	},
+
+	"OptionalAnchors": {
+		"LeaderAnchors": 0
+	},
+
+	"RequiredMarkers": [
+		"territory_center",
+		"return_anchor"
+	],
+
+	"OptionalMarkers": [
+		"patrol_1",
+		"patrol_2",
+		"patrol_3",
+		"alarm_point",
+		"defense_point"
+	],
+
+	"MarkerUsage": {
+		"territory_center": "Shared",
+		"return_anchor": "Shared",
+		"patrol_1": "Temporary",
+		"patrol_2": "Temporary",
+		"patrol_3": "Temporary",
+		"alarm_point": "Shared",
+		"defense_point": "Shared"
+	},
+
+	"Safety": {
+		"RequiresSpawnAnchor": true,
+		"RequiresTerritoryCenter": true,
+		"BlockSpawnIfAnchorMissing": true,
+		"DoNotDeleteNpcIfTerritoryMissing": true
+	}
+}

@@ -1,0 +1,62 @@
+{
+	"Id": "human_outfit_pool_group",
+	"Version": 1,
+	"Type": "OutfitPoolGroup",
+
+	"Species": "human",
+
+	"SelectBy": [
+		"OutfitTheme",
+		"Sex"
+	],
+
+	"Entries": [
+		{
+			"OutfitTheme": "sand",
+			"Sex": "male",
+			"Pool": "pools/outfits/human/sand_male_outfit_pool.json"
+		},
+		{
+			"OutfitTheme": "sand",
+			"Sex": "female",
+			"Pool": "pools/outfits/human/sand_female_outfit_pool.json"
+		},
+		{
+			"OutfitTheme": "forest",
+			"Sex": "male",
+			"Pool": "pools/outfits/human/forest_male_outfit_pool.json"
+		},
+		{
+			"OutfitTheme": "forest",
+			"Sex": "female",
+			"Pool": "pools/outfits/human/forest_female_outfit_pool.json"
+		},
+		{
+			"OutfitTheme": "mountain",
+			"Sex": "male",
+			"Pool": "pools/outfits/human/mountain_male_outfit_pool.json"
+		},
+		{
+			"OutfitTheme": "mountain",
+			"Sex": "female",
+			"Pool": "pools/outfits/human/mountain_female_outfit_pool.json"
+		},
+		{
+			"OutfitTheme": "darklands",
+			"Sex": "male",
+			"Pool": "pools/outfits/human/darklands_male_outfit_pool.json"
+		},
+		{
+			"OutfitTheme": "darklands",
+			"Sex": "female",
+			"Pool": "pools/outfits/human/darklands_female_outfit_pool.json"
+		}
+	],
+
+	"Safety": {
+		"FallbackAllowed": false,
+		"PoolRefsMustExist": true,
+		"NeverRerollOnRestart": true,
+		"NeverCreateNpcStateInP3": true
+	}
+}

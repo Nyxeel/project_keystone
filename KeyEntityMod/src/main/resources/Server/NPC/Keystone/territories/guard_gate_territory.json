@@ -1,0 +1,55 @@
+{
+	"Id": "guard_gate_territory",
+	"Version": 1,
+	"Type": "TerritoryProfile",
+
+	"TerritoryId": "guard_gate_territory",
+
+	"Tags": [
+		"guard",
+		"friendly",
+		"gate",
+		"city",
+		"defensive"
+	],
+
+	"Binding": {
+		"BindingType": "TerritoryBound",
+		"RequiresSpawnAnchor": true,
+		"RequiresTerritoryCenter": true,
+		"RequiresStructureInstance": false
+	},
+
+	"Radius": {
+		"TerritoryRadius": 36.0,
+		"PatrolRadius": 24.0,
+		"ChaseRadius": 32.0,
+		"ReturnRadius": 48.0
+	},
+
+	"Spawning": {
+		"MaxNpcCount": 2,
+		"RespawnAllowed": true,
+		"RespawnDelayTicks": 2400,
+		"SpawnOnlyIfChunkLoaded": true
+	},
+
+	"RolePool": [
+		{
+			"RoleId": "keystone:guard",
+			"Weight": 100
+		}
+	],
+
+	"RequiredContracts": [
+		"TerritoryGuardContract"
+	],
+
+	"Safety": {
+		"NeverCreateNpcStateInP3": true,
+		"BlockSpawnIfAnchorMissing": true,
+		"BlockSpawnIfTerritoryMissing": true,
+		"ReturnNpcIfOutsideReturnRadius": true,
+		"DoNotDeleteNpcIfTerritoryMissing": true
+	}
+}

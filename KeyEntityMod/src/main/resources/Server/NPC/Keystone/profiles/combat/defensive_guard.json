@@ -1,0 +1,43 @@
+{
+	"Id": "defensive_guard",
+	"Version": 1,
+	"Type": "CombatProfile",
+
+	"CombatId": "defensive_guard",
+
+	"Tags": [
+		"guard",
+		"defensive",
+		"friendly",
+		"protector"
+	],
+
+	"Hostility": {
+		"Hostile": false,
+		"Aggressive": false,
+		"CanStartCombat": true,
+		"CanDefendSelf": true
+	},
+
+	"Targeting": {
+		"DetectHostiles": true,
+		"AttackPlayers": false,
+		"AttackNPCs": true,
+		"AssistAllies": true
+	},
+
+	"Behavior": {
+		"FleeWhenThreatened": false,
+		"UseSafetyMarker": false,
+		"CallForHelp": true,
+		"ReturnToRoutineAfterDanger": true,
+		"ReturnToPatrolAfterCombat": true
+	},
+
+	"Ranges": {
+		"DetectionRadius": 18.0,
+		"AssistRadius": 24.0,
+		"ChaseRadius": 32.0,
+		"ReturnRadius": 48.0
+	}
+}

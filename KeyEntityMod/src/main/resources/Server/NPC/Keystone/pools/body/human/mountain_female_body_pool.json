@@ -1,0 +1,70 @@
+{
+	"Id": "mountain_female_body_pool",
+	"Version": 1,
+	"Type": "BodyPool",
+	"BodyTheme": "mountain",
+	"Sex": "female",
+
+	"Entries": [
+		{
+			"Id": "mountain_female_adult_01",
+			"Weight": 40,
+			"BodyProfile": "human_female",
+			"Age": "adult",
+			"SkinTone": "cold_fair",
+			"HairStyle": "thick_braided",
+			"HairColor": "dark_blond",
+			"EyeColor": "steel_blue",
+			"FaceProfile": "broad_mountain_face",
+			"Tags": [
+				"human",
+				"mountain",
+				"female",
+				"adult",
+				"sturdy"
+			]
+		},
+		{
+			"Id": "mountain_female_adult_02",
+			"Weight": 35,
+			"BodyProfile": "human_female",
+			"Age": "adult",
+			"SkinTone": "weathered_light",
+			"HairStyle": "medium_tied",
+			"HairColor": "brown",
+			"EyeColor": "grey",
+			"FaceProfile": "rugged_mountain_face",
+			"Tags": [
+				"human",
+				"mountain",
+				"female",
+				"adult",
+				"worker"
+			]
+		},
+		{
+			"Id": "mountain_female_adult_03",
+			"Weight": 25,
+			"BodyProfile": "human_female",
+			"Age": "adult",
+			"SkinTone": "frost_touched",
+			"HairStyle": "long_rough",
+			"HairColor": "black_brown",
+			"EyeColor": "pale_blue",
+			"FaceProfile": "scarred_mountain_face",
+			"Tags": [
+				"human",
+				"mountain",
+				"female",
+				"adult",
+				"tough"
+			]
+		}
+	],
+
+	"Safety": {
+		"EntriesMustHaveStableIds": true,
+		"NeverRerollOnRestart": true,
+		"NeverCreateNpcStateInP3": true
+	}
+}

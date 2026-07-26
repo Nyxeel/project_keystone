@@ -1,0 +1,60 @@
+{
+	"Id": "simple_house_shop_compositions",
+	"Version": 1,
+	"Type": "CompositionPool",
+
+	"Entries": [
+		{
+			"Id": "shop_owner_single",
+			"Weight": 70,
+			"Npcs": [
+				{
+					"RoleId": "keystone:trader",
+					"HomeSlot": "resident_1",
+					"WorkSlot": "shop_work_1",
+					"RequiredSex": "any",
+					"RequiredTags": [
+						"adult",
+						"worker",
+						"trader"
+					]
+				}
+			]
+		},
+		{
+			"Id": "shop_owner_with_assistent",
+			"Weight": 30,
+			"Npcs": [
+				{
+					"RoleId": "keystone:trader",
+					"HomeSlot": "resident_1",
+					"WorkSlot": "shop_work_1",
+					"RequiredSex": "any",
+					"RequiredTags": [
+						"adult",
+						"worker",
+						"trader"
+					]
+				},
+				{
+					"RoleId": "keystone:trader",
+					"HomeSlot": "resident_2",
+					"WorkSlot": null,
+					"RequiredSex": "any",
+					"RequiredTags": [
+						"adult",
+						"worker",
+						"trader"
+					]
+				}
+			]
+		}
+	],
+
+	"Safety": {
+		"EntriesMustHaveStableIds": true,
+		"RequiresUniqueHomeSlots": true,
+		"RequiresUniqueWorkSlots": true,
+		"NeverCreateNpcStateInP3": true
+	}
+}

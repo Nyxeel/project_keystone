@@ -1,0 +1,38 @@
+{
+	"Id": "guard_contract",
+	"Version": 1,
+	"Type": "StructureContract",
+
+	"ContractId": "GuardContract",
+
+	"Purpose": "Provides guard post markers for guard NPC roles inside a structure.",
+
+	"RequiredSlots": {
+		"GuardPostSlots": 1
+	},
+
+	"RequiredMarkersPerGuardSlot": [
+		"patrol_a"
+	],
+
+	"OptionalMarkers": [
+		"patrol_b",
+		"watch_point",
+		"alarm_point",
+		"defense_point"
+	],
+
+	"MarkerUsage": {
+		"patrol_a": "Exclusive",
+		"patrol_b": "Exclusive",
+		"watch_point": "Exclusive",
+		"alarm_point": "Shared",
+		"defense_point": "Shared"
+	},
+
+	"Safety": {
+		"RequiresUniqueGuardSlotPerGuard": true,
+		"BlockGuardRoutineIfRequiredMarkerMissing": true,
+		"DoNotDeleteNpcIfGuardPostMissing": true
+	}
+}

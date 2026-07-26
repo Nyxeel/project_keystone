@@ -1,0 +1,68 @@
+{
+	"Id": "sand_female_body_pool",
+	"Version": 1,
+	"Type": "BodyPool",
+	"BodyTheme": "sand",
+	"Sex": "female",
+
+	"Entries": [
+		{
+			"Id": "sand_female_adult_01",
+			"Weight": 40,
+			"BodyProfile": "human_female",
+			"Age": "adult",
+			"SkinTone": "sun_bronzed",
+			"HairStyle": "long_braided",
+			"HairColor": "black",
+			"EyeColor": "amber",
+			"FaceProfile": "sharp_desert_face",
+			"Tags": [
+				"human",
+				"sand",
+				"female",
+				"adult"
+			]
+		},
+		{
+			"Id": "sand_female_adult_02",
+			"Weight": 35,
+			"BodyProfile": "human_female",
+			"Age": "adult",
+			"SkinTone": "warm_olive",
+			"HairStyle": "medium_tied",
+			"HairColor": "dark_brown",
+			"EyeColor": "hazel",
+			"FaceProfile": "weathered_desert_face",
+			"Tags": [
+				"human",
+				"sand",
+				"female",
+				"adult",
+				"worker"
+			]
+		},
+		{
+			"Id": "sand_female_adult_03",
+			"Weight": 25,
+			"BodyProfile": "human_female",
+			"Age": "adult",
+			"SkinTone": "deep_tan",
+			"HairStyle": "wrapped_hair",
+			"HairColor": "black",
+			"EyeColor": "dark_brown",
+			"FaceProfile": "calm_desert_face",
+			"Tags": [
+				"human",
+				"sand",
+				"female",
+				"adult"
+			]
+		}
+	],
+
+	"Safety": {
+		"EntriesMustHaveStableIds": true,
+		"NeverRerollOnRestart": true,
+		"NeverCreateNpcStateInP3": true
+	}
+}

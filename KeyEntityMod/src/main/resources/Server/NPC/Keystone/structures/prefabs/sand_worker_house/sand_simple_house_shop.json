@@ -1,0 +1,115 @@
+{
+	"Id": "sand_simple_house_shop",
+	"Version": 1,
+	"Type": "StructurePrefab",
+
+	"PrefabId": "sand_simple_house_shop",
+	"PrefabPath": "Server/NPC/Keystone/structures/prefabs/sand_worker_house/sand_simple_house_shop.prefab",
+
+	"StructureTheme": "sand",
+
+	"AllowedBiomes": [
+		"sand_desert",
+		"dry_plains"
+	],
+
+	"ProvidesContracts": [
+		"ResidenceContract",
+		"ShopContract"
+	],
+
+	"Tags": [
+		"sand",
+		"worker",
+		"medium",
+		"shop",
+		"house"
+	],
+
+	"Slots": {
+		"ResidenceSlots": [
+			"resident_1",
+			"resident_2"
+		],
+		"ShopWorkstationSlots": [
+			"shop_work_1"
+		]
+	},
+
+	"Markers": {
+		"resident_1.bed": {
+			"MarkerType": "BED",
+			"Usage": "Exclusive",
+			"SlotId": "resident_1"
+		},
+		"resident_1.table_seat": {
+			"MarkerType": "TABLE_SEAT",
+			"Usage": "Exclusive",
+			"SlotId": "resident_1"
+		},
+		"resident_1.idle": {
+			"MarkerType": "IDLE",
+			"Usage": "Exclusive",
+			"SlotId": "resident_1"
+		},
+		"resident_2.bed": {
+			"MarkerType": "BED",
+			"Usage": "Exclusive",
+			"SlotId": "resident_2"
+		},
+		"resident_2.table_seat": {
+			"MarkerType": "TABLE_SEAT",
+			"Usage": "Exclusive",
+			"SlotId": "resident_2"
+		},
+		"resident_2.idle": {
+			"MarkerType": "IDLE",
+			"Usage": "Exclusive",
+			"SlotId": "resident_2"
+		},
+		"door": {
+			"MarkerType": "DOOR",
+			"Usage": "Shared"
+		},
+		"safety_zone": {
+			"MarkerType": "SAFETY_ZONE",
+			"Usage": "Shared"
+		},
+		"food_source": {
+			"MarkerType": "FOOD_SOURCE",
+			"Usage": "Shared"
+		},
+		"shop_work_1.counter": {
+			"MarkerType": "SHOP_COUNTER",
+			"Usage": "Exclusive",
+			"SlotId": "shop_work_1"
+		},
+		"shop_work_1.customer_spot": {
+			"MarkerType": "CUSTOMER_SPOT",
+			"Usage": "Shared",
+			"SlotId": "shop_work_1"
+		},
+		"shop_work_1.shelf": {
+			"MarkerType": "SHOP_SHELF",
+			"Usage": "Exclusive",
+			"SlotId": "shop_work_1"
+		},
+		"shop_work_1.storage": {
+			"MarkerType": "SHOP_STORAGE",
+			"Usage": "Exclusive",
+			"SlotId": "shop_work_1"
+		}
+	},
+
+	"CompositionPools": [
+		"pools/compositions/simple_house_shop_compositions.json"
+	],
+
+	"Safety": {
+		"RequiresAllContractMarkers": true,
+		"RequiresUniqueResidentSlots": true,
+		"RequiresUniqueWorkSlots": true,
+		"NeverCreateNpcStateInP3": true,
+		"NeverPlacePrefabInP3": true
+	}
+}

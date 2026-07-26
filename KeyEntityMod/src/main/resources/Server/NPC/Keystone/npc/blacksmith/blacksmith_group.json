@@ -1,0 +1,93 @@
+{
+	"Id": "blacksmith_group",
+	"Version": 1,
+	"Type": "NpcGroup",
+
+	"Namespace": "keystone",
+
+	"SharedProfiles": {
+		"CreatureType": "profiles/creature/human.json",
+		"BodyPool": "pools/body/human_body_pool_group.json",
+		"NamePool": "pools/names/human/human_name_pool_group.json",
+		"OutfitPool": "pools/outfits/human_outfit_pool_group.json",
+
+		"Movement": "profiles/movement/human_walk.json",
+		"Navigation": "profiles/navigation/friendly_worker.json",
+		"Combat": "profiles/combat/peaceful.json",
+		"Spawn": "profiles/spawn/structure_bound.json",
+		"Persistence": "profiles/persistence/persistent_citizen.json",
+		"Events": "profiles/events/worker_events.json",
+		"Dialogue": "profiles/dialogue/worker_dialogue.json"
+	},
+
+	"Variants": [
+		{
+			"RoleId": "blacksmith",
+
+			"SelectionTags": [
+				"human",
+				"worker",
+				"blacksmith"
+			],
+
+			"Engine": {
+				"HytaleRole": "Keystone_Human_Worker"
+			},
+
+			"Display": {
+				"FallbackName": "Blacksmith",
+				"NameTranslationKey": "keystone.npc.roles.blacksmith.name"
+			},
+
+			"Profiles": {
+				"Routine": "npc/blacksmith/routines/blacksmith_day_cycle.json",
+				"Actions": "npc/blacksmith/actions/blacksmith_actions.json"
+			},
+
+			"Markers": {
+				"RequiredMarkers": [
+					"bed",
+					"table_seat",
+					"idle",
+					"door",
+					"food_source",
+					"anvil",
+					"forge",
+					"cooling_barrel"
+				],
+				"MarkerRoles": {
+					"bed": "BED",
+					"table_seat": "TABLE_SEAT",
+					"idle": "IDLE",
+					"door": "DOOR",
+					"food_source": "FOOD_SOURCE",
+					"anvil": "ANVIL",
+					"forge": "FORGE",
+					"cooling_barrel": "COOLING_BARREL",
+					"safety_zone": "SAFETY_ZONE",
+					"gather_point": "GATHER_POINT"
+				},
+				"SafetyMarkers": [
+					"safety_zone"
+				],
+				"EventMarkers": [
+					"gather_point"
+				],
+				"OptionalMarkers": [
+					"tool_storage",
+					"ore_storage",
+					"finished_goods_storage",
+					"market_stall"
+				]
+			},
+
+			"Debug": {
+				"Enabled": true,
+				"LogRoutine": true,
+				"LogMarkers": true,
+				"LogNavigation": false,
+				"LogActions": true
+			}
+		}
+	]
+}

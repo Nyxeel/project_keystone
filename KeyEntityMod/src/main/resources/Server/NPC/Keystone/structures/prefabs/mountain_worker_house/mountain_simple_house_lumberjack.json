@@ -1,0 +1,110 @@
+{
+	"Id": "mountain_simple_house_lumberjack",
+	"Version": 1,
+	"Type": "StructurePrefab",
+
+	"PrefabId": "mountain_simple_house_lumberjack",
+	"PrefabPath": "Server/NPC/Keystone/structures/prefabs/mountain_worker_house/mountain_simple_house_lumberjack.prefab",
+
+	"StructureTheme": "mountain",
+
+	"AllowedBiomes": [
+		"mountain",
+		"highlands"
+	],
+
+	"ProvidesContracts": [
+		"ResidenceContract",
+		"LumberjackContract"
+	],
+
+	"Tags": [
+		"mountain",
+		"worker",
+		"medium",
+		"lumberjack",
+		"house"
+	],
+
+	"Slots": {
+		"ResidenceSlots": [
+			"resident_1",
+			"resident_2"
+		],
+		"LumberjackWorkstationSlots": [
+			"lumberjack_work_1"
+		]
+	},
+
+	"Markers": {
+		"resident_1.bed": {
+			"MarkerType": "BED",
+			"Usage": "Exclusive",
+			"SlotId": "resident_1"
+		},
+		"resident_1.table_seat": {
+			"MarkerType": "TABLE_SEAT",
+			"Usage": "Exclusive",
+			"SlotId": "resident_1"
+		},
+		"resident_1.idle": {
+			"MarkerType": "IDLE",
+			"Usage": "Exclusive",
+			"SlotId": "resident_1"
+		},
+		"resident_2.bed": {
+			"MarkerType": "BED",
+			"Usage": "Exclusive",
+			"SlotId": "resident_2"
+		},
+		"resident_2.table_seat": {
+			"MarkerType": "TABLE_SEAT",
+			"Usage": "Exclusive",
+			"SlotId": "resident_2"
+		},
+		"resident_2.idle": {
+			"MarkerType": "IDLE",
+			"Usage": "Exclusive",
+			"SlotId": "resident_2"
+		},
+		"door": {
+			"MarkerType": "DOOR",
+			"Usage": "Shared"
+		},
+		"safety_zone": {
+			"MarkerType": "SAFETY_ZONE",
+			"Usage": "Shared"
+		},
+		"food_source": {
+			"MarkerType": "FOOD_SOURCE",
+			"Usage": "Shared"
+		},
+		"lumberjack_work_1.chop_spot": {
+			"MarkerType": "CHOP_SPOT",
+			"Usage": "Exclusive",
+			"SlotId": "lumberjack_work_1"
+		},
+		"lumberjack_work_1.log_storage": {
+			"MarkerType": "LOG_STORAGE",
+			"Usage": "Exclusive",
+			"SlotId": "lumberjack_work_1"
+		},
+		"lumberjack_work_1.wood_pile": {
+			"MarkerType": "WOOD_PILE",
+			"Usage": "Exclusive",
+			"SlotId": "lumberjack_work_1"
+		}
+	},
+
+	"CompositionPools": [
+		"pools/compositions/simple_house_lumberjack_compositions.json"
+	],
+
+	"Safety": {
+		"RequiresAllContractMarkers": true,
+		"RequiresUniqueResidentSlots": true,
+		"RequiresUniqueWorkSlots": true,
+		"NeverCreateNpcStateInP3": true,
+		"NeverPlacePrefabInP3": true
+	}
+}

@@ -1,0 +1,95 @@
+{
+	"Id": "trader_group",
+	"Version": 1,
+	"Type": "NpcGroup",
+
+	"Namespace": "keystone",
+
+	"SharedProfiles": {
+		"CreatureType": "profiles/creature/human.json",
+		"BodyPool": "pools/body/human_body_pool_group.json",
+		"NamePool": "pools/names/human/human_name_pool_group.json",
+		"OutfitPool": "pools/outfits/human_outfit_pool_group.json",
+
+		"Movement": "profiles/movement/human_walk.json",
+		"Navigation": "profiles/navigation/friendly_worker.json",
+		"Combat": "profiles/combat/peaceful.json",
+		"Spawn": "profiles/spawn/structure_bound.json",
+		"Persistence": "profiles/persistence/persistent_citizen.json",
+		"Events": "profiles/events/worker_events.json",
+		"Dialogue": "profiles/dialogue/worker_dialogue.json"
+	},
+
+	"Variants": [
+		{
+			"RoleId": "trader",
+
+			"SelectionTags": [
+				"human",
+				"worker",
+				"trader"
+			],
+
+			"Engine": {
+				"HytaleRole": "Keystone_Human_Worker"
+			},
+
+			"Display": {
+				"FallbackName": "Trader",
+				"NameTranslationKey": "keystone.npc.roles.trader.name"
+			},
+
+			"Profiles": {
+				"Routine": "npc/trader/routines/trader_day_cycle.json",
+				"Actions": "npc/trader/actions/trader_actions.json",
+				"Trading": "npc/trader/trading/trader_basic_shop.json"
+			},
+
+			"Markers": {
+				"RequiredMarkers": [
+					"bed",
+					"table_seat",
+					"idle",
+					"door",
+					"food_source",
+					"counter",
+					"customer_spot",
+					"storage"
+				],
+				"MarkerRoles": {
+					"bed": "BED",
+					"table_seat": "TABLE_SEAT",
+					"idle": "IDLE",
+					"door": "DOOR",
+					"food_source": "FOOD_SOURCE",
+					"counter": "COUNTER",
+					"customer_spot": "CUSTOMER_SPOT",
+					"storage": "STORAGE",
+					"safety_zone": "SAFETY_ZONE",
+					"gather_point": "GATHER_POINT"
+				},
+				"SafetyMarkers": [
+					"safety_zone"
+				],
+				"EventMarkers": [
+					"gather_point"
+				],
+				"OptionalMarkers": [
+					"shelf",
+					"display_table",
+					"cashbox",
+					"backroom_storage",
+					"market_stall"
+				]
+			},
+
+			"Debug": {
+				"Enabled": true,
+				"LogRoutine": true,
+				"LogMarkers": true,
+				"LogNavigation": false,
+				"LogActions": true
+			}
+		}
+	]
+}

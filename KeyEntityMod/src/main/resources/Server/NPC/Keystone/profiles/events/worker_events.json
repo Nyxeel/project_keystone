@@ -1,0 +1,43 @@
+{
+	"Id": "worker_events",
+	"Version": 1,
+	"Type": "EventProfile",
+
+	"EventProfileId": "worker_events",
+
+	"Tags": [
+		"worker",
+		"civilian",
+		"friendly",
+		"structure_bound"
+	],
+
+	"Events": {
+		"Raid": {
+			"Enabled": true,
+			"Behavior": "FleeToSafety",
+			"RequiredMarker": "safety_zone",
+			"FallbackBehavior": "ReturnHome"
+		},
+
+		"Fire": {
+			"Enabled": true,
+			"Behavior": "MoveToGatherPoint",
+			"RequiredMarker": "gather_point",
+			"FallbackBehavior": "MoveToSafety"
+		},
+
+		"MarketOpen": {
+			"Enabled": true,
+			"Behavior": "UsePoiIfAvailable",
+			"RequiredPoi": "market_stall",
+			"FallbackBehavior": "ContinueRoutine"
+		}
+	},
+
+	"Safety": {
+		"MissingOptionalEventMarkerIsNotFatal": true,
+		"MissingRequiredEventMarkerBlocksOnlyThatEvent": true,
+		"NeverDeleteNpcOnMissingEventMarker": true
+	}
+}

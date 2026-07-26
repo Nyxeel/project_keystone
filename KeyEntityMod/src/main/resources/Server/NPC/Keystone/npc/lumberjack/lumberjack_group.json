@@ -1,0 +1,90 @@
+{
+	"Id": "lumberjack_group",
+	"Version": 1,
+	"Type": "NpcGroup",
+
+	"Namespace": "keystone",
+
+	"SharedProfiles": {
+		"CreatureType": "profiles/creature/human.json",
+		"BodyPool": "pools/body/human_body_pool_group.json",
+		"NamePool": "pools/names/human/human_name_pool_group.json",
+		"OutfitPool": "pools/outfits/human_outfit_pool_group.json",
+
+		"Movement": "profiles/movement/human_walk.json",
+		"Navigation": "profiles/navigation/friendly_worker.json",
+		"Combat": "profiles/combat/peaceful.json",
+		"Spawn": "profiles/spawn/structure_bound.json",
+		"Persistence": "profiles/persistence/persistent_citizen.json",
+		"Events": "profiles/events/worker_events.json",
+		"Dialogue": "profiles/dialogue/worker_dialogue.json"
+	},
+
+	"Variants": [
+		{
+			"RoleId": "lumberjack",
+
+			"SelectionTags": [
+				"human",
+				"worker",
+				"lumberjack"
+			],
+
+			"Engine": {
+				"HytaleRole": "Keystone_Human_Worker"
+			},
+
+			"Display": {
+				"FallbackName": "Lumberjack",
+				"NameTranslationKey": "keystone.npc.roles.lumberjack.name"
+			},
+
+			"Profiles": {
+				"Routine": "npc/lumberjack/routines/lumberjack_day_cycle.json",
+				"Actions": "npc/lumberjack/actions/lumberjack_actions.json"
+			},
+
+			"Markers": {
+				"RequiredMarkers": [
+					"bed",
+					"table_seat",
+					"idle",
+					"door",
+					"food_source",
+					"chop_spot",
+					"log_storage"
+				],
+				"MarkerRoles": {
+					"bed": "BED",
+					"table_seat": "TABLE_SEAT",
+					"idle": "IDLE",
+					"door": "DOOR",
+					"food_source": "FOOD_SOURCE",
+					"chop_spot": "CHOP_SPOT",
+					"log_storage": "LOG_STORAGE",
+					"safety_zone": "SAFETY_ZONE",
+					"gather_point": "GATHER_POINT"
+				},
+				"SafetyMarkers": [
+					"safety_zone"
+				],
+				"EventMarkers": [
+					"gather_point"
+				],
+				"OptionalMarkers": [
+					"market_stall",
+					"well",
+					"washing_place"
+				]
+			},
+
+			"Debug": {
+				"Enabled": true,
+				"LogRoutine": true,
+				"LogMarkers": true,
+				"LogNavigation": false,
+				"LogActions": true
+			}
+		}
+	]
+}

@@ -1,0 +1,42 @@
+{
+	"Id": "shop_contract",
+	"Version": 1,
+	"Type": "StructureContract",
+
+	"ContractId": "ShopContract",
+
+	"Purpose": "Provides a shop work area for trader NPC roles.",
+
+	"RequiredSlots": {
+		"ShopWorkstationSlots": 1
+	},
+
+	"RequiredMarkersPerWorkSlot": [
+		"counter",
+		"customer_spot",
+		"storage"
+	],
+
+	"OptionalMarkers": [
+		"shelf",
+		"display_table",
+		"cashbox",
+		"backroom_storage"
+	],
+
+	"MarkerUsage": {
+		"counter": "Exclusive",
+		"customer_spot": "Shared",
+		"storage": "Shared",
+		"shelf": "Shared",
+		"display_table": "Shared",
+		"cashbox": "Exclusive",
+		"backroom_storage": "Shared"
+	},
+
+	"Safety": {
+		"RequiresUniqueWorkSlotPerTrader": true,
+		"BlockTradingRoutineIfRequiredMarkerMissing": true,
+		"DoNotDeleteNpcIfShopMissing": true
+	}
+}

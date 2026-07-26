@@ -1,0 +1,35 @@
+{
+	"Id": "peaceful",
+	"Version": 1,
+	"Type": "CombatProfile",
+
+	"CombatId": "peaceful",
+
+	"Tags": [
+		"peaceful",
+		"civilian",
+		"worker",
+		"non_hostile"
+	],
+
+	"Hostility": {
+		"Hostile": false,
+		"Aggressive": false,
+		"CanStartCombat": false,
+		"CanDefendSelf": false
+	},
+
+	"Targeting": {
+		"DetectHostiles": false,
+		"AttackPlayers": false,
+		"AttackNPCs": false,
+		"AssistAllies": false
+	},
+
+	"Behavior": {
+		"FleeWhenThreatened": true,
+		"UseSafetyMarker": true,
+		"CallForHelp": true,
+		"ReturnToRoutineAfterDanger": true
+	}
+}

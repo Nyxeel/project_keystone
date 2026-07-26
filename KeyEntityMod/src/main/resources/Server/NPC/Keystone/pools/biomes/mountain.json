@@ -1,0 +1,17 @@
+
+{
+	"Id": "mountain",
+	"Version": 1,
+	"Type": "BiomeTheme",
+
+	"StructureTheme": "mountain",
+	"BodyTheme": "mountain",
+	"OutfitTheme": "mountain",
+	"NameTheme": "mountain",
+
+	"Safety": {
+		"ThemeIdsMustBeStable": true,
+		"NeverRerollOnRestart": true,
+		"NeverCreateNpcStateInP3": true
+	}
+}

@@ -1,0 +1,185 @@
+{
+	"Id": "darklands_male_outfit_pool",
+	"Version": 1,
+	"Type": "OutfitPool",
+	"OutfitTheme": "darklands",
+	"Sex": "male",
+	"SupportedTags": [
+		"worker",
+		"citizen",
+		"noble",
+		"magic",
+		"guard",
+		"trader",
+		"lumberjack",
+		"blacksmith"
+	],
+
+	"Entries": [
+		{
+			"Id": "darklands_male_worker_dark",
+			"Weight": 30,
+			"RequiredTags": [
+				"worker"
+			],
+			"OutfitParts": {
+				"Underwear": "Suit.Turquoise",
+				"Pants": "CostumePants.Black",
+				"Overpants": null,
+				"Undertop": "Crinkled_Top.DarkGrey",
+				"Overtop": "WorkerVest.DarkBrown",
+				"Shoes": "BasicShoes_Buckle.Black",
+				"HeadAccessory": null,
+				"FaceAccessory": null,
+				"EarAccessory": null,
+				"Gloves": "WorkerGloves.Black",
+				"Cape": null
+			}
+		},
+		{
+			"Id": "darklands_male_lumberjack_black",
+			"Weight": 30,
+			"RequiredTags": [
+				"lumberjack"
+			],
+			"OutfitParts": {
+				"Underwear": "Suit.Turquoise",
+				"Pants": "CostumePants.DarkGreen",
+				"Overpants": null,
+				"Undertop": "Crinkled_Top.Grey",
+				"Overtop": "WorkerVest.Black",
+				"Shoes": "BasicShoes_Buckle.Black",
+				"HeadAccessory": null,
+				"FaceAccessory": null,
+				"EarAccessory": null,
+				"Gloves": "WorkerGloves.Black",
+				"Cape": null
+			}
+		},
+		{
+			"Id": "darklands_male_blacksmith_ash",
+			"Weight": 20,
+			"RequiredTags": [
+				"blacksmith"
+			],
+			"OutfitParts": {
+				"Underwear": "Suit.Turquoise",
+				"Pants": "CostumePants.Black",
+				"Overpants": null,
+				"Undertop": "Crinkled_Top.DarkGrey",
+				"Overtop": "WorkerApron.Black",
+				"Shoes": "BasicShoes_Buckle.Black",
+				"HeadAccessory": null,
+				"FaceAccessory": null,
+				"EarAccessory": null,
+				"Gloves": "WorkerGloves.Black",
+				"Cape": null
+			}
+		},
+		{
+			"Id": "darklands_male_trader_shadow",
+			"Weight": 15,
+			"RequiredTags": [
+				"trader"
+			],
+			"OutfitParts": {
+				"Underwear": "Suit.Turquoise",
+				"Pants": "CostumePants.Black",
+				"Overpants": null,
+				"Undertop": "Crinkled_Top.Grey",
+				"Overtop": "MerchantVest.DarkPurple",
+				"Shoes": "BasicShoes_Buckle.Black",
+				"HeadAccessory": null,
+				"FaceAccessory": null,
+				"EarAccessory": null,
+				"Gloves": null,
+				"Cape": null
+			}
+		},
+		{
+			"Id": "darklands_male_guard_black",
+			"Weight": 5,
+			"RequiredTags": [
+				"guard"
+			],
+			"OutfitParts": {
+				"Underwear": "Suit.Turquoise",
+				"Pants": "CostumePants.Black",
+				"Overpants": null,
+				"Undertop": "Crinkled_Top.DarkGrey",
+				"Overtop": "HeavyWorkerVest.Black",
+				"Shoes": "BasicShoes_Buckle.Black",
+				"HeadAccessory": null,
+				"FaceAccessory": null,
+				"EarAccessory": null,
+				"Gloves": "WorkerGloves.Black",
+				"Cape": null
+			}
+		},
+		{
+			"Id": "darklands_male_citizen_ash",
+			"Weight": 20,
+			"RequiredTags": [
+				"citizen"
+			],
+			"OutfitParts": {
+				"Underwear": "Suit.Turquoise",
+				"Pants": "CostumePants.DarkGrey",
+				"Overpants": null,
+				"Undertop": "Crinkled_Top.Grey",
+				"Overtop": "CommonerTunic.DarkBrown",
+				"Shoes": "BasicShoes_Buckle.Black",
+				"HeadAccessory": null,
+				"FaceAccessory": null,
+				"EarAccessory": null,
+				"Gloves": null,
+				"Cape": null
+			}
+		},
+		{
+			"Id": "darklands_male_noble_obsidian",
+			"Weight": 8,
+			"RequiredTags": [
+				"noble"
+			],
+			"OutfitParts": {
+				"Underwear": "Suit.Turquoise",
+				"Pants": "CostumePants.Black",
+				"Overpants": null,
+				"Undertop": "FineShirt.DarkPurple",
+				"Overtop": "NobleCoat.Obsidian",
+				"Shoes": "FineBoots.Black",
+				"HeadAccessory": null,
+				"FaceAccessory": null,
+				"EarAccessory": "Earring.DarkSilver",
+				"Gloves": "FineGloves.Black",
+				"Cape": "Cape.DarkPurple"
+			}
+		},
+		{
+			"Id": "darklands_male_magic_ember",
+			"Weight": 8,
+			"RequiredTags": [
+				"magic"
+			],
+			"OutfitParts": {
+				"Underwear": "Suit.Turquoise",
+				"Pants": "CostumePants.Black",
+				"Overpants": null,
+				"Undertop": "MageUndertop.DarkGrey",
+				"Overtop": "MageRobe.EmberBlack",
+				"Shoes": "BasicShoes_Buckle.Black",
+				"HeadAccessory": null,
+				"FaceAccessory": null,
+				"EarAccessory": null,
+				"Gloves": "MageGloves.Black",
+				"Cape": "Cape.EmberDark"
+			}
+		}
+	],
+
+	"Safety": {
+		"EntriesMustHaveStableIds": true,
+		"NeverRerollOnRestart": true
+	}
+}

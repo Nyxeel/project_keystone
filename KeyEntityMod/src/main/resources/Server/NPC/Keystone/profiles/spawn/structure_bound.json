@@ -1,0 +1,35 @@
+{
+	"Id": "structure_bound",
+	"Version": 1,
+	"Type": "SpawnProfile",
+
+	"SpawnId": "structure_bound",
+
+	"Binding": {
+		"BindingType": "StructureBound",
+		"RequiresStructureInstance": true,
+		"RequiresSlotAssignment": true,
+		"RequiresMarkerAssignments": true
+	},
+
+	"SpawnRules": {
+		"SpawnOnStructureLoad": true,
+		"SpawnOnWorldgenDiscovery": true,
+		"RespawnOnlyIfPersistenceAllows": true,
+		"DoNotSpawnWithoutValidDefinition": true
+	},
+
+	"RequiredStateLinks": [
+		"StructureInstanceId",
+		"SelectedPrefabId",
+		"SelectedCompositionId",
+		"HomeSlotId"
+	],
+
+	"Safety": {
+		"BlockIfStructureMissing": true,
+		"BlockIfSlotMissing": true,
+		"BlockIfRequiredMarkersMissing": true,
+		"NeverCreateStateInP3": true
+	}
+}

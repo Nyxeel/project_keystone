@@ -1,0 +1,40 @@
+{
+	"Id": "residence_contract",
+	"Version": 1,
+	"Type": "StructureContract",
+
+	"ContractId": "ResidenceContract",
+
+	"Purpose": "Provides living slots for NPC residents.",
+
+	"RequiredSlots": {
+		"ResidenceSlots": 1
+	},
+
+	"RequiredMarkersPerResidentSlot": [
+		"bed",
+		"table_seat",
+		"idle"
+	],
+
+	"SharedMarkers": [
+		"door",
+		"safety_zone",
+		"food_source"
+	],
+
+	"MarkerUsage": {
+		"bed": "Exclusive",
+		"table_seat": "Exclusive",
+		"idle": "Exclusive",
+		"door": "Shared",
+		"safety_zone": "Shared",
+		"food_source": "Shared"
+	},
+
+	"Safety": {
+		"RequiresUniqueBedPerResident": true,
+		"RequiresUniqueSeatPerResident": true,
+		"SharedMarkersMayBeUsedByMultipleResidents": true
+	}
+}

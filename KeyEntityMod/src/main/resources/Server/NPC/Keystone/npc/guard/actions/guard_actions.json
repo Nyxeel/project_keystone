@@ -1,0 +1,64 @@
+{
+	"Id": "guard_actions",
+	"Version": 1,
+	"Type": "ActionProfile",
+
+	"ActionProfileId": "guard_actions",
+
+	"Actions": {
+		"guard_report": {
+			"Animation": "guard.report",
+			"Loop": false,
+			"Sound": "npc.guard.report",
+			"RequiresCapability": null
+		},
+
+		"patrol_area": {
+			"Animation": "guard.patrol",
+			"Loop": true,
+			"Sound": null,
+			"RequiresCapability": "PATROL"
+		},
+
+		"watch_territory": {
+			"Animation": "guard.watch",
+			"Loop": true,
+			"Sound": null,
+			"RequiresCapability": "GUARD_AREA"
+		},
+
+		"stand_guard": {
+			"Animation": "guard.stand",
+			"Loop": true,
+			"Sound": null,
+			"RequiresCapability": "GUARD_AREA"
+		},
+
+		"night_watch": {
+			"Animation": "guard.night_watch",
+			"Loop": true,
+			"Sound": null,
+			"RequiresCapability": "GUARD_AREA"
+		},
+
+		"defend_area": {
+			"Animation": "guard.defend",
+			"Loop": true,
+			"Sound": "npc.guard.alert",
+			"RequiresCapability": "COMBAT"
+		},
+
+		"raise_alarm": {
+			"Animation": "guard.raise_alarm",
+			"Loop": false,
+			"Sound": "npc.guard.alarm",
+			"RequiresCapability": "RAISE_ALARM"
+		}
+	},
+
+	"Safety": {
+		"ActionIdsMustBeStable": true,
+		"MissingActionBlocksRoutineStep": true,
+		"NeverExecuteActionsInP3": true
+	}
+}
